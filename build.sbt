@@ -10,7 +10,8 @@ scalacOptions ++= Seq(
   , "-J-Xss10m"
 )
 
-// https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
+libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
+
 libraryDependencies += "org.apache.commons" % "commons-collections4" % "4.4"
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.1.0" % "test"

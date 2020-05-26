@@ -1,10 +1,54 @@
-package truediff.diffable.manual
+package truediff.manual
 
 import truediff._
 import truediff.changeset._
 import truediff.diffable.Diffable
 
 trait Exp extends Diffable
+
+object Exp {
+  case class Hole() extends Exp {
+    override def height: Int = 1
+
+    override def toStringWithURI: String = s"None_$uri()"
+
+    override private[truediff] def diffableKids = Vector()
+
+    override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+      case Hole() =>
+        val newtree = Hole()
+        newtree._uri = this.uri
+        newtree
+      case _ => null
+    }
+
+    override private[truediff] def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+      val that = this
+      if (that.assigned != null) {
+        return that.assigned
+      }
+
+      val newtree = Hole()
+      changes += LoadNode(newtree.uri, newtree.tag, Seq())
+      newtree
+    }
+
+    override private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+      if (this.assigned != null) {
+        changes += DetachNode(parent, link, this.uri)
+        this.assigned = null
+      } else
+        changes += UnloadNode(parent, link, this.uri, Seq())
+    }
+
+    lazy val hash: Array[Byte] = {
+      val digest = Hashable.mkDigest
+      this.getClass.getCanonicalName.getBytes
+      digest.digest()
+    }
+  }
+}
+
 
 case class Num(n: Int) extends Exp {
 

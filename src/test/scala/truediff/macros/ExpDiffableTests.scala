@@ -1,10 +1,13 @@
-package truediff.diffable.manual
+package truediff.macros
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import truediff.diffable.Diffable
+import truediff.macros.diffableTest.Exp.Hole
+import truediff.macros.diffableTest._
 
-class ExpTests extends AnyFlatSpec with Matchers {
-  def testChangeset(src: Exp, dest: Exp, expectedChanges: Int): Unit = {
+class ExpDiffableTests extends AnyFlatSpec with Matchers {
+  def testChangeset(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
     println("Comparing:")
     println(s"  ${src.toStringWithURI}")
     println(s"  ${dest.toStringWithURI}")
@@ -21,6 +24,33 @@ class ExpTests extends AnyFlatSpec with Matchers {
     assertResult(expectedChanges)(changeset.size)
     newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
+  }
+
+
+  "diff" should "fill and create holes" in {
+    testChangeset(
+      Hole(),
+      Add(Num(1), Num(2)),
+      5
+    )
+
+    testChangeset(
+      Add(Hole(), Num(3)),
+      Add(Add(Num(1), Num(2)), Num(3)),
+      5
+    )
+
+    testChangeset(
+      Add(Num(1), Num(2)),
+      Hole(),
+      5
+    )
+
+    testChangeset(
+      Add(Add(Num(1), Num(2)), Num(3)),
+      Add(Hole(), Num(3)),
+      5
+    )
   }
 
   "diff" should "leave subtrees in place" in {
@@ -95,6 +125,6 @@ class ExpTests extends AnyFlatSpec with Matchers {
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       6
     )
-
   }
+
 }
