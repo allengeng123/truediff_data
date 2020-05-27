@@ -31,7 +31,9 @@ object DiffableMacro {
     val tNodeURI = symbolOf[NodeURI]
     val tSubtreeRegistry = symbolOf[SubtreeRegistry]
     val tDiffableOption = symbolOf[DiffableOption[_]]
+    val oDiffableOption = tDiffableOption.companion
     val tDiffableList = symbolOf[DiffableList[_]]
+    val oDiffableList = tDiffableList.companion
     val tOption = symbolOf[Option[_]]
     val tSeq = symbolOf[Seq[_]]
 
@@ -48,32 +50,21 @@ object DiffableMacro {
     val name = Util.nameOf(c)(annottees.head)
 
     var hasCollectionParam: Boolean = false
+    var classParamss: Seq[Tree] = null
+    var classTp: Tree = null
+    var oThis: TermName = null
 
     def rewrite(t: Tree): Tree = t match {
       case q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
         q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents with $tDiffable { $self => ..$stats }"
 
       case q"$mods class $tpname[..$tparams] $ctorMods(...$theparamss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
-        def rewriteParam(param: Tree): Tree = param match {
-          case q"$mods val $p: $tp = $rhs" =>
-            q"$mods val $p: ${rewriteParamType(tp)} = $rhs"
-        }
-        def rewriteParamType(tp: Tree): Tree = tp match {
-          case tq"$top[$targ]" =>
-            val ty = Util.treeType(c)(tp)
-            if (ty <:< typeOf[Option[_]]) {
-              hasCollectionParam = true
-              tq"$tDiffableOption[${rewriteParamType(targ)}]"
-            } else if (ty <:< typeOf[Seq[_]]) {
-              hasCollectionParam = true
-              tq"$tDiffableList[${rewriteParamType(targ)}]"
-            } else
-              tp
-          case _ => tp
-        }
-        val paramss: Seq[Seq[Tree]] = theparamss.asInstanceOf[Seq[Seq[Tree]]].map(_.map(p => rewriteParam(p)))
 
-        val oThis = TermName(tpname.toString)
+        val paramss: Seq[Seq[Tree]] = theparamss.asInstanceOf[Seq[Seq[Tree]]].map(_.map(p => rewriteParam(p)))
+        classParamss = theparamss.flatten
+        classTp = tq"$tpname[..$tparams]"
+
+        oThis = TermName(tpname.toString)
 
         val wat = (p: TermName) => throw new UnsupportedOperationException(s"parameter $p of $tpname")
         val watt = (p: TermName,_:Tree) => throw new UnsupportedOperationException(s"parameter $p of $tpname")
@@ -211,13 +202,76 @@ object DiffableMacro {
         q"""
           $mods object $tname extends { ..$earlydefns } with ..$parents  { $self =>
             ..${body.map(b => Util.addAnnotation(c)(b, annoDiffable, _ => true))}
+
+            ..${if(hasCollectionParam) Seq(convertFunction) else Seq()}
           }
          """
     }
 
-    val res = q"{..${annottees.map(a => rewrite(a))}}"
+    def rewriteParam(param: Tree): Tree = param match {
+      case q"$mods val $p: $tp = $rhs" =>
+        q"$mods val $p: ${rewriteParamType(tp)} = $rhs"
+    }
+    def rewriteParamType(tp: Tree): Tree = tp match {
+      case tq"$_[$targ]" =>
+        val ty = Util.treeType(c)(tp)
+        if (ty <:< typeOf[Option[_]]) {
+          hasCollectionParam = true
+          tq"$tDiffableOption[${rewriteParamType(targ)}]"
+        } else if (ty <:< typeOf[Seq[_]]) {
+          hasCollectionParam = true
+          tq"$tDiffableList[${rewriteParamType(targ)}]"
+        } else
+          tp
+      case _ => tp
+    }
+    def paramConverter(tp: Tree, arg: Tree): Tree = tp match {
+      case tq"$_[$targ]" =>
+        val ty = Util.treeType(c)(tp)
+        if (ty <:< tyDiffable)
+          arg
+        else if (ty <:< typeOf[Option[_]])
+          q"$oDiffableOption.from(${paramConverterRec(targ, arg)})"
+        else if (ty <:< typeOf[Seq[_]])
+          q"$oDiffableList.from(${paramConverterRec(targ, arg)})"
+        else
+          arg
+      case _ => arg
+    }
+    def paramConverterRec(tp: Tree, arg: Tree): Tree = tp match {
+      case tq"$_[$targ]" =>
+        val ty = Util.treeType(c)(tp)
+        if (ty <:< typeOf[Option[_]])
+          q"$arg.map(a => $oDiffableOption.from(${paramConverterRec(targ, q"a")}))"
+        else if (ty <:< typeOf[Seq[_]])
+          q"$arg.map(xs => $oDiffableList.from(${paramConverterRec(targ, q"xs")}))"
+        else
+          arg
+      case _ => arg
+    }
+    def convertFunction: DefDef =
+      q"""
+          def apply(..${classParamss}): $classTp =
+            $oThis(..${classParamss.map{case q"$mods val $p: $tp = $rhs" => paramConverter(tp, q"$p")}})
+        """
 
-    println(res)
-    res
+    val mappedAnnottees = annottees.map(a => rewrite(a))
+
+    if (annottees.size > 1 || !hasCollectionParam) {
+      val res = q"{..$mappedAnnottees}"
+      println(res)
+      res
+    } else {
+      val companion =
+        q"""
+            object $oThis {
+              $convertFunction
+            }
+          """
+      val extendedRes = q"{${mappedAnnottees.head}; $companion}"
+      println(extendedRes)
+      extendedRes
+    }
+
   }
 }

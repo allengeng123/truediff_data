@@ -1,11 +1,11 @@
 package truediff.macros
-package diffableTest
-
-import truediff.diffable.DiffableOption
 
 @diffable
 case class Maybe(a: Option[Exp]) extends Exp
 
-object Maybe {
-  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a))
-}
+@diffable
+case class MaybeMaybe(a: Option[Option[Exp]]) extends Exp
+
+@diffable
+case class MaybeMaybeMaybe(a: Option[Option[Option[Exp]]]) extends Exp
+

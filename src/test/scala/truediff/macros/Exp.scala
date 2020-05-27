@@ -1,5 +1,4 @@
 package truediff.macros
-package diffableTest
 
 @diffable
 trait Exp

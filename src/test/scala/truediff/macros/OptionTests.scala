@@ -1,5 +1,4 @@
 package truediff.macros
-package diffableTest
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

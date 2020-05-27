@@ -68,5 +68,5 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 }
 
 object Maybe {
-  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a))
+  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a.map(a => a)))
 }

@@ -88,5 +88,4 @@ trait Diffable extends Hashable {
     val newtree = this.computeChangeset(that, null, RootLink, buf)
     (buf.toChangeset, newtree)
   }
-
 }
