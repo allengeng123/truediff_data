@@ -2,7 +2,7 @@ package truediff.manual
 
 import truediff._
 import truediff.changeset._
-import truediff.diffable.Diffable
+import truediff.diffable.{Diffable, SubtreeRegistry}
 
 trait Exp extends Diffable
 
@@ -10,9 +10,21 @@ object Exp {
   case class Hole() extends Exp {
     override def height: Int = 1
 
-    override def toStringWithURI: String = s"None_$uri()"
+    override def toStringWithURI: String = s"Hole_$uri()"
 
-    override private[truediff] def diffableKids = Vector()
+    override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+      f(this)
+    }
+
+    override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+      case that: Hole =>
+      case _ =>
+        that.foreachDiffable(t => subtreeReg.shareFor(t))
+    }
+
+    override private[truediff] def assignSubtreesRecurse(): Unit = {
+      // nothing to do
+    }
 
     override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
       case Hole() =>
@@ -29,7 +41,7 @@ object Exp {
       }
 
       val newtree = Hole()
-      changes += LoadNode(newtree.uri, newtree.tag, Seq())
+      changes += LoadNode(newtree.uri, classOf[Hole], Seq())
       newtree
     }
 
@@ -61,9 +73,21 @@ case class Num(n: Int) extends Exp {
 
   override val height: Int = 1
 
-  override private[truediff] def diffableKids: Vector[Diffable] = Vector()
+  override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+    f(this)
+  }
 
   override def toStringWithURI: String = s"Num_$uri($n)"
+
+  override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+    case that: Num if this.n == that.n =>
+    case _ =>
+      that.foreachDiffable(t => subtreeReg.shareFor(t))
+  }
+
+  override private[truediff] def assignSubtreesRecurse(): Unit = {
+    // nothing to do
+  }
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
@@ -80,7 +104,7 @@ case class Num(n: Int) extends Exp {
     }
 
     val newtree = Num(this.n)
-    changes += LoadNode(newtree.uri, newtree.tag, Seq(
+    changes += LoadNode(newtree.uri, classOf[Num], Seq(
       NamedLink("n") -> Literal(this.n)
     ))
     newtree
@@ -107,9 +131,32 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override val height: Int = 1 + Math.max(e1.height, e2.height)
 
-  override private[truediff] def diffableKids: Vector[Diffable] = Vector(e1, e2)
+  override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+    f(this)
+    this.e1.foreachDiffable(f)
+    this.e2.foreachDiffable(f)
+  }
 
   override def toStringWithURI: String = s"Add_$uri(${e1.toStringWithURI}, ${e2.toStringWithURI})"
+
+  override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+    case that: Add =>
+      this.e1.assignShares(that.e1, subtreeReg)
+      this.e2.assignShares(that.e2, subtreeReg)
+    case _ =>
+      this.e1.foreachDiffable(subtreeReg.registerShareFor)
+      this.e2.foreachDiffable(subtreeReg.registerShareFor)
+      that.foreachDiffable(subtreeReg.shareFor)
+  }
+
+  override private[truediff] def assignSubtreesRecurse(): Unit =
+    if (this.e1.height >= this.e2.height) {
+      this.e1.assignSubtrees()
+      this.e2.assignSubtrees()
+    } else {
+      this.e2.assignSubtrees()
+      this.e1.assignSubtrees()
+    }
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Add =>
@@ -130,7 +177,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     val e1 = that.e1.loadUnassigned(changes).asInstanceOf[Exp]
     val e2 = that.e2.loadUnassigned(changes).asInstanceOf[Exp]
     val newtree = Add(e1, e2)
-    changes += LoadNode(newtree.uri, newtree.tag, Seq(
+    changes += LoadNode(newtree.uri, classOf[Add], Seq(
       NamedLink("e1") -> e1.uri,
       NamedLink("e2") -> e2.uri
     ))

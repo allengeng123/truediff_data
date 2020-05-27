@@ -1,10 +1,10 @@
 package truediff.macros
+package diffableTest
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import truediff.diffable.Diffable
 import truediff.macros.diffableTest.Exp.Hole
-import truediff.macros.diffableTest._
 
 class ExpDiffableTests extends AnyFlatSpec with Matchers {
   def testChangeset(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {

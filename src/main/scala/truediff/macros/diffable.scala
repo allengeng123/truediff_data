@@ -1,7 +1,7 @@
 package truediff.macros
 
 import truediff.changeset.{ChangesetBuffer, DetachNode, LoadNode, UnloadNode}
-import truediff.diffable.Diffable
+import truediff.diffable.{Diffable, DiffableList, DiffableOption, SubtreeRegistry}
 import truediff.{Hashable, Link, NamedLink, NodeURI}
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
@@ -15,21 +15,25 @@ class diffable extends StaticAnnotation {
 
 object DiffableMacro {
   def impl(c: whitebox.Context)(annottees: c.Tree*): c.Tree = {
-    import Util._
     import c.universe._
 
     val tDiffable = symbolOf[Diffable]
     val tyDiffable = typeOf[Diffable]
     val tHashable = symbolOf[Hashable]
     val oHashable = tHashable.companion
+    val tUnit = symbolOf[Unit]
     val tArray = symbolOf[Array[_]]
-    val tVector = symbolOf[scala.collection.immutable.Vector[_]]
-    val oVector = tVector.companion
+    val oArray = tArray.companion
     val tByte = symbolOf[Byte]
     val oBigInt = symbolOf[BigInt.type].asClass.module
     val oSeq = symbolOf[Seq.type].asClass.module
     val oMath = symbolOf[Math].companion
     val tNodeURI = symbolOf[NodeURI]
+    val tSubtreeRegistry = symbolOf[SubtreeRegistry]
+    val tDiffableOption = symbolOf[DiffableOption[_]]
+    val tDiffableList = symbolOf[DiffableList[_]]
+    val tOption = symbolOf[Option[_]]
+    val tSeq = symbolOf[Seq[_]]
 
     val oLiteral = symbolOf[truediff.Literal[_]].companion
     val tLink = symbolOf[Link]
@@ -41,80 +45,126 @@ object DiffableMacro {
     val tChangesetBuffer = symbolOf[ChangesetBuffer]
 
     val annoDiffable = q"new _root_.truediff.macros.diffable()"
-    val name = nameOf(c)(annottees.head)
+    val name = Util.nameOf(c)(annottees.head)
+
+    var hasCollectionParam: Boolean = false
 
     def rewrite(t: Tree): Tree = t match {
       case q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
         q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents with $tDiffable { $self => ..$stats }"
 
-      case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
+      case q"$mods class $tpname[..$tparams] $ctorMods(...$theparamss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
+        def rewriteParam(param: Tree): Tree = param match {
+          case q"$mods val $p: $tp = $rhs" =>
+            q"$mods val $p: ${rewriteParamType(tp)} = $rhs"
+        }
+        def rewriteParamType(tp: Tree): Tree = tp match {
+          case tq"$top[$targ]" =>
+            val ty = Util.treeType(c)(tp)
+            if (ty <:< typeOf[Option[_]]) {
+              hasCollectionParam = true
+              tq"$tDiffableOption[${rewriteParamType(targ)}]"
+            } else if (ty <:< typeOf[Seq[_]]) {
+              hasCollectionParam = true
+              tq"$tDiffableList[${rewriteParamType(targ)}]"
+            } else
+              tp
+          case _ => tp
+        }
+        val paramss: Seq[Seq[Tree]] = theparamss.asInstanceOf[Seq[Seq[Tree]]].map(_.map(p => rewriteParam(p)))
 
         val oThis = TermName(tpname.toString)
 
-        def mapAllParams[A](diffable: TermName => A, nonDiffable: TermName => A, option: TermName => A, seq: TermName => A): Seq[A] =
-          mapParams(c)(paramss, tyDiffable, diffable, nonDiffable, option, seq)
+        val wat = (p: TermName) => throw new UnsupportedOperationException(s"parameter $p of $tpname")
+        val watt = (p: TermName,_:Tree) => throw new UnsupportedOperationException(s"parameter $p of $tpname")
 
-        def mapDiffableParams(diffable: TermName => Tree, option: TermName => Tree, seq: TermName => Tree): Seq[Tree] =
-          mapParams(c)(paramss, tyDiffable, p => Some(diffable(p)), _ => None, p => Some(option(p)), p => Some(seq(p))).flatten
+        def mapAllParams[A](diffable: TermName => A, nonDiffable: TermName => A): Seq[A] =
+          Util.mapParams(c)(paramss, tyDiffable, diffable, nonDiffable, wat, wat)
+        def mapAllParamsTyed[A](diffable: (TermName,Tree) => A, nonDiffable: (TermName,Tree) => A): Seq[A] =
+          Util.mapParamsTyped(c)(paramss, tyDiffable, diffable, nonDiffable, watt, watt)
+
+        def mapDiffableParams[A](diffable: TermName => A): Seq[A] =
+          Util.mapParams(c)(paramss, tyDiffable, p => Some(diffable(p)), _ => None, wat, wat).flatten
 
         def mapNonDiffableParams(nonDiffable: TermName => Tree): Seq[Tree] =
-          mapParams(c)(paramss, tyDiffable, _ => None, p => Some(nonDiffable(p)), _ => None, _ => None).flatten
+          Util.mapParams(c)(paramss, tyDiffable, _ => None, p => Some(nonDiffable(p)), wat, wat).flatten
 
         def nondiffableCond(other: Tree) =
-          reduceInfix(c)(mapNonDiffableParams(p => q"this.$p == $other.$p"), TermName("$amp$amp"), q"")
+          Util.reduceInfix(c)(mapNonDiffableParams(p => q"this.$p == $other.$p"), TermName("$amp$amp"), q"")
+
+        val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
+
+
 
         q"""
           $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents with $tDiffable { $self =>
             ..$stats
 
             override def toStringWithURI: String = {
-                val paramStrings = $oSeq(..${mapParams(c)(paramss, tyDiffable,
+                val paramStrings = $oSeq(..${mapAllParams(
                   p => q"this.$p.toStringWithURI",
-                  p => q"this.$p.toString",
-                  p => q"this.$p.map(_.toStringWithURI).toString",
-                  p => q"this.$p.map(_.toStringWithURI).toString")
-                })
+                  p => q"this.$p.toString"
+                )})
                 $oThis + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
             override lazy val hash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               digest.update(this.getClass.getCanonicalName.getBytes)
-              ..${Util.mapParams(c)(paramss, tyDiffable,
+              ..${mapAllParams(
                 p => q"digest.update(this.$p.hash)",
-                p => q"$oHashable.hash(this.$p, digest)",
-                p => q"{if ($p.isEmpty) digest.update(0:$tByte) else {digest.update(1:$tByte); digest.update($p.get)}}",
-                p => q"{digest.update($oBigInt($p.size).toByteArray); $p.foreach((x: $tDiffable) => digest.update(x.hash))}"
+                p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
             }
 
             override val height: Int = 1 + ${
-              reducePrefix(c)(
-                mapDiffableParams(
-                  p => q"this.$p.height",
-                  p => q"this.$p.map(_.height).getOrElse(0)",
-                  p => q"this.$p.foldLeft(0)((max, s) => $oMath.max(max, s.height))"
-                ),
+              Util.reducePrefix(c)(
+                mapDiffableParams(p => q"this.$p.height"),
                 q"$oMath.max",
                 q"0")
             }
 
-            override private[truediff] def diffableKids: $tVector[$tDiffable] = $oVector(..${mapDiffableParams(
-              p => q"this.$p",
-              p => ???,
-              p => ???
-            )})
+            override private[truediff] def foreachDiffable(f: $tDiffable => $tUnit): $tUnit = {
+              f(this)
+              ..${
+                mapDiffableParams(p => q"this.$p.foreachDiffable(f)")}
+            }
+
+            override private[truediff] def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
+              case that: $tpname if ${nondiffableCond(q"that")} =>
+                ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
+              case _ =>
+                ..${mapDiffableParams(p => q"this.$p.foreachDiffable(subtreeReg.registerShareFor)")}
+                that.foreachDiffable(subtreeReg.shareFor)
+            }
+
+            override private[truediff] def assignSubtreesRecurse(): Unit =
+              ${diffableParams match {
+                case Seq() =>
+                  q"{}"
+                case Seq(p1) =>
+                  q"this.$p1.assignSubtrees()"
+                case Seq(p1, p2) =>
+                  q"""if (this.$p1.height >= this.$p2.height) {
+                        this.$p1.assignSubtrees()
+                        this.$p2.assignSubtrees()
+                      } else {
+                        this.$p2.assignSubtrees()
+                        this.$p1.assignSubtrees()
+                      }
+                   """
+                case ps =>
+                  q"$oArray(..${ps.map(p => q"this.$p")}).sortBy(t => -t.height).foreach(_.assignSubtree)"
+              }}
 
             override private[truediff] def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
-                ..${mapParamsTyped(c)(paramss, tyDiffable,
+                ..${mapAllParamsTyed(
                   (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, $oNamedLink(${p.toString}), changes).asInstanceOf[$t]",
-                  (p,t) => q"val $p = this.$p",
-                  (p,t) => ???,
-                  (p,t) => ???
+                  (p,t) => q"val $p = this.$p"
                 )}
-                val $$newtree = $oThis(..${mapParams(c)(paramss, tyDiffable, p => q"$p", p => q"$p", p => q"$p", p => q"$p")})
+                val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
                 $$newtree._uri = this.uri
                 $$newtree
               case _ => null
@@ -126,36 +176,30 @@ object DiffableMacro {
                 return that.assigned
               }
 
-              ..${mapParamsTyped(c)(paramss, tyDiffable,
+              ..${mapAllParamsTyed(
                 (p,t) => q"val $p = that.$p.loadUnassigned(changes).asInstanceOf[$t]",
-                (p,t) => q"val $p = that.$p",
-                (p,t) => ???,
-                (p,t) => ???
+                (p,t) => q"val $p = that.$p"
               )}
-              val $$newtree = $oThis(..${mapParams(c)(paramss, tyDiffable, p => q"$p", p => q"$p", p => q"$p", p => q"$p")})
-              changes += $oLoadNode($$newtree.uri, this.tag, $oSeq(
-                ..${mapParams(c)(paramss, tyDiffable,
+              val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
+              changes += $oLoadNode($$newtree.uri, this.getClass, $oSeq(
+                ..${mapAllParams(
                   p => q"($oNamedLink(${p.toString}), $p.uri)",
-                  p => q"($oNamedLink(${p.toString}), $oLiteral($p))",
-                  p => ???,
-                  p => ???
+                  p => q"($oNamedLink(${p.toString}), $oLiteral($p))"
                 )}
               ))
               $$newtree
             }
 
-            override def unloadUnassigned(parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): Unit = {
+            override def unloadUnassigned(parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tUnit = {
               if (this.assigned != null) {
                 changes += $oDetachNode(parent, link, this.uri)
                 this.assigned = null
               } else {
                 ..${mapDiffableParams(
-                  p => q"this.$p.unloadUnassigned(this.uri, $oNamedLink(${p.toString}), changes)",
-                  p => ???,
-                  p => ???
+                  p => q"this.$p.unloadUnassigned(this.uri, $oNamedLink(${p.toString}), changes)"
                 )}
                 changes += $oUnloadNode(parent, link, this.uri, $oSeq(
-                  ..${mapDiffableParams(p => q"$oNamedLink(${p.toString})", p => q"$oNamedLink(${p.toString})", p => q"$oNamedLink(${p.toString})")}
+                  ..${mapDiffableParams(p => q"$oNamedLink(${p.toString})")}
                 ))
               }
             }

@@ -6,6 +6,9 @@ class SubtreeRegistry {
   val subtrees = new PatriciaTrie[SubtreeShare]()
 
   def shareFor(t: Diffable): SubtreeShare = {
+    if (t.share != null)
+      return t.share
+
     val existingShare = subtrees.get(t.hashString)
     val share = if (existingShare != null)
       existingShare.asInstanceOf[SubtreeShare]
@@ -16,5 +19,9 @@ class SubtreeRegistry {
     }
     t.share = share
     share
+  }
+
+  def registerShareFor(t: Diffable): Unit = {
+    shareFor(t).registerAvailableTree(t)
   }
 }

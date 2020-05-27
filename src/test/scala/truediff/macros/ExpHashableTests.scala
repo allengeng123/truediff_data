@@ -1,10 +1,10 @@
 package truediff.macros
+package hashableTest
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import truediff.diffable.Diffable
 import truediff.macros.hashableTest.Exp.Hole
-import truediff.macros.hashableTest._
 
 class ExpHashableTests extends AnyFlatSpec with Matchers {
   def testChangeset(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
