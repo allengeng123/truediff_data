@@ -80,7 +80,7 @@ object Util {
       case q"$mods object $subname extends { ..$earlydefns } with ..$parents { $self => ..$body }" =>
         if (parentsCond(parents)) {
           val Modifiers(flags, privs, annos) = mods
-          val newmods = Modifiers(flags, privs, annos :+ q"new _root_.org.inca.diff.macros.diffableConstr()")
+          val newmods = Modifiers(flags, privs, annos :+ anno)
           q"$newmods object $subname extends { ..$earlydefns } with ..$parents { $self => ..$body }"
         } else
           q"$mods object $subname extends { ..$earlydefns } with ..$parents { $self => ..$body }"

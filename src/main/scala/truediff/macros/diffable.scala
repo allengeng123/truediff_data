@@ -58,6 +58,8 @@ object DiffableMacro {
       case q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
         q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents with $tDiffable { $self => ..$stats }"
 
+
+
       case q"$mods class $tpname[..$tparams] $ctorMods(...$theparamss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
 
         val paramss: Seq[Seq[Tree]] = theparamss.asInstanceOf[Seq[Seq[Tree]]].map(_.map(p => rewriteParam(p)))
@@ -88,7 +90,7 @@ object DiffableMacro {
 
 
         q"""
-          $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents with $tDiffable { $self =>
+          $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with $tDiffable with ..$parents { $self =>
             ..$stats
 
             override def toStringWithURI: String = {
@@ -199,6 +201,8 @@ object DiffableMacro {
          """
 
       case q"$mods object $tname extends { ..$earlydefns } with ..$parents { $self => ..$body }" =>
+        if (parents.exists(tp => Util.isSubtypeOf(c)(tp, tyDiffable)))
+          throw new IllegalArgumentException(s"Cannot generate diffable code for objects. Consider making ${tname.toString} a class instead.")
         q"""
           $mods object $tname extends { ..$earlydefns } with ..$parents  { $self =>
             ..${body.map(b => Util.addAnnotation(c)(b, annoDiffable, _ => true))}
