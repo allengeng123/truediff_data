@@ -36,7 +36,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Maybe =>
-      val a = this.a.computeChangeset(that.a, this.uri, NamedLink("a"), changes).asInstanceOf[DiffableOption[Exp]]
+      val a = this.a.computeChangeset(that.a, this.uri, NamedLink(this.tag, "a"), changes).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
       newtree._uri = this.uri
       newtree
@@ -52,7 +52,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     val a = this.a.loadUnassigned(changes).asInstanceOf[DiffableOption[Exp]]
     val newtree = Maybe(a)
     changes += LoadNode(newtree.uri, classOf[Maybe], Seq(
-      NamedLink("a") -> a.uri
+      NamedLink(this.tag, "a") -> a.uri
     ))
     newtree
   }
@@ -62,8 +62,8 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
       changes += DetachNode(parent, link, this.uri)
       this.assigned = null
     } else
-      this.a.unloadUnassigned(this.uri, NamedLink("a"), changes)
-      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink("a")))
+      this.a.unloadUnassigned(this.uri, NamedLink(this.tag, "a"), changes)
+      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink(this.tag, "a")))
   }
 }
 

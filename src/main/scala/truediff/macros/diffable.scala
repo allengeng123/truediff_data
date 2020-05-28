@@ -152,7 +152,7 @@ object DiffableMacro {
             override private[truediff] def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyed(
-                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, $oNamedLink(${p.toString}), changes).asInstanceOf[$t]",
+                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, $oNamedLink(this.tag, ${p.toString}), changes).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
                 val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
@@ -172,10 +172,10 @@ object DiffableMacro {
                 (p,t) => q"val $p = that.$p"
               )}
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
-              changes += $oLoadNode($$newtree.uri, this.getClass, $oSeq(
+              changes += $oLoadNode($$newtree.uri, this.tag, $oSeq(
                 ..${mapAllParams(
-                  p => q"($oNamedLink(${p.toString}), $p.uri)",
-                  p => q"($oNamedLink(${p.toString}), $oLiteral($p))"
+                  p => q"($oNamedLink(this.tag, ${p.toString}), $p.uri)",
+                  p => q"($oNamedLink(this.tag, ${p.toString}), $oLiteral($p))"
                 )}
               ))
               $$newtree
@@ -187,10 +187,10 @@ object DiffableMacro {
                 this.assigned = null
               } else {
                 ..${mapDiffableParams(
-                  p => q"this.$p.unloadUnassigned(this.uri, $oNamedLink(${p.toString}), changes)"
+                  p => q"this.$p.unloadUnassigned(this.uri, $oNamedLink(this.tag, ${p.toString}), changes)"
                 )}
                 changes += $oUnloadNode(parent, link, this.uri, $oSeq(
-                  ..${mapDiffableParams(p => q"$oNamedLink(${p.toString})")}
+                  ..${mapDiffableParams(p => q"$oNamedLink(this.tag, ${p.toString})")}
                 ))
               }
             }

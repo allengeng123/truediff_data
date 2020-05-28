@@ -1,6 +1,6 @@
 package truediff.changeset
 
-import truediff.{Link, NodeURI}
+import truediff.{CollectionLink, Link, ListNextLink, NodeURI}
 
 class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
   def cmds: Iterable[Change] = neg.view.concat(pos.view)
@@ -10,18 +10,26 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
     var roots = Set[NodeURI]()
     var stubs = Map[NodeURI, Set[Link]]()
 
+    def ignore(link: Link): Boolean = link match {
+      case ListNextLink => true
+      case CollectionLink(_) => true
+      case _ => false
+    }
+
     def addStub(node: NodeURI, link: Link): Unit =
-      stubs = stubs.updatedWith(node) {
-        case Some(set) => Some(set + link)
-        case None => Some(Set(link))
-      }
+      if (!ignore(link))
+        stubs = stubs.updatedWith(node) {
+          case Some(set) => Some(set + link)
+          case None => Some(Set(link))
+        }
     def removeStub(node: NodeURI, link: Link): Unit =
-      stubs = stubs.updatedWith(node) {
-        case Some(set) =>
-          val newset = set - link
-          if (newset.isEmpty) None else Some(newset)
-        case None => None
-      }
+      if (!ignore(link))
+        stubs = stubs.updatedWith(node) {
+          case Some(set) =>
+            val newset = set - link
+            if (newset.isEmpty) None else Some(newset)
+          case None => None
+        }
 
     neg.foreach {
       case DetachNode(parent, link, node) =>
@@ -30,8 +38,8 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
           return Some(s"Duplicate detach of node $node")
         // parent.link is not a stub yet
         val parentStubs = stubs.getOrElse(parent, Set())
-        if (parentStubs.contains(link))
-          return Some(s"Duplicate free (detach) of $parent.$link")
+        if (!ignore(link) && parentStubs.contains(link))
+          return Some(s"Detach of $node from $parent with already free $link")
         roots += node
         addStub(parent, link)
 
@@ -39,11 +47,11 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         // parent.link is not a stub yet
         val parentStubs = stubs.getOrElse(parent, Set())
         if (parentStubs.contains(link))
-          return Some(s"Duplicate free (unload) of $parent.$link")
+          return Some(s"Unload of $node from $parent with already free $link")
         val nodeStubs = stubs.getOrElse(node, Set())
         for (link <- kidLinks)
-          if (!nodeStubs.contains(link))
-            return Some(s"Unload of node with unfree slot $node.$link")
+          if (!ignore(link) && !nodeStubs.contains(link))
+            return Some(s"Unload of $node from $parent with unfree slot $link")
         stubs -= node
         addStub(parent, link)
     }
@@ -55,8 +63,8 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
           return Some(s"Attach of unfree node $node")
         // parent.link is a stub
         val parentStubs = stubs.getOrElse(parent, Set())
-        if (!parentStubs.contains(link))
-          return Some(s"Attach to unfree slot $parent.$link")
+        if (!ignore(link) && !parentStubs.contains(link))
+          return Some(s"Attach of $node to $parent with unfree slot $link")
         roots -= node
         removeStub(parent, link)
 

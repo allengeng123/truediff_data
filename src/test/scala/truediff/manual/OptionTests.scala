@@ -18,7 +18,7 @@ class OptionTests extends AnyFlatSpec with Matchers {
     println()
 
     assertResult(dest)(newtree)
-//    assertResult(None)(changeset.welltyped)
+    assertResult(None)(changeset.welltyped)
     assertResult(expectedChanges)(changeset.size)
     newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))

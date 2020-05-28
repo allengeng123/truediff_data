@@ -96,7 +96,7 @@ case class Num(n: Int) extends Exp {
 
     val newtree = Num(this.n)
     changes += LoadNode(newtree.uri, classOf[Num], Seq(
-      NamedLink("n") -> Literal(this.n)
+      NamedLink(this.tag, "n") -> Literal(this.n)
     ))
     newtree
   }
@@ -144,8 +144,8 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Add =>
-      val e1 = this.e1.computeChangeset(that.e1, this.uri, NamedLink("e1"), changes).asInstanceOf[Exp]
-      val e2 = this.e2.computeChangeset(that.e2, this.uri, NamedLink("e2"), changes).asInstanceOf[Exp]
+      val e1 = this.e1.computeChangeset(that.e1, this.uri, NamedLink(this.tag, "e1"), changes).asInstanceOf[Exp]
+      val e2 = this.e2.computeChangeset(that.e2, this.uri, NamedLink(this.tag, "e2"), changes).asInstanceOf[Exp]
       val newtree = Add(e1, e2)
       newtree._uri = this.uri
       newtree
@@ -162,8 +162,8 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     val e2 = that.e2.loadUnassigned(changes).asInstanceOf[Exp]
     val newtree = Add(e1, e2)
     changes += LoadNode(newtree.uri, classOf[Add], Seq(
-      NamedLink("e1") -> e1.uri,
-      NamedLink("e2") -> e2.uri
+      NamedLink(this.tag, "e1") -> e1.uri,
+      NamedLink(this.tag, "e2") -> e2.uri
     ))
     newtree
   }
@@ -173,9 +173,9 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
       changes += DetachNode(parent, link, this.uri)
       this.assigned = null
     } else {
-      this.e1.unloadUnassigned(this.uri, NamedLink("e1"), changes)
-      this.e2.unloadUnassigned(this.uri, NamedLink("e2"), changes)
-      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink("e1"), NamedLink("e2")))
+      this.e1.unloadUnassigned(this.uri, NamedLink(this.tag, "e1"), changes)
+      this.e2.unloadUnassigned(this.uri, NamedLink(this.tag, "e2"), changes)
+      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink(this.tag, "e1"), NamedLink(this.tag, "e2")))
     }
   }
 }

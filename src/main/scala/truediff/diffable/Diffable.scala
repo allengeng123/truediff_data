@@ -1,12 +1,15 @@
 package truediff.diffable
 
+import truediff.TreeURI.NodeTag
 import truediff.changeset.{AttachNode, Changeset, ChangesetBuffer}
-import truediff.{Hashable, Link, NodeURI, RootLink}
+import truediff._
 
 trait Diffable extends Hashable {
 
   private[truediff] var _uri: NodeURI = new NodeURI
   def uri: NodeURI = _uri
+
+  def tag: NodeTag = this.getClass
 
   def height: Int
   def toStringWithURI: String
@@ -60,7 +63,7 @@ trait Diffable extends Hashable {
 
   private[truediff] final def computeChangeset(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = {
     if (this.isCollection)
-      return computeChangesetRecurse(that, parent, link, changes)
+      return computeChangesetRecurse(that, parent, CollectionLink.ensure(link), changes)
 
     // this == that
     if (that.assigned != null && that.assigned.uri == this.uri) {

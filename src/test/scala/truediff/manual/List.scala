@@ -36,7 +36,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Many =>
-      val es = this.es.computeChangeset(that.es, this.uri, NamedLink("es"), changes).asInstanceOf[DiffableList[Exp]]
+      val es = this.es.computeChangeset(that.es, this.uri, NamedLink(this.tag, "es"), changes).asInstanceOf[DiffableList[Exp]]
       val newtree = Many(es)
       newtree._uri = this.uri
       newtree
@@ -52,7 +52,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     val es = this.es.loadUnassigned(changes).asInstanceOf[DiffableList[Exp]]
     val newtree = Many(es)
     changes += LoadNode(newtree.uri, classOf[Many], Seq(
-      NamedLink("es") -> es.uri
+      NamedLink(this.tag, "es") -> es.uri
     ))
     newtree
   }
@@ -62,8 +62,8 @@ case class Many(es: DiffableList[Exp]) extends Exp {
       changes += DetachNode(parent, link, this.uri)
       this.assigned = null
     } else
-      this.es.unloadUnassigned(this.uri, NamedLink("es"), changes)
-      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink("es")))
+      this.es.unloadUnassigned(this.uri, NamedLink(this.tag, "es"), changes)
+      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink(this.tag, "es")))
   }
 }
 
