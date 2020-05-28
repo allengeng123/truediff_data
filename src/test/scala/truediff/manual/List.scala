@@ -30,9 +30,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
       that.foreachDiffable(subtreeReg.shareFor)
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Unit = {
-    es.assignSubtrees()
-  }
+  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Many =>

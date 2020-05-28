@@ -22,9 +22,7 @@ object Exp {
         that.foreachDiffable(t => subtreeReg.shareFor(t))
     }
 
-    override private[truediff] def assignSubtreesRecurse(): Unit = {
-      // nothing to do
-    }
+    override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
     override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
       case Hole() =>
@@ -85,9 +83,7 @@ case class Num(n: Int) extends Exp {
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Unit = {
-    // nothing to do
-  }
+  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
@@ -149,14 +145,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
       that.foreachDiffable(subtreeReg.shareFor)
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Unit =
-    if (this.e1.height >= this.e2.height) {
-      this.e1.assignSubtrees()
-      this.e2.assignSubtrees()
-    } else {
-      this.e2.assignSubtrees()
-      this.e1.assignSubtrees()
-    }
+  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable(e1, e2)
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Add =>

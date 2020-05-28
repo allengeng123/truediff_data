@@ -1,8 +1,10 @@
 package truediff.diffable
 
 import truediff.TreeURI.NodeTag
-import truediff.changeset.{AttachNode, Changeset, ChangesetBuffer}
 import truediff._
+import truediff.changeset.{AttachNode, Changeset, ChangesetBuffer}
+
+import scala.collection.mutable
 
 trait Diffable extends Hashable {
 
@@ -21,7 +23,7 @@ trait Diffable extends Hashable {
 
   private[truediff] def foreachDiffable(f: Diffable => Unit): Unit
   private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
-  private[truediff] def assignSubtreesRecurse(): Unit
+  private[truediff] def assignSubtreesRecurse(): Iterable[Diffable]
   private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable
   private[truediff] def loadUnassigned(changes: ChangesetBuffer): Diffable
 
@@ -45,18 +47,22 @@ trait Diffable extends Hashable {
   }
 
   private[truediff] final def assignSubtrees(): Unit = {
-    if (this.isCollection)
-      return assignSubtreesRecurse()
+    val queue = new mutable.PriorityQueue[Diffable]()(Diffable.heightFirstOrdering)
+    queue += this
 
-    val that = this
-    if (that.assigned == null) {
-      that.share.takeAvailableTree() match {
-        case Some(src) =>
-          that.assigned = src
-          src.assigned = that
-          src.share = null
-        case None =>
-          that.assignSubtreesRecurse()
+    while (queue.nonEmpty) {
+      val that = queue.dequeue()
+      if (that.isCollection) {
+        queue ++= that.assignSubtreesRecurse()
+      } else if (that.assigned == null) {
+        that.share.takeAvailableTree() match {
+          case Some(src) =>
+            that.assigned = src
+            src.assigned = that
+            src.share = null
+          case None =>
+            queue ++= that.assignSubtreesRecurse()
+        }
       }
     }
   }
@@ -91,4 +97,8 @@ trait Diffable extends Hashable {
     val newtree = this.computeChangeset(that, null, RootLink, buf)
     (buf.toChangeset, newtree)
   }
+}
+
+object Diffable {
+  val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.height)
 }

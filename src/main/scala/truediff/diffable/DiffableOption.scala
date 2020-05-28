@@ -35,9 +35,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Unit = {
-    // nothing to do
-  }
+  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case DiffableNone => this
@@ -83,9 +81,7 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Unit = {
-    a.assignSubtrees()
-  }
+  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableSome[_] =>

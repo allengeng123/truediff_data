@@ -78,6 +78,14 @@ class ExpTests extends AnyFlatSpec with Matchers {
       Add(Num(2), Add(Num(2), Num(3))),
       3 + 4
     )
+
+    // Note that the tree in which `2` occurs is higher than the one of `2+3`.
+    // This test requires a piecewise height-first traversal of subtrees, such that `2+3` is visited before `2`.
+    testChangeset(
+      Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
+      Add(Add(Num(2), Add(Num(0), Num(0))), Add(Num(2), Num(3))),
+      11
+    )
   }
 
   "diff" should "reuse all subtrees" in {

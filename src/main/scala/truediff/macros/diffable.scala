@@ -36,6 +36,8 @@ object DiffableMacro {
     val oDiffableList = tDiffableList.companion
     val tOption = symbolOf[Option[_]]
     val tSeq = symbolOf[Seq[_]]
+    val tIterable = symbolOf[Iterable[_]]
+    val oIterable = symbolOf[Iterable.type].asClass.module
 
     val oLiteral = symbolOf[truediff.Literal[_]].companion
     val tLink = symbolOf[Link]
@@ -132,23 +134,14 @@ object DiffableMacro {
                 that.foreachDiffable(subtreeReg.shareFor)
             }
 
-            override private[truediff] def assignSubtreesRecurse(): Unit =
+            override private[truediff] def assignSubtreesRecurse(): $tIterable[$tDiffable] =
               ${diffableParams match {
                 case Seq() =>
-                  q"{}"
+                  q"$oIterable.empty"
                 case Seq(p1) =>
-                  q"this.$p1.assignSubtrees()"
-                case Seq(p1, p2) =>
-                  q"""if (this.$p1.height >= this.$p2.height) {
-                        this.$p1.assignSubtrees()
-                        this.$p2.assignSubtrees()
-                      } else {
-                        this.$p2.assignSubtrees()
-                        this.$p1.assignSubtrees()
-                      }
-                   """
+                  q"$oIterable.single(this.$p1)"
                 case ps =>
-                  q"$oArray(..${ps.map(p => q"this.$p")}).sortBy(t => -t.height).foreach(_.assignSubtree)"
+                  q"$oIterable(..${ps.map(p => q"this.$p")})"
               }}
 
             override private[truediff] def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
