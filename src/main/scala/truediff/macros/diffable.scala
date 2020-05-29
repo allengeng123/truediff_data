@@ -114,17 +114,17 @@ object DiffableMacro {
               digest.digest()
             }
 
-            override val height: $tInt = 1 + ${
+            override val treeheight: $tInt = 1 + ${
               Util.reducePrefix(c)(
-                mapDiffableParams(p => q"this.$p.height"),
+                mapDiffableParams(p => q"this.$p.treeheight"),
                 q"$oMath.max",
                 q"0")
             }
 
-            override def size: $tInt =
+            override lazy val treesize: $tInt =
                 1 + ${
                   Util.reduceInfix(c)(
-                    mapDiffableParams(p => q"this.$p.size"),
+                    mapDiffableParams(p => q"this.$p.treesize"),
                     "$plus",
                     q"0")
                 }

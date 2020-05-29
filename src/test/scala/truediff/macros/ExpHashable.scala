@@ -11,9 +11,9 @@ trait Exp extends Diffable
 
 object Exp {
   case class Hole() extends Exp {
-    override def height: Int = 1
+    override def treeheight: Int = 1
 
-    override def size: Int = 1
+    override def treesize: Int = 1
 
     override def toStringWithURI: String = s"None_$uri()"
 
@@ -62,9 +62,9 @@ object Exp {
 @hashable
 case class Num(n: Int) extends Exp {
 
-  override val height: Int = 1
+  override val treeheight: Int = 1
 
-  override def size: Int = 1
+  override def treesize: Int = 1
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
@@ -113,9 +113,9 @@ case class Num(n: Int) extends Exp {
 @hashable
 case class Add(e1: Exp, e2: Exp) extends Exp {
 
-  override val height: Int = 1 + Math.max(e1.height, e2.height)
+  override val treeheight: Int = 1 + Math.max(e1.treeheight, e2.treeheight)
 
-  override def size: Int = 1 + e1.size + e2.size
+  override def treesize: Int = 1 + e1.treesize + e2.treesize
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)

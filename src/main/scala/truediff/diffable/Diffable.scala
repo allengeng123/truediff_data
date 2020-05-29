@@ -13,8 +13,8 @@ trait Diffable extends Hashable {
 
   def tag: NodeTag = this.getClass
 
-  def height: Int
-  def size: Int
+  def treeheight: Int
+  def treesize: Int
   def toStringWithURI: String
 
   private[truediff] def isCollection: Boolean = false
@@ -90,16 +90,16 @@ trait Diffable extends Hashable {
     newtree
   }
 
-  final def compareTo(that: Diffable): (Changeset, Diffable) = {
+  final def compareTo[T <: Diffable](that: T): (Changeset, T) = {
     assignShares(that, new SubtreeRegistry)
     that.assignSubtrees()
 
     val buf = new ChangesetBuffer
     val newtree = this.computeChangeset(that, null, RootLink, buf)
-    (buf.toChangeset, newtree)
+    (buf.toChangeset, newtree.asInstanceOf[T])
   }
 }
 
 object Diffable {
-  val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.height)
+  val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
 }

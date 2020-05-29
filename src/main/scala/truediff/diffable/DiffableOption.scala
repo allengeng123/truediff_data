@@ -21,9 +21,9 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override def uri: NodeURI = null
 
-  override val height: Int = 0
+  override val treeheight: Int = 0
 
-  override def size: Int = 0
+  override def treesize: Int = 0
 
   override val toStringWithURI: String = "None"
 
@@ -67,9 +67,9 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
 
   override def uri: NodeURI = a.uri
 
-  override def height: Int = a.height
+  override def treeheight: Int = a.treeheight
 
-  override def size: Int = a.size
+  override def treesize: Int = a.treesize
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 

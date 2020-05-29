@@ -13,9 +13,9 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     digest.digest()
   }
 
-  override val height: Int = 1 + es.height
+  override val treeheight: Int = 1 + es.treeheight
 
-  override def size: Int = 1 + es.size
+  override def treesize: Int = 1 + es.treesize
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)

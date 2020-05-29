@@ -5,8 +5,12 @@ import truediff.{Hashable, Link, ListNextLink, NodeURI}
 
 sealed trait DiffableList[+A <: Diffable] extends Diffable {
   override private[truediff] def isCollection = true
+  private[truediff] def assignSubtreesRecurse(): Iterable[A]
 
-  private[truediff] def asList: List[A]
+  def length: Int
+  def apply(i: Int): A
+  def updated[B >: A <: Diffable](i: Int, elem: B): DiffableList[B]
+  def indices: Range = Range(0, length)
 }
 object DiffableList {
   def from[A <: Diffable](list: Seq[A]): DiffableList[A] =
@@ -14,8 +18,6 @@ object DiffableList {
 }
 
 case object DiffableNil extends DiffableList[Nothing] {
-  override private[truediff] def asList: List[Nothing] = Nil
-
   override val hash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
@@ -24,9 +26,9 @@ case object DiffableNil extends DiffableList[Nothing] {
 
   override def uri: NodeURI = null
 
-  override val height: Int = 0
+  override val treeheight: Int = 0
 
-  override def size: Int = 0
+  override def treesize: Int = 0
 
   override val toStringWithURI: String = "Nil"
 
@@ -40,7 +42,7 @@ case object DiffableNil extends DiffableList[Nothing] {
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
+  override private[truediff] def assignSubtreesRecurse(): Iterable[Nothing] = Iterable.empty
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case DiffableNil => this
@@ -58,11 +60,13 @@ case object DiffableNil extends DiffableList[Nothing] {
   override private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
     // nothing to unload for Nil
   }
+
+  def length: Int = 0
+  def apply(i: Int): Nothing = throw new IndexOutOfBoundsException()
+  def updated[B >: Nothing](i: Int, elem: B): Nothing = throw new IndexOutOfBoundsException()
 }
 
-final case class DiffableCons[+A <: Diffable](head: A, tail: DiffableList[A]) extends DiffableList[A] {
-  override private[truediff] def asList: List[A] = head::tail.asList
-
+final case class DiffableCons[+A <: Diffable](val head: A, val tail: DiffableList[A]) extends DiffableList[A] {
   override val hash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
@@ -73,9 +77,9 @@ final case class DiffableCons[+A <: Diffable](head: A, tail: DiffableList[A]) ex
 
   override def uri: NodeURI = head.uri
 
-  override def height: Int = Math.max(head.height, tail.height)
+  override def treeheight: Int = Math.max(head.treeheight, tail.treeheight)
 
-  override def size: Int = head.size + tail.size
+  override def treesize: Int = head.treesize + tail.treesize
 
   override def toStringWithURI: String = s"${head.toStringWithURI}::${tail.toStringWithURI}"
 
@@ -94,7 +98,7 @@ final case class DiffableCons[+A <: Diffable](head: A, tail: DiffableList[A]) ex
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = this.asList
+  override private[truediff] def assignSubtreesRecurse(): Iterable[A] = Iterable.single(head).concat(tail.assignSubtreesRecurse())
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableCons[_] =>
@@ -121,4 +125,8 @@ final case class DiffableCons[+A <: Diffable](head: A, tail: DiffableList[A]) ex
     this.head.unloadUnassigned(parent, link, changes)
     this.tail.unloadUnassigned(this.head.uri, ListNextLink, changes)
   }
+
+  def length: Int = 1 + tail.length
+  def apply(i: Int): A = if (i == 0) head else tail(i-1)
+  override def updated[B >: A <: Diffable](i: Int, elem: B): DiffableList[B] = if (i == 0) DiffableCons(elem, tail) else DiffableCons(head, tail.updated(i-1, elem))
 }

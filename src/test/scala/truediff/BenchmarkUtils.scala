@@ -8,9 +8,9 @@ import truediff.diffable.Diffable
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: Changeset, extra: Map[String, Any]) {
+  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: Changeset, extra: Map[String, Any] = Map()) {
     override def toString: String = {
-      val srcsize = src.size
+      val srcsize = src.treesize
       val text = s"""
          |Measurement $name
          |  Src tree size:     $srcsize
@@ -61,21 +61,32 @@ object BenchmarkUtils {
   }
 
   case class Timing(discard: Int, repeat: Int)
-  def timed[R](block: => R)(implicit timing: Timing): (R, Double) = {
+  def warmup(discard: Int): Timing = Timing(discard, 0)
+  def nowarmup(repeat: Int): Timing = Timing(0, repeat)
+
+  def timedNoSetup[R](block: => R)(implicit timing: Timing): (R, Double) = {
+    val (_, out, time) = timed[Unit, R](() => (), _ => block)
+    (out, time)
+  }
+
+  def timed[A,R](setup: () => A, block: A => R)(implicit timing: Timing): (A, R, Double) = {
+    var input = null.asInstanceOf[A]
     var result = null.asInstanceOf[R]
 
-    // discard first 10 runs
+    // discard first runs
     for (_ <- 1 to timing.discard) {
-      val (r,_) = time(block)
+      input = setup()
+      val (r,_) = time(block(input))
       result = r
     }
 
     var sum: Long = 0
     for (_ <- 1 to timing.repeat) {
-      val (r, t) = time(block)
-      result = r
-      sum += t
+      input = setup()
+      val output = time(block(input))
+      result = output._1
+      sum += output._2
     }
-    (result, if (timing.repeat == 0) 0 else ms(sum.toDouble / timing.repeat))
+    (input, result, if (timing.repeat == 0) 0 else ms(sum.toDouble / timing.repeat))
   }
 }
