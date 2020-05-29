@@ -10,6 +10,8 @@ object Exp {
   case class Hole() extends Exp {
     override def height: Int = 1
 
+    override def size: Int = 1
+
     override def toStringWithURI: String = s"Hole_$uri()"
 
     override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
@@ -71,6 +73,8 @@ case class Num(n: Int) extends Exp {
 
   override val height: Int = 1
 
+  override def size: Int = 1
+
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
   }
@@ -126,6 +130,8 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
   }
 
   override val height: Int = 1 + Math.max(e1.height, e2.height)
+
+  override def size: Int = 1 + e1.size + e2.size
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)

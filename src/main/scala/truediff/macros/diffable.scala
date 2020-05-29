@@ -22,6 +22,7 @@ object DiffableMacro {
     val tHashable = symbolOf[Hashable]
     val oHashable = tHashable.companion
     val tUnit = symbolOf[Unit]
+    val tInt = symbolOf[Int]
     val tArray = symbolOf[Array[_]]
     val oArray = tArray.companion
     val tByte = symbolOf[Byte]
@@ -113,12 +114,20 @@ object DiffableMacro {
               digest.digest()
             }
 
-            override val height: Int = 1 + ${
+            override val height: $tInt = 1 + ${
               Util.reducePrefix(c)(
                 mapDiffableParams(p => q"this.$p.height"),
                 q"$oMath.max",
                 q"0")
             }
+
+            override def size: $tInt =
+                1 + ${
+                  Util.reduceInfix(c)(
+                    mapDiffableParams(p => q"this.$p.size"),
+                    "$plus",
+                    q"0")
+                }
 
             override private[truediff] def foreachDiffable(f: $tDiffable => $tUnit): $tUnit = {
               f(this)

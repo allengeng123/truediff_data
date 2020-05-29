@@ -14,6 +14,7 @@ trait Diffable extends Hashable {
   def tag: NodeTag = this.getClass
 
   def height: Int
+  def size: Int
   def toStringWithURI: String
 
   private[truediff] def isCollection: Boolean = false

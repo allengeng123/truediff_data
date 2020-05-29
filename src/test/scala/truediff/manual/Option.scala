@@ -15,6 +15,8 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override val height: Int = 1 + a.height
 
+  override def size: Int = 1 + a.size
+
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
     this.a.foreachDiffable(f)

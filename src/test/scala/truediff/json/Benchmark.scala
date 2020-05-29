@@ -1,44 +1,23 @@
-//package truediff.json
-//
-//object Benchmark extends App {
-//
-//  private def benchJsonFileByLine(path: String): Unit = {
-//    var i = 0
-//    var sizes: Int = 0
-//    var parses: Double = 0
-//    var diffs: Double = 0
-//    foreachFileLine(s"benchmark/json/$path") { line =>
-//      val (size, parse, diff) = benchJson(s"line$i of $path", line)
-//      sizes += size
-//      parses += parse
-//      diffs += diff
-//      i += 1
-//    }
-//
-//    println(s"Benchmarking JSON document $path by line")
-//    println(s"  tree size: ${sizes.toDouble / i} nodes")
-//    println(s"  parsing: ${parses / i} ms")
-//    println(s"  diffing unchanged: ${diffs / i} ms")
-//  }
-//
-//  private def benchJsonFile(path: String): Unit = {
-//    val (size, parse, diff) = benchJson(path, readFile(s"benchmark/json/$path"))
-//    println(s"Benchmarking JSON document $path")
-//    println(s"  tree size: $size nodes")
-//    println(s"  parsing: $parse ms")
-//    println(s"  diffing unchanged: $diff ms")
-//  }
-//
-//  private def benchJson(name: String, content: String): (Int, Double, Double) = {
-//    val (tree,parseTime) = timed(Parser.parse(content))
-//    val (patch,diffIdenticalTime) = timed(tree.compareTo(tree), discard = 100, repeat = 10)
-//    (tree.size, parseTime, diffIdenticalTime)
-//  }
-//
-//  benchJsonFile("parboiled2bench.json")
-////  benchJsonFile("canada.json")
-//  benchJsonFile("citm_catalog.json")
-//  benchJsonFile("twitter.json")
-//  benchJsonFileByLine("one-json-per-line.jsons")
-//
-//}
+package truediff.json
+
+import truediff.BenchmarkUtils._
+
+object Benchmark extends App {
+
+  type JSMeasurement = Measurement[Js]
+
+  private def benchJsonFile(path: String)(implicit timing: Timing) =
+    benchJson(path, readFile(s"benchmark/json/$path"))
+
+  private def benchJson(name: String, content: String)(implicit timing: Timing): JSMeasurement = {
+    val (tree,parseTime) = timed(Parser.parse(content))
+    val ((changeset,_),diffIdenticalTime) = timed(tree.compareTo(tree))
+    Measurement(s"diff unchanged $name", tree, tree, diffIdenticalTime, changeset, Map("parse time (ms)" -> parseTime))
+  }
+
+  implicit val timing = Timing(discard = 100, repeat = 10)
+  println(benchJsonFile("parboiled2bench.json"))
+  println(benchJsonFile("citm_catalog.json"))
+  println(benchJsonFile("twitter.json"))
+  println(benchJsonFile("canada.json")(Timing(discard = 3, repeat = 3)))
+}

@@ -23,6 +23,8 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val height: Int = 0
 
+  override def size: Int = 0
+
   override val toStringWithURI: String = "None"
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
@@ -66,6 +68,8 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
   override def uri: NodeURI = a.uri
 
   override def height: Int = a.height
+
+  override def size: Int = a.size
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 

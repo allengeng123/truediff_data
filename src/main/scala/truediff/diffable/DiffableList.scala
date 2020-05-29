@@ -26,6 +26,8 @@ case object DiffableNil extends DiffableList[Nothing] {
 
   override val height: Int = 0
 
+  override def size: Int = 0
+
   override val toStringWithURI: String = "Nil"
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
@@ -72,6 +74,8 @@ final case class DiffableCons[+A <: Diffable](head: A, tail: DiffableList[A]) ex
   override def uri: NodeURI = head.uri
 
   override def height: Int = Math.max(head.height, tail.height)
+
+  override def size: Int = head.size + tail.size
 
   override def toStringWithURI: String = s"${head.toStringWithURI}::${tail.toStringWithURI}"
 
