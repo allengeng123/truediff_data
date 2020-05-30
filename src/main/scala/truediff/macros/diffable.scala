@@ -59,7 +59,12 @@ object DiffableMacro {
 
     def rewrite(t: Tree): Tree = t match {
       case q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
-        q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents with $tDiffable { $self => ..$stats }"
+        val newparents =
+          if (parents.exists(tp => Util.isSubtypeOf(c)(tp, tyDiffable)))
+            parents
+          else
+            parents :+ tq"$tDiffable"
+        q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$newparents { $self => ..$stats }"
 
 
 
@@ -91,9 +96,15 @@ object DiffableMacro {
         val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
 
 
+        val newparents =
+          if (parents.exists(tp => Util.isSubtypeOf(c)(tp, tyDiffable)))
+            parents
+          else
+            parents :+ tq"$tDiffable"
+
 
         q"""
-          $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with $tDiffable with ..$parents { $self =>
+          $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$newparents { $self =>
             ..$stats
 
             override def toStringWithURI: String = {

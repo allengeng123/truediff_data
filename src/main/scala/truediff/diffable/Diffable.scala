@@ -102,4 +102,10 @@ trait Diffable extends Hashable {
 
 object Diffable {
   val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
+
+  def load[T <: Diffable](t: T): (Changeset, T) = {
+    val buf = new ChangesetBuffer
+    val newtree = t.loadUnassigned(buf)
+    (buf.toChangeset, newtree.asInstanceOf[T])
+  }
 }

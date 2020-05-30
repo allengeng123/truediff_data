@@ -5,8 +5,12 @@ import truediff.changeset._
 
 import scala.collection.mutable
 
-class Parents extends Consumer {
-  protected val parents: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+class Parent extends Consumer {
+  val parents: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+
+  override def toString: String = s"Parent(${parents.mkString(",")})"
+
+  def apply(node: NodeURI): Option[NodeURI] = parents.get(node)
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {

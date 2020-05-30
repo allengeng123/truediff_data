@@ -1,7 +1,9 @@
 package truediff.macros
 
+import truediff.diffable.Diffable
+
 @diffable
-trait Exp
+trait Exp extends Diffable
 
 object Exp {
   case class Hole() extends Exp
