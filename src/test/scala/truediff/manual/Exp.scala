@@ -41,7 +41,7 @@ object Exp {
       }
 
       val newtree = Hole()
-      changes += LoadNode(newtree.uri, classOf[Hole], Seq())
+      changes += LoadNode(newtree.uri, classOf[Hole], Seq(), Seq())
       newtree
     }
 
@@ -104,7 +104,7 @@ case class Num(n: Int) extends Exp {
     }
 
     val newtree = Num(this.n)
-    changes += LoadNode(newtree.uri, classOf[Num], Seq(
+    changes += LoadNode(newtree.uri, classOf[Num], Seq(), Seq(
       NamedLink(this.tag, "n") -> Literal(this.n)
     ))
     newtree
@@ -175,7 +175,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     changes += LoadNode(newtree.uri, classOf[Add], Seq(
       NamedLink(this.tag, "e1") -> e1.uri,
       NamedLink(this.tag, "e2") -> e2.uri
-    ))
+    ), Seq())
     newtree
   }
 

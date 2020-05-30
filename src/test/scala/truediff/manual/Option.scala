@@ -53,7 +53,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     val newtree = Maybe(a)
     changes += LoadNode(newtree.uri, classOf[Maybe], Seq(
       NamedLink(this.tag, "a") -> a.uri
-    ))
+    ), Seq())
     newtree
   }
 

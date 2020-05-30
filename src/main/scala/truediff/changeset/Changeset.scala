@@ -68,7 +68,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         roots -= node
         removeStub(parent, link)
 
-      case LoadNode(node, _, kids) =>
+      case LoadNode(node, _, kids, _) =>
         // node is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate load for $node")

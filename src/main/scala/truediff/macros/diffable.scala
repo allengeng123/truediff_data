@@ -176,12 +176,10 @@ object DiffableMacro {
                 (p,t) => q"val $p = that.$p"
               )}
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
-              changes += $oLoadNode($$newtree.uri, this.tag, $oSeq(
-                ..${mapAllParams(
-                  p => q"($oNamedLink(this.tag, ${p.toString}), $p.uri)",
-                  p => q"($oNamedLink(this.tag, ${p.toString}), $oLiteral($p))"
-                )}
-              ))
+              changes += $oLoadNode($$newtree.uri, this.tag,
+                $oSeq(..${mapDiffableParams(p => q"($oNamedLink(this.tag, ${p.toString}), $p.uri)")}),
+                $oSeq(..${mapNonDiffableParams(p => q"($oNamedLink(this.tag, ${p.toString}), $oLiteral($p))")}),
+              )
               $$newtree
             }
 

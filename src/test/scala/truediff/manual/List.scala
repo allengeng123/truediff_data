@@ -53,7 +53,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     val newtree = Many(es)
     changes += LoadNode(newtree.uri, classOf[Many], Seq(
       NamedLink(this.tag, "es") -> es.uri
-    ))
+    ), Seq())
     newtree
   }
 
