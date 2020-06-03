@@ -11,10 +11,10 @@ sealed trait Js {
 object Js {
   case class Str(value: java.lang.String) extends Js
   case class Obj(value: Seq[Field]) extends Js {
-    override def toString: String = super.toString
+//    override def toString: String = super.toString
   }
   case class Arr(value: Seq[Js]) extends Js {
-    override def toString: String = super.toString
+//    override def toString: String = super.toString
   }
   case class Num(value: Double) extends Js
   case class False() extends Js {

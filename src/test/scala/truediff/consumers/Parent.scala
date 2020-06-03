@@ -12,11 +12,12 @@ class Parent extends Consumer {
 
   def apply(node: NodeURI): Option[NodeURI] = parents.get(node)
 
+
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
       case DetachNode(_, _, node) =>
         parents -= node
-      case UnloadNode(parent, _, node, _) =>
+      case UnloadNode(_, _, node, _) =>
         parents -= node
     }
     changeset.pos.foreach {

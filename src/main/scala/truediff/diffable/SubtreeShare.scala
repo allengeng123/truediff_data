@@ -6,20 +6,27 @@ class SubtreeShare() {
   var availableTrees: Map[NodeURI, Diffable] = Map()
 
   def registerAvailableTree(t: Diffable): Unit = {
-    this.availableTrees += ((t.uri, t))
+    if (t.treeheight > 0)
+      this.availableTrees += ((t.uri, t))
   }
 
-  def deregisterAvailableTree(t: Diffable): Unit = {
-    this.availableTrees -= t.uri
-    t.share = null
-  }
-
-  def takeAvailableTree(): Option[Diffable] = {
+  def takeAvailableTree(subtreeReg: SubtreeRegistry): Option[Diffable] = {
     val treeAvailable = availableTrees.nonEmpty
     if (treeAvailable) {
-      // we need to yield the available trees for re-attachment
+      // we need to yield the available tree for re-attachment
       val (uri, tree) = availableTrees.head // alternative selection strategy possible here
-      tree.foreachDiffable(t => t.share.deregisterAvailableTree(t))
+      tree.foreachDiffable { t =>
+        if (t.assigned != null) {
+          // t and t.assigned were unchanged, but t is part of a larger subtree that is being moved
+          val that = t.assigned
+          t.assigned = null
+          that.assigned = null
+          that.foreachDiffable(subtreeReg.shareFor)
+        } else if (t.share != null) {
+          t.share.availableTrees -= t.uri
+          t.share = null
+        }
+      }
       Some(tree)
     } else {
       None

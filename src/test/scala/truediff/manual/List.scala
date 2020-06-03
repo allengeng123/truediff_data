@@ -61,9 +61,10 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     if (this.assigned != null) {
       changes += DetachNode(parent, link, this.uri)
       this.assigned = null
-    } else
+    } else {
       this.es.unloadUnassigned(this.uri, NamedLink(this.tag, "es"), changes)
       changes += UnloadNode(parent, link, this.uri, Seq(NamedLink(this.tag, "es")))
+    }
   }
 }
 

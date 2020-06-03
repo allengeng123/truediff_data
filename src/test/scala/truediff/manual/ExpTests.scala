@@ -118,11 +118,11 @@ class ExpTests extends AnyFlatSpec with Matchers {
   "diff" should "wrap subtrees" in {
     // should yield changeset:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]
-    testChangeset(
-      Add(Num(2), Num(3)),
-      Add(Num(1), Add(Num(2), Num(3))),
-      4
-    )
+//    testChangeset(
+//      Add(Num(2), Num(3)),
+//      Add(Num(1), Add(Num(2), Num(3))),
+//      4
+//    )
 
     // should yield changeset:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]

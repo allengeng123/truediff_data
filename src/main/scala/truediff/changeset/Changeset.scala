@@ -1,6 +1,6 @@
 package truediff.changeset
 
-import truediff.{CollectionLink, Link, ListNextLink, NodeURI}
+import truediff._
 
 class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
   def cmds: Iterable[Change] = neg.view.concat(pos.view)
@@ -11,8 +11,9 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
     var stubs = Map[NodeURI, Set[Link]]()
 
     def ignore(link: Link): Boolean = link match {
+      case ListFirstLink => true
       case ListNextLink => true
-      case CollectionLink(_) => true
+      case OptionalLink(_) => true
       case _ => false
     }
 

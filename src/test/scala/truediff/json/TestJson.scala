@@ -8,7 +8,7 @@ class TestJson extends AnyFlatSpec with Matchers {
 
   def compareAndApply(src: Diffable, dest: Diffable): Unit = {
     println("Comparing:")
-    println(s"  $src")
+    println(s"  ${src.toStringWithURI}")
     println(s"  $dest")
 
     val (changeset,newtree) = src.compareTo(dest)
@@ -148,4 +148,64 @@ class TestJson extends AnyFlatSpec with Matchers {
   }
 
 
+  val tamasDoc1 =
+    """
+      |{
+      |  "name": "foo",
+      |  "stmts": [
+      |    {
+      |      "kind": "VarDecl",
+      |      "name": "a",
+      |      "value": {
+      |        "kind": "PlusExpr",
+      |        "lhs": "1",
+      |        "rhs": "2"
+      |      }
+      |    },
+      |    {
+      |      "kind": "Print",
+      |      "exp": {
+      |        "kind": "VarRef",
+      |        "name": "a"
+      |      }
+      |    }
+      |  ]
+      |}
+      |""".stripMargin
+  val tamasDoc2 =
+    """
+      |{
+      |  "name": "foo",
+      |  "stmts": [
+      |    {
+      |      "kind": "VarDecl",
+      |      "name": "b",
+      |      "value": {
+      |        "kind": "NumLit",
+      |        "value": "3"
+      |      }
+      |    },
+      |    {
+      |      "kind": "VarDecl",
+      |      "name": "a",
+      |      "value": {
+      |        "kind": "PlusExpr",
+      |        "lhs": "1",
+      |        "rhs": "2"
+      |      }
+      |    },
+      |    {
+      |      "kind": "Print",
+      |      "exp": {
+      |        "kind": "VarRef",
+      |        "name": "a"
+      |      }
+      |    }
+      |  ]
+      |}
+      |""".stripMargin
+
+  "json diff" should "yield small diff" in {
+    compareAndApply(parse(tamasDoc1), parse(tamasDoc2))
+  }
 }

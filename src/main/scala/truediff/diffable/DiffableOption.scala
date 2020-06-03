@@ -2,8 +2,8 @@ package truediff.diffable
 import truediff.changeset.{AttachNode, ChangesetBuffer}
 import truediff.{Hashable, Link, NodeURI}
 
-sealed trait DiffableOption[+A <: Diffable] extends Diffable {
-  override private[truediff] def isCollection = true
+sealed trait DiffableOption[+A <: Diffable] extends DiffableCollection {
+  final override private[truediff] def skipNode = true
 }
 object DiffableOption {
   def from[A <: Diffable](a: Option[A]): DiffableOption[A] = a match {
@@ -43,7 +43,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
-      changes += AttachNode(parent, link, newtree.a.uri)
+      changes += AttachNode(parent, link, newtree.uri)
       newtree
   }
 
@@ -89,8 +89,8 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
-      val a = this.a.computeChangeset(that.a, parent, link, changes).asInstanceOf[A]
-      DiffableSome(a)
+      val a = this.a.computeChangeset(that.a, parent, link, changes)
+      DiffableSome(a.asInstanceOf[A])
     case DiffableNone =>
       this.a.unloadUnassigned(parent, link, changes)
       that

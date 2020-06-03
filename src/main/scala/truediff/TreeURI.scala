@@ -23,15 +23,11 @@ case object RootLink extends Link {
 case class NamedLink(tag: NodeTag, name: String) extends Link {
   override def toString: String = s"${tag.getSimpleName}.$name"
 }
-case class CollectionLink(link: Link) extends Link {
+case class OptionalLink(link: Link) extends Link {
   override def toString: String = s"$link?"
 }
-object CollectionLink {
-  def ensure(link: Link): Link = link match {
-    case _: CollectionLink => link
-    case _: ListNextLink.type => link
-    case _ => CollectionLink(link)
-  }
+case object ListFirstLink extends Link {
+  override def toString: String = "#first"
 }
 case object ListNextLink extends Link {
   override def toString: String = "#next"

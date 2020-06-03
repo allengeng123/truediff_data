@@ -1,8 +1,8 @@
 package truediff.macros
 
+import truediff._
 import truediff.changeset.{ChangesetBuffer, DetachNode, LoadNode, UnloadNode}
-import truediff.diffable.{Diffable, DiffableList, DiffableOption, SubtreeRegistry}
-import truediff.{Hashable, Link, NamedLink, NodeURI}
+import truediff.diffable._
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
@@ -46,6 +46,7 @@ object DiffableMacro {
     val oLoadNode = symbolOf[LoadNode].companion
     val oDetachNode = symbolOf[DetachNode].companion
     val oUnloadNode = symbolOf[UnloadNode].companion
+    val oOptionalLink = symbolOf[OptionalLink].companion
 
     val tChangesetBuffer = symbolOf[ChangesetBuffer]
 
@@ -86,6 +87,8 @@ object DiffableMacro {
 
         def mapDiffableParams[A](diffable: TermName => A): Seq[A] =
           Util.mapParams(c)(paramss, tyDiffable, p => Some(diffable(p)), _ => None, wat, wat).flatten
+        def mapDiffableParamsTyped[A](diffable: (TermName,Tree) => A): Seq[A] =
+          Util.mapParamsTyped(c)(paramss, tyDiffable, (p,t) => Some(diffable(p,t)), (_,_) => None, watt, watt).flatten
 
         def mapNonDiffableParams(nonDiffable: TermName => Tree): Seq[Tree] =
           Util.mapParams(c)(paramss, tyDiffable, _ => None, p => Some(nonDiffable(p)), wat, wat).flatten
@@ -95,6 +98,13 @@ object DiffableMacro {
 
         val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
 
+        def link(p: TermName, tp: Tree) = {
+          val ty = Util.treeType(c)(tp)
+          if (ty <:< typeOf[DiffableOption[_]])
+            q"$oOptionalLink($oNamedLink(this.tag, ${p.toString}))"
+          else
+            q"$oNamedLink(this.tag, ${p.toString})"
+        }
 
         val newparents =
           if (parents.exists(tp => Util.isSubtypeOf(c)(tp, tyDiffable)))
@@ -112,7 +122,7 @@ object DiffableMacro {
                   p => q"this.$p.toStringWithURI",
                   p => q"this.$p.toString"
                 )})
-                $oThis + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
+                this.tag.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
             override lazy val hash: $tArray[$tByte] = {
@@ -167,7 +177,7 @@ object DiffableMacro {
             override private[truediff] def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyed(
-                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, $oNamedLink(this.tag, ${p.toString}), changes).asInstanceOf[$t]",
+                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, ${link(p, t)}, changes).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
                 val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
@@ -188,7 +198,7 @@ object DiffableMacro {
               )}
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
               changes += $oLoadNode($$newtree.uri, this.tag,
-                $oSeq(..${mapDiffableParams(p => q"($oNamedLink(this.tag, ${p.toString}), $p.uri)")}),
+                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${link(p,t)}, $p.uri)")}),
                 $oSeq(..${mapNonDiffableParams(p => q"($oNamedLink(this.tag, ${p.toString}), $oLiteral($p))")}),
               )
               $$newtree
@@ -199,11 +209,11 @@ object DiffableMacro {
                 changes += $oDetachNode(parent, link, this.uri)
                 this.assigned = null
               } else {
-                ..${mapDiffableParams(
-                  p => q"this.$p.unloadUnassigned(this.uri, $oNamedLink(this.tag, ${p.toString}), changes)"
+                ..${mapDiffableParamsTyped(
+                  (p,t) => q"this.$p.unloadUnassigned(this.uri, ${link(p,t)}, changes)"
                 )}
                 changes += $oUnloadNode(parent, link, this.uri, $oSeq(
-                  ..${mapDiffableParams(p => q"$oNamedLink(this.tag, ${p.toString})")}
+                  ..${mapDiffableParamsTyped((p,t) => link(p,t))}
                 ))
               }
             }
