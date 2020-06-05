@@ -46,9 +46,14 @@ object DiffableMacro {
     val oLoadNode = symbolOf[LoadNode].companion
     val oDetachNode = symbolOf[DetachNode].companion
     val oUnloadNode = symbolOf[UnloadNode].companion
-    val oOptionalLink = symbolOf[OptionalLink].companion
 
     val tChangesetBuffer = symbolOf[ChangesetBuffer]
+
+    val oOptionType = symbolOf[OptionType].companion
+    val oListType = symbolOf[ListType].companion
+    val oSortType = symbolOf[SortType].companion
+    val tSignature = symbolOf[Signature]
+    val oSignature = tSignature.companion
 
     val annoDiffable = q"new _root_.truediff.macros.diffable()"
     val name = Util.nameOf(c)(annottees.head)
@@ -90,24 +95,22 @@ object DiffableMacro {
         def mapDiffableParamsTyped[A](diffable: (TermName,Tree) => A): Seq[A] =
           Util.mapParamsTyped(c)(paramss, tyDiffable, (p,t) => Some(diffable(p,t)), (_,_) => None, watt, watt).flatten
 
-        def mapNonDiffableParams(nonDiffable: TermName => Tree): Seq[Tree] =
+        def mapNonDiffableParams[A](nonDiffable: TermName => A): Seq[A] =
           Util.mapParams(c)(paramss, tyDiffable, _ => None, p => Some(nonDiffable(p)), wat, wat).flatten
+        def mapNonDiffableParamsTyped[A](nonDiffable: (TermName,Tree) => A): Seq[A] =
+          Util.mapParamsTyped(c)(paramss, tyDiffable, (_,_) => None, (p,t) => Some(nonDiffable(p,t)), watt, watt).flatten
 
         def nondiffableCond(other: Tree) =
           Util.reduceInfix(c)(mapNonDiffableParams(p => q"this.$p == $other.$p"), TermName("$amp$amp"), q"")
 
         val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
 
-        def link(p: TermName, tp: Tree) = {
-          val ty = Util.treeType(c)(tp)
-          if (ty <:< typeOf[DiffableOption[_]])
-            q"$oOptionalLink($oNamedLink(this.tag, ${p.toString}))"
-          else
-            q"$oNamedLink(this.tag, ${p.toString})"
-        }
+        def link(p: TermName, tp: Tree) = q"$oNamedLink(this.tag, ${p.toString})"
 
+        val superDiffable = parents.find(tp => Util.isSubtypeOf(c)(tp, tyDiffable))
+        val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$tpname[..$tparams]])"
         val newparents =
-          if (parents.exists(tp => Util.isSubtypeOf(c)(tp, tyDiffable)))
+          if (superDiffable.isDefined)
             parents
           else
             parents :+ tq"$tDiffable"
@@ -122,7 +125,7 @@ object DiffableMacro {
                   p => q"this.$p.toStringWithURI",
                   p => q"this.$p.toString"
                 )})
-                this.tag.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
+                this.tag + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
             override lazy val hash: $tArray[$tByte] = {
@@ -149,6 +152,11 @@ object DiffableMacro {
                     "$plus",
                     q"0")
                 }
+
+            override def sig: $tSignature = $oSignature($sort, this.tag,
+                Map(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, ${asType(t)})")}),
+                Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, classOf[$t])")})
+            )
 
             override private[truediff] def foreachDiffable(f: $tDiffable => $tUnit): $tUnit = {
               f(this)
@@ -198,23 +206,21 @@ object DiffableMacro {
               )}
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
               changes += $oLoadNode($$newtree.uri, this.tag,
-                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${link(p,t)}, $p.uri)")}),
-                $oSeq(..${mapNonDiffableParams(p => q"($oNamedLink(this.tag, ${p.toString}), $oLiteral($p))")}),
+                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, $p.uri)")}),
+                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral($p))")}),
               )
               $$newtree
             }
 
             override def unloadUnassigned(parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tUnit = {
               if (this.assigned != null) {
-                changes += $oDetachNode(parent, link, this.uri)
+                changes += $oDetachNode(parent, link, this.uri, this.tag)
                 this.assigned = null
               } else {
                 ..${mapDiffableParamsTyped(
                   (p,t) => q"this.$p.unloadUnassigned(this.uri, ${link(p,t)}, changes)"
                 )}
-                changes += $oUnloadNode(parent, link, this.uri, $oSeq(
-                  ..${mapDiffableParamsTyped((p,t) => link(p,t))}
-                ))
+                changes += $oUnloadNode(parent, link, this.uri, this.tag)
               }
             }
 
@@ -250,15 +256,30 @@ object DiffableMacro {
           tp
       case _ => tp
     }
+    def asType(tp: Tree): Tree = tp match {
+      case tq"$_[$targ]" =>
+        val ty = Util.treeType(c)(tp)
+        if (ty <:< typeOf[Option[_]]) {
+          q"$oOptionType(${asType(targ)})"
+        } else if (ty <:< typeOf[DiffableOption[_]]) {
+          q"$oOptionType(${asType(targ)})"
+        } else if (ty <:< typeOf[Seq[_]]) {
+          q"$oListType(${asType(targ)})"
+        } else if (ty <:< typeOf[DiffableList[_]]) {
+          q"$oListType(${asType(targ)})"
+        } else
+          q"$oSortType(classOf[$tp])"
+      case _ => q"$oSortType(classOf[$tp])"
+    }
     def paramConverter(tp: Tree, arg: Tree): Tree = tp match {
       case tq"$_[$targ]" =>
         val ty = Util.treeType(c)(tp)
         if (ty <:< tyDiffable)
           arg
         else if (ty <:< typeOf[Option[_]])
-          q"$oDiffableOption.from(${paramConverterRec(targ, arg)})"
+          q"$oDiffableOption.from(${paramConverterRec(targ, arg)}, ${asType(targ)})"
         else if (ty <:< typeOf[Seq[_]])
-          q"$oDiffableList.from(${paramConverterRec(targ, arg)})"
+          q"$oDiffableList.from(${paramConverterRec(targ, arg)}, ${asType(targ)})"
         else
           arg
       case _ => arg
@@ -267,9 +288,9 @@ object DiffableMacro {
       case tq"$_[$targ]" =>
         val ty = Util.treeType(c)(tp)
         if (ty <:< typeOf[Option[_]])
-          q"$arg.map(a => $oDiffableOption.from(${paramConverterRec(targ, q"a")}))"
+          q"$arg.map(a => $oDiffableOption.from(${paramConverterRec(targ, q"a")}, ${asType(targ)}))"
         else if (ty <:< typeOf[Seq[_]])
-          q"$arg.map(xs => $oDiffableList.from(${paramConverterRec(targ, q"xs")}))"
+          q"$arg.map(xs => $oDiffableList.from(${paramConverterRec(targ, q"xs")}, ${asType(targ)}))"
         else
           arg
       case _ => arg

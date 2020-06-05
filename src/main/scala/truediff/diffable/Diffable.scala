@@ -11,7 +11,8 @@ trait Diffable extends Hashable {
   private[truediff] var _uri: NodeURI = new NodeURI
   def uri: NodeURI = _uri
 
-  def tag: NodeTag = this.getClass
+  def tag: NodeTag = SortType(this.getClass)
+  def sig: Signature
 
   def treeheight: Int
   def treesize: Int

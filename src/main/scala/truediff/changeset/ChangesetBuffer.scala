@@ -5,33 +5,34 @@ import truediff.{ListNextLink, NodeURI}
 import scala.collection.mutable
 
 class ChangesetBuffer() {
-    private val negBuf: mutable.Buffer[NegativeChange] = mutable.ArrayBuffer()
+    private val negBuf: mutable.Buffer[DetachOrUnload] = mutable.ArrayBuffer()
     private val posBuf: mutable.Buffer[PositiveChange] = mutable.ArrayBuffer()
-    private val detachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
+    private val detachListNext: mutable.Map[(NodeURI, NodeURI), DetachNode] = mutable.Map()
     private val attachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
 
     def += (elem: Change): this.type = {
       elem match {
-        case detach@DetachNode(pred, ListNextLink, node) =>
+        case detach@DetachNode(pred, next@ListNextLink(_), node, _) =>
           val nextPair = (pred, node)
           if (attachListNext.remove(nextPair)) {
             // detach cancelled out previous attach
-            posBuf -= AttachNode(pred, ListNextLink, node)
+            posBuf -= AttachNode(pred, next, node)
           } else {
-            detachListNext += nextPair
+            detachListNext += ((nextPair, detach))
             negBuf += detach
           }
-        case attach@AttachNode(pred, ListNextLink, node) =>
+        case attach@AttachNode(pred, ListNextLink(_), node) =>
           val nextPair = (pred, node)
-          if (detachListNext.remove(nextPair)) {
-            negBuf -= DetachNode(pred, ListNextLink, node)
-            // attach cancelled out previous detach
-          } else {
-            attachListNext += nextPair
-            posBuf += attach
+          detachListNext.remove(nextPair) match {
+            case Some(detach) =>
+              // attach cancelled out previous detach
+              negBuf -= detach
+            case None =>
+              attachListNext += nextPair
+              posBuf += attach
           }
 
-        case change: NegativeChange => negBuf += change
+        case change: DetachOrUnload => negBuf += change
         case change: PositiveChange => posBuf += change
       }
       this

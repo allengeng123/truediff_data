@@ -16,9 +16,7 @@ class ParentNoLists extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
-      case DetachNode(_, _, node) =>
-        parents -= node
-      case UnloadNode(_, _, node, _) =>
+      case DetachOrUnload(_, _, node, _) =>
         parents -= node
     }
     changeset.pos.foreach {

@@ -14,6 +14,8 @@ object Exp {
 
     override def toStringWithURI: String = s"Hole_$uri()"
 
+    override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map())
+
     override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
       f(this)
     }
@@ -41,16 +43,16 @@ object Exp {
       }
 
       val newtree = Hole()
-      changes += LoadNode(newtree.uri, classOf[Hole], Seq(), Seq())
+      changes += LoadNode(newtree.uri, this.tag, Seq(), Seq())
       newtree
     }
 
     override private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
       if (this.assigned != null) {
-        changes += DetachNode(parent, link, this.uri)
+        changes += DetachNode(parent, link, this.uri, this.tag)
         this.assigned = null
       } else
-        changes += UnloadNode(parent, link, this.uri, Seq())
+        changes += UnloadNode(parent, link, this.uri, this.tag)
     }
 
     lazy val hash: Array[Byte] = {
@@ -75,11 +77,13 @@ case class Num(n: Int) extends Exp {
 
   override def treesize: Int = 1
 
+  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map("n" -> classOf[Int]))
+
+  override def toStringWithURI: String = s"Num_$uri($n)"
+
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
   }
-
-  override def toStringWithURI: String = s"Num_$uri($n)"
 
   override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Num if this.n == that.n =>
@@ -104,18 +108,18 @@ case class Num(n: Int) extends Exp {
     }
 
     val newtree = Num(this.n)
-    changes += LoadNode(newtree.uri, classOf[Num], Seq(), Seq(
-      NamedLink(this.tag, "n") -> Literal(this.n)
+    changes += LoadNode(newtree.uri, this.tag, Seq(), Seq(
+      "n" -> Literal(this.n)
     ))
     newtree
   }
 
   override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri)
+      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else
-      changes += UnloadNode(parent, link, this.uri, Seq())
+      changes += UnloadNode(parent, link, this.uri, this.tag)
   }
 }
 
@@ -133,13 +137,15 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def treesize: Int = 1 + e1.treesize + e2.treesize
 
+  override def toStringWithURI: String = s"Add_$uri(${e1.toStringWithURI}, ${e2.toStringWithURI})"
+
+  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("e1" -> SortType(classOf[Exp]), "e2" -> SortType(classOf[Exp])), Map())
+
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
     this.e1.foreachDiffable(f)
     this.e2.foreachDiffable(f)
   }
-
-  override def toStringWithURI: String = s"Add_$uri(${e1.toStringWithURI}, ${e2.toStringWithURI})"
 
   override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Add =>
@@ -172,21 +178,21 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     val e1 = that.e1.loadUnassigned(changes).asInstanceOf[Exp]
     val e2 = that.e2.loadUnassigned(changes).asInstanceOf[Exp]
     val newtree = Add(e1, e2)
-    changes += LoadNode(newtree.uri, classOf[Add], Seq(
-      NamedLink(this.tag, "e1") -> e1.uri,
-      NamedLink(this.tag, "e2") -> e2.uri
+    changes += LoadNode(newtree.uri, this.tag, Seq(
+      "e1" -> e1.uri,
+      "e2" -> e2.uri
     ), Seq())
     newtree
   }
 
   override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri)
+      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else {
       this.e1.unloadUnassigned(this.uri, NamedLink(this.tag, "e1"), changes)
       this.e2.unloadUnassigned(this.uri, NamedLink(this.tag, "e2"), changes)
-      changes += UnloadNode(parent, link, this.uri, Seq(NamedLink(this.tag, "e1"), NamedLink(this.tag, "e2")))
+      changes += UnloadNode(parent, link, this.uri, this.tag)
     }
   }
 }

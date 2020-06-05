@@ -32,18 +32,14 @@ class ParentNextLast extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
-      case neg if neg.link == ListFirstLink =>
-        val first = neg.node
-        val list = neg.parent
+      case DetachOrUnload(list, ListFirstLink(_), first, _) =>
         // update parent: remove all list elements
         iterateNext(first){parents -= _}
         // update next: nothing
         // update last: list has no last element anymore
         lasts -= list
 
-      case neg if neg.link == ListNextLink =>
-        val next = neg.node
-        val pred = neg.parent
+      case DetachOrUnload(pred, ListNextLink(_), next, _) =>
         // update parent: remove all successor elements
         iterateNext(next){parents -= _}
         // update next: remove next
@@ -53,12 +49,12 @@ class ParentNextLast extends Consumer {
         if (list.isDefined)
           lasts += ((list.get, pred))
 
-      case neg =>
+      case DetachOrUnload(_, _, node, _) =>
         // non-list change: only update parent
-        parents -= neg.node
+        parents -= node
     }
     changeset.pos.foreach {
-      case AttachNode(list, ListFirstLink, first) =>
+      case AttachNode(list, ListFirstLink(_), first) =>
         // update parent: add all list elements
         iterateNext(first){n => parents += ((list, n))}
         // update next: nothing
@@ -67,7 +63,7 @@ class ParentNextLast extends Consumer {
         iterateNext(first){last = _}
         lasts += ((list, last))
 
-      case AttachNode(pred, ListNextLink, succ) =>
+      case AttachNode(pred, ListNextLink(_), succ) =>
         // update parent: add all successor elements
         val list = parents.get(pred)
         if (list.isDefined)

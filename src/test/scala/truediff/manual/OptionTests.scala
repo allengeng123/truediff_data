@@ -2,6 +2,8 @@ package truediff.manual
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import truediff.Signature
+import truediff.TreeURI.NodeTag
 import truediff.diffable.Diffable
 
 class OptionTests extends AnyFlatSpec with Matchers {
@@ -18,7 +20,12 @@ class OptionTests extends AnyFlatSpec with Matchers {
     println()
 
     assertResult(dest)(newtree)
-    assertResult(None)(changeset.welltyped)
+
+    var sigs: Map[NodeTag, Signature] = Map()
+    src.foreachDiffable(t => sigs += t.tag -> t.sig)
+    dest.foreachDiffable(t => sigs += t.tag -> t.sig)
+    assertResult(None)(changeset.welltyped(sigs))
+
     assertResult(expectedChanges)(changeset.size)
     newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
@@ -52,6 +59,12 @@ class OptionTests extends AnyFlatSpec with Matchers {
   }
 
   "diff" should "load and unload options" in {
+    testChangeset(
+      Num(0),
+      Maybe(None),
+      3
+    )
+
     testChangeset(
       Num(0),
       Maybe(Some(Add(Num(1), Num(2)))),

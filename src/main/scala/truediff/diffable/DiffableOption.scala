@@ -1,13 +1,14 @@
 package truediff.diffable
+import truediff.TreeURI.NodeTag
+import truediff._
 import truediff.changeset.{AttachNode, ChangesetBuffer}
-import truediff.{Hashable, Link, NodeURI}
 
-sealed trait DiffableOption[+A <: Diffable] extends DiffableCollection {
+sealed trait DiffableOption[+A <: Diffable] extends Diffable {
   final override private[truediff] def skipNode = true
 }
 object DiffableOption {
-  def from[A <: Diffable](a: Option[A]): DiffableOption[A] = a match {
-    case Some(value) => DiffableSome(value)
+  def from[A <: Diffable](a: Option[A], atype: Type): DiffableOption[A] = a match {
+    case Some(value) => DiffableSome(value, atype)
     case None => DiffableNone
   }
 }
@@ -26,6 +27,9 @@ case object DiffableNone extends DiffableOption[Nothing] {
   override def treesize: Int = 0
 
   override val toStringWithURI: String = "None"
+
+  final override def tag: NodeTag = OptionType(NothingType)
+  override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     // nothing
@@ -57,7 +61,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
   }
 }
 
-final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
+final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends DiffableOption[A] {
   override val hash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
@@ -72,6 +76,9 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
   override def treesize: Int = a.treesize
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
+
+  final override def tag: NodeTag = OptionType(atype)
+  override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     this.a.foreachDiffable(f)
@@ -90,7 +97,7 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
       val a = this.a.computeChangeset(that.a, parent, link, changes)
-      DiffableSome(a.asInstanceOf[A])
+      DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
       this.a.unloadUnassigned(parent, link, changes)
       that
@@ -98,7 +105,7 @@ final case class DiffableSome[+A <: Diffable](a: A) extends DiffableOption[A] {
 
   override private[truediff] def loadUnassigned(changes: ChangesetBuffer): DiffableSome[A] = {
     val a = this.a.loadUnassigned(changes).asInstanceOf[A]
-    DiffableSome(a)
+    DiffableSome(a, atype)
   }
 
   override private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {

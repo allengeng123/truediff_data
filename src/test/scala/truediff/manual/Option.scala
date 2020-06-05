@@ -17,12 +17,14 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def treesize: Int = 1 + a.treesize
 
+  override def toStringWithURI: String = s"Maybe_$uri(${a.toStringWithURI})"
+
+  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("a" -> OptionType(SortType(classOf[Exp]))), Map())
+
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
     this.a.foreachDiffable(f)
   }
-
-  override def toStringWithURI: String = s"Maybe_$uri(${a.toStringWithURI})"
 
   override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Maybe =>
@@ -36,7 +38,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Maybe =>
-      val a = this.a.computeChangeset(that.a, this.uri, OptionalLink(NamedLink(this.tag, "a")), changes).asInstanceOf[DiffableOption[Exp]]
+      val a = this.a.computeChangeset(that.a, this.uri, NamedLink(this.tag, "a"), changes).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
       newtree._uri = this.uri
       newtree
@@ -51,22 +53,22 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
     val a = this.a.loadUnassigned(changes).asInstanceOf[DiffableOption[Exp]]
     val newtree = Maybe(a)
-    changes += LoadNode(newtree.uri, classOf[Maybe], Seq(
-      OptionalLink(NamedLink(this.tag, "a")) -> a.uri
+    changes += LoadNode(newtree.uri, this.tag, Seq(
+      "a" -> a.uri
     ), Seq())
     newtree
   }
 
   override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri)
+      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else
-      this.a.unloadUnassigned(this.uri, OptionalLink(NamedLink(this.tag, "a")), changes)
-      changes += UnloadNode(parent, link, this.uri, Seq(OptionalLink(NamedLink(this.tag, "a"))))
+      this.a.unloadUnassigned(this.uri, NamedLink(this.tag, "a"), changes)
+      changes += UnloadNode(parent, link, this.uri, this.tag)
   }
 }
 
 object Maybe {
-  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a.map(a => a)))
+  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a.map(a => a), SortType(classOf[Exp])))
 }
