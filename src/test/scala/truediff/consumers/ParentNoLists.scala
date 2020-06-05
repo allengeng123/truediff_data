@@ -5,7 +5,7 @@ import truediff.changeset._
 
 import scala.collection.mutable
 
-class Parent extends Consumer {
+class ParentNoLists extends Consumer {
 
   val parents: mutable.Map[NodeURI, NodeURI] = mutable.Map()
 

@@ -5,10 +5,10 @@ import org.scalatest.matchers.should.Matchers
 import truediff.diffable.Diffable
 import truediff.macros._
 
-class ParentTests extends AnyFlatSpec with Matchers  {
+class ParentNoListsTests extends AnyFlatSpec with Matchers  {
 
   "parents" should "maintain correct parent" in {
-    val parent = new Parent
+    val parent = new ParentNoLists
 
 
     val (changeset1, tree1) = Diffable.load(Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))))
