@@ -16,6 +16,9 @@ class NodeURI extends Node {
 }
 case class Literal[T](value: T) extends Node
 
+
+
+
 sealed trait Link
 case object RootLink extends Link {
   override def toString: String = "#root"

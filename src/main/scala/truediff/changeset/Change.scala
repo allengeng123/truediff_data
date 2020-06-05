@@ -4,11 +4,17 @@ import truediff.TreeURI.NodeTag
 import truediff.{Link, Literal, NodeURI}
 
 sealed trait Change
-sealed trait NegativeChange extends Change
+
+sealed trait NegativeChange extends Change {
+  val parent: NodeURI
+  val link: Link
+  val node: NodeURI
+}
+
 sealed trait PositiveChange extends Change
 
-case class DetachNode(parent: NodeURI, l: Link, node: NodeURI) extends NegativeChange
-case class UnloadNode(parent: NodeURI, l: Link, node: NodeURI, kidLinks: Iterable[Link]) extends NegativeChange
+case class DetachNode(parent: NodeURI, link: Link, node: NodeURI) extends NegativeChange
+case class UnloadNode(parent: NodeURI, link: Link, node: NodeURI, kidLinks: Iterable[Link]) extends NegativeChange
 
 case class AttachNode(parent: NodeURI, l: Link, node: NodeURI) extends PositiveChange
 case class LoadNode(node: NodeURI, tag: NodeTag, kids: Iterable[(Link, NodeURI)], lits: Iterable[(Link, Literal[_])]) extends PositiveChange {

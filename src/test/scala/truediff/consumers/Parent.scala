@@ -6,6 +6,7 @@ import truediff.changeset._
 import scala.collection.mutable
 
 class Parent extends Consumer {
+
   val parents: mutable.Map[NodeURI, NodeURI] = mutable.Map()
 
   override def toString: String = s"Parent(${parents.mkString(",")})"
