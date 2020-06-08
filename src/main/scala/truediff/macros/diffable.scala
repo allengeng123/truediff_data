@@ -87,7 +87,7 @@ object DiffableMacro {
 
         def mapAllParams[A](diffable: TermName => A, nonDiffable: TermName => A): Seq[A] =
           Util.mapParams(c)(paramss, tyDiffable, diffable, nonDiffable, wat, wat)
-        def mapAllParamsTyed[A](diffable: (TermName,Tree) => A, nonDiffable: (TermName,Tree) => A): Seq[A] =
+        def mapAllParamsTyped[A](diffable: (TermName,Tree) => A, nonDiffable: (TermName,Tree) => A): Seq[A] =
           Util.mapParamsTyped(c)(paramss, tyDiffable, diffable, nonDiffable, watt, watt)
 
         def mapDiffableParams[A](diffable: TermName => A): Seq[A] =
@@ -158,13 +158,13 @@ object DiffableMacro {
                 Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, classOf[$t])")})
             )
 
-            override private[truediff] def foreachDiffable(f: $tDiffable => $tUnit): $tUnit = {
+            override def foreachDiffable(f: $tDiffable => $tUnit): $tUnit = {
               f(this)
               ..${
                 mapDiffableParams(p => q"this.$p.foreachDiffable(f)")}
             }
 
-            override private[truediff] def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
+            override protected def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
               case _ =>
@@ -172,7 +172,7 @@ object DiffableMacro {
                 that.foreachDiffable(subtreeReg.shareFor)
             }
 
-            override private[truediff] def assignSubtreesRecurse(): $tIterable[$tDiffable] =
+            override protected def assignSubtreesRecurse(): $tIterable[$tDiffable] =
               ${diffableParams match {
                 case Seq() =>
                   q"$oIterable.empty"
@@ -182,9 +182,9 @@ object DiffableMacro {
                   q"$oIterable(..${ps.map(p => q"this.$p")})"
               }}
 
-            override private[truediff] def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
+            override protected def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
-                ..${mapAllParamsTyed(
+                ..${mapAllParamsTyped(
                   (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, ${link(p, t)}, changes).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
@@ -200,7 +200,7 @@ object DiffableMacro {
                 return that.assigned
               }
 
-              ..${mapAllParamsTyed(
+              ..${mapAllParamsTyped(
                 (p,t) => q"val $p = that.$p.loadUnassigned(changes).asInstanceOf[$t]",
                 (p,t) => q"val $p = that.$p"
               )}
@@ -211,6 +211,15 @@ object DiffableMacro {
               )
               $$newtree
             }
+
+            override def loadInitial(changes: $tChangesetBuffer): $tUnit = {
+              ..${mapDiffableParams(p => q"this.$p.loadInitial(changes)")}
+              changes += $oLoadNode(this.uri, this.tag,
+                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
+                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral(this.$p))")}),
+              )
+            }
+
 
             override def unloadUnassigned(parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tUnit = {
               if (this.assigned != null) {

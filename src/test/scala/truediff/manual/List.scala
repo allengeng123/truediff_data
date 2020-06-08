@@ -21,12 +21,12 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("es" -> ListType(SortType(classOf[Exp]))), Map())
 
-  override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
     this.es.foreachDiffable(f)
   }
 
-  override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Many =>
       this.es.assignShares(that.es, subtreeReg)
     case _ =>
@@ -34,9 +34,9 @@ case class Many(es: DiffableList[Exp]) extends Exp {
       that.foreachDiffable(subtreeReg.shareFor)
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)
+  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)
 
-  override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Many =>
       val es = this.es.computeChangeset(that.es, this.uri, NamedLink(this.tag, "es"), changes).asInstanceOf[DiffableList[Exp]]
       val newtree = Many(es)
@@ -57,6 +57,14 @@ case class Many(es: DiffableList[Exp]) extends Exp {
       "es" -> es.uri
     ), Seq())
     newtree
+  }
+
+
+  override def loadInitial(changes: ChangesetBuffer): Unit = {
+    this.es.loadInitial(changes)
+    changes += LoadNode(this.uri, this.tag, Seq(
+      "es" -> es.uri
+    ), Seq())
   }
 
   override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {

@@ -21,12 +21,12 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("a" -> OptionType(SortType(classOf[Exp]))), Map())
 
-  override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffable(f: Diffable => Unit): Unit = {
     f(this)
     this.a.foreachDiffable(f)
   }
 
-  override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Maybe =>
       this.a.assignShares(that.a, subtreeReg)
     case _ =>
@@ -34,9 +34,9 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
+  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Maybe =>
       val a = this.a.computeChangeset(that.a, this.uri, NamedLink(this.tag, "a"), changes).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
@@ -57,6 +57,13 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
       "a" -> a.uri
     ), Seq())
     newtree
+  }
+
+  override def loadInitial(changes: ChangesetBuffer): Unit = {
+    this.a.loadInitial(changes)
+    changes += LoadNode(this.uri, this.tag, Seq(
+      "a" -> a.uri
+    ), Seq())
   }
 
   override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {

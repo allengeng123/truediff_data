@@ -1,12 +1,13 @@
 name := "truediff"
 
+organization := "de.uni-mainz.informatik.pl"
+
 version := "0.1"
 
 scalaVersion := "2.13.1"
 
 scalacOptions ++= Seq(
   "-Ymacro-annotations"
-//, "-Ymacro-debug-lite"
   , "-J-Xss10m"
 )
 

@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 trait Diffable extends Hashable {
 
-  private[truediff] var _uri: NodeURI = new NodeURI
+  protected var _uri: NodeURI = new NodeURI
   def uri: NodeURI = _uri
 
   def tag: NodeTag = SortType(this.getClass)
@@ -21,17 +21,23 @@ trait Diffable extends Hashable {
   private[truediff] def skipNode: Boolean = false
 
   private[truediff] var share: SubtreeShare = _
-  private[truediff] var assigned: Diffable = _
+  protected[truediff] var assigned: Diffable = _
 
-  private[truediff] def foreachDiffable(f: Diffable => Unit): Unit
-  private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
-  private[truediff] def assignSubtreesRecurse(): Iterable[Diffable]
-  private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable
-  private[truediff] def loadUnassigned(changes: ChangesetBuffer): Diffable
-  private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit
+  def foreachDiffable(f: Diffable => Unit): Unit
+  def loadUnassigned(changes: ChangesetBuffer): Diffable
+  def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit
+  def loadInitial(changes: ChangesetBuffer): Unit
 
+  protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
+  private[truediff] def _assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = this.assignSharesRecurse(that, subtreeReg)
 
-  private[truediff] final def assignShares(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
+  protected def assignSubtreesRecurse(): Iterable[Diffable]
+  private[truediff] def _assignSubtreesRecurse(): Iterable[Diffable] = this.assignSubtreesRecurse()
+
+  protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable
+  private[truediff] def _computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = this.computeChangesetRecurse(that, parent, link, changes)
+
+  final def assignShares(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     if (this.skipNode) {
       that.foreachDiffable(subtreeReg.shareFor)
       return
@@ -54,7 +60,7 @@ trait Diffable extends Hashable {
     }
   }
 
-  private[truediff] final def assignSubtrees(subtreeReg: SubtreeRegistry): Unit = {
+  protected final def assignSubtrees(subtreeReg: SubtreeRegistry): Unit = {
     val queue = new mutable.PriorityQueue[Diffable]()(Diffable.heightFirstOrdering)
     queue += this
 
@@ -75,7 +81,7 @@ trait Diffable extends Hashable {
     }
   }
 
-  private[truediff] final def computeChangeset(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = {
+  final def computeChangeset(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = {
     // this == that
     if (that.assigned != null && that.assigned.uri == this.uri) {
       this.assigned = null
@@ -108,9 +114,9 @@ trait Diffable extends Hashable {
 object Diffable {
   val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
 
-  def load[T <: Diffable](t: T): (Changeset, T) = {
+  def load[T <: Diffable](t: T): Changeset = {
     val buf = new ChangesetBuffer
-    val newtree = t.loadUnassigned(buf)
-    (buf.toChangeset, newtree.asInstanceOf[T])
+    t.loadInitial(buf)
+    buf.toChangeset
   }
 }

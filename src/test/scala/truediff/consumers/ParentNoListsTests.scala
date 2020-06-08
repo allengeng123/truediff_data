@@ -11,7 +11,8 @@ class ParentNoListsTests extends AnyFlatSpec with Matchers  {
     val parent = new ParentNoLists
 
 
-    val (changeset1, tree1) = Diffable.load(Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))))
+    val tree1 = Add(Add(Num(1), Num(2)), Add(Num(3), Num(4)))
+    val (changeset1) = Diffable.load(tree1)
     val n1 = tree1.e1.asInstanceOf[Add].e1.uri
     val n2 = tree1.e1.asInstanceOf[Add].e2.uri
     val n3 = tree1.e2.asInstanceOf[Add].e1.uri

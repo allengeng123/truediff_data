@@ -1,4 +1,4 @@
-package truediff.manual
+package externalpackage
 
 import truediff._
 import truediff.changeset._

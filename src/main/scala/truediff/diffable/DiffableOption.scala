@@ -31,19 +31,19 @@ case object DiffableNone extends DiffableOption[Nothing] {
   final override def tag: NodeTag = OptionType(NothingType)
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
-  override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffable(f: Diffable => Unit): Unit = {
     // nothing
   }
 
-  override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+  override protected[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case DiffableNone =>
     case _ =>
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
+  override protected[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
@@ -51,12 +51,16 @@ case object DiffableNone extends DiffableOption[Nothing] {
       newtree
   }
 
-  override private[truediff] def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+  override def loadUnassigned(changes: ChangesetBuffer): Diffable = {
     // nothing to load for None
     this
   }
 
-  override private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: ChangesetBuffer): Unit = {
+    // nothing to load for None
+  }
+
+  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
     // nothing to unload for None
   }
 }
@@ -77,14 +81,14 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 
-  final override def tag: NodeTag = OptionType(atype)
+  override def tag: NodeTag = OptionType(atype)
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
-  override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffable(f: Diffable => Unit): Unit = {
     this.a.foreachDiffable(f)
   }
 
-  override private[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableSome[_] =>
       this.a.assignShares(that.a, subtreeReg)
     case _ =>
@@ -92,9 +96,9 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
       that.foreachDiffable(t => subtreeReg.shareFor(t))
   }
 
-  override private[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
+  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override private[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
       val a = this.a.computeChangeset(that.a, parent, link, changes)
       DiffableSome(a.asInstanceOf[A], atype)
@@ -103,12 +107,16 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
       that
   }
 
-  override private[truediff] def loadUnassigned(changes: ChangesetBuffer): DiffableSome[A] = {
+  override def loadUnassigned(changes: ChangesetBuffer): DiffableSome[A] = {
     val a = this.a.loadUnassigned(changes).asInstanceOf[A]
     DiffableSome(a, atype)
   }
 
-  override private[truediff] def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: ChangesetBuffer): Unit = {
+    this.a.loadInitial(changes)
+  }
+
+  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
     a.unloadUnassigned(parent, link, changes)
   }
 }
