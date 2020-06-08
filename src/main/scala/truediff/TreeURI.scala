@@ -19,6 +19,7 @@ class NodeURI extends Node {
 }
 case class Literal[T: ClassTag](value: T) extends Node {
   def tag: LitTag = scala.reflect.classTag[T].runtimeClass
+  override def toString: String = value.toString
 }
 
 

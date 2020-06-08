@@ -243,7 +243,19 @@ class ListTests extends AnyFlatSpec with Matchers {
       Add(Many(Nil), Many(Num(2) :: Num(3) :: Nil)),
       11
     )
+  }
 
+  "diff" should "move list elements in and out of lists" in {
+    testChangeset(
+      Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
+      Add(Add(Num(1), Num(2)), Add(Num(4), Num(3))),
+      10
+    )
 
+    testChangeset(
+      Add(Add(Num(1), Num(2)), Add(Num(4), Num(3))),
+      Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
+      14
+    )
   }
 }

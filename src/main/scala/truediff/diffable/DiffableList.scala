@@ -19,6 +19,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   override lazy val treesize: Int = 1 + this.list.foldRight(0)((t, sum) => t.treesize + sum)
 
+  override def toString: String = s"List(" + list.map(_.toString).mkString(", ") + ")"
   override def toStringWithURI: String = s"List_$uri(" + list.map(_.toStringWithURI).mkString(", ") + ")"
 
   override private[truediff] def foreachDiffable(f: Diffable => Unit): Unit = {

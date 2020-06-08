@@ -100,7 +100,7 @@ trait Diffable extends Hashable {
     that.assignSubtrees(subtreeReg)
 
     val buf = new ChangesetBuffer
-    val newtree = this.computeChangeset(that, null, RootLink, buf)
+    val newtree = this.computeChangeset(that, new NodeURI, RootLink, buf)
     (buf.toChangeset, newtree.asInstanceOf[T])
   }
 }

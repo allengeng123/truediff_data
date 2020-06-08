@@ -3,7 +3,7 @@ package truediff.changeset
 import truediff.TreeURI.NodeTag
 import truediff._
 
-class Changeset(val neg: Seq[DetachOrUnload], val pos: Seq[PositiveChange]) {
+class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
   def cmds: Iterable[Change] = neg.view.concat(pos.view)
   def size: Int = neg.size + pos.size
 

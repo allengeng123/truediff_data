@@ -5,7 +5,7 @@ import truediff.{ListNextLink, NodeURI}
 import scala.collection.mutable
 
 class ChangesetBuffer() {
-    private val negBuf: mutable.Buffer[DetachOrUnload] = mutable.ArrayBuffer()
+    private val negBuf: mutable.Buffer[NegativeChange] = mutable.ArrayBuffer()
     private val posBuf: mutable.Buffer[PositiveChange] = mutable.ArrayBuffer()
     private val detachListNext: mutable.Map[(NodeURI, NodeURI), DetachNode] = mutable.Map()
     private val attachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
@@ -32,7 +32,7 @@ class ChangesetBuffer() {
               posBuf += attach
           }
 
-        case change: DetachOrUnload => negBuf += change
+        case change: NegativeChange => negBuf += change
         case change: PositiveChange => posBuf += change
       }
       this
