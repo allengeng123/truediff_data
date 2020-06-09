@@ -55,7 +55,7 @@ class ParentNextLast extends Consumer {
         for ((_, kid) <- kids)
           parents -= kid
 
-      case Attach(list, ListFirstLink(_), first) =>
+      case Attach(list, ListFirstLink(_), first, _) =>
         // update parent: add all list elements
         iterateNext(first){n => parents += ((list, n))}
         // update next: nothing
@@ -64,7 +64,7 @@ class ParentNextLast extends Consumer {
         iterateNext(first){last = _}
         lasts += ((list, last))
 
-      case Attach(pred, ListNextLink(_), succ) =>
+      case Attach(pred, ListNextLink(_), succ, _) =>
         // update parent: add all successor elements
         val list = parents.get(pred)
         if (list.isDefined)
@@ -78,7 +78,7 @@ class ParentNextLast extends Consumer {
           lasts += ((list.get, last))
         }
 
-      case Attach(parent, _, node) =>
+      case Attach(parent, _, node, _) =>
         // non-list change
         parents += ((node, parent))
       case Load(node, _, kids, _) =>

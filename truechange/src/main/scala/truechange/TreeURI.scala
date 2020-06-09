@@ -18,18 +18,28 @@ case class Literal[T: ClassTag](value: T) extends Node {
 
 
 
-sealed trait Link
+sealed trait Link {
+  def isOptional: Boolean
+}
 case object RootLink extends Link {
   override def toString: String = "#root"
+  override def isOptional: Boolean = false
 }
-case class NamedLink(tag: NodeTag, name: String) extends Link {
-  override def toString: String = s"$tag.$name"
+case class NamedLink(name: String) extends Link {
+  override def toString: String = name
+  override def isOptional: Boolean = false
+}
+case class OptionalLink(link: Link) extends Link {
+  override def toString: String = super.toString + "?"
+  override def isOptional: Boolean = true
 }
 case class ListFirstLink(ty: Type) extends Link {
   override def toString: String = "#first"
+  override def isOptional: Boolean = true
 }
 case class ListNextLink(ty: Type) extends Link {
   override def toString: String = "#next"
+  override def isOptional: Boolean = true
 }
 
 
@@ -61,14 +71,7 @@ case class ListType(ty: Type) extends Type {
     case _ => false
   }
 }
-case class UnwrappedListType(ty: Type) extends Type {
-  override def toString: String = s"UnwrappedList[$ty]"
-  override def isAssignableFrom(other: Type): Boolean = other match {
-    case UnwrappedListType(otherTy) => ty.isAssignableFrom(otherTy)
-    case NothingType => true
-    case _ => false
-  }
-}
+
 case class OptionType(ty: Type) extends Type {
   override def toString: String = s"Option[$ty]"
   override def isAssignableFrom(other: Type): Boolean = ty.isAssignableFrom(other)

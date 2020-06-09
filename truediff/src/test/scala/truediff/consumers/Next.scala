@@ -17,7 +17,7 @@ class Next extends Consumer {
     changeset.foreach {
       case Detach(pred, ListNextLink(_), _, _) =>
         nexts -= pred
-      case Attach(pred, ListNextLink(_), succ) =>
+      case Attach(pred, ListNextLink(_), succ, _) =>
         nexts += ((pred, succ))
       case _ =>
     }

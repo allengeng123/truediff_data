@@ -20,7 +20,7 @@ class ParentNoLists extends Consumer {
       case Unload(_, _, kids, _) =>
         for ((_, kid) <- kids)
           parents -= kid
-      case Attach(parent, _, node) =>
+      case Attach(parent, _, node, _) =>
         parents += ((node, parent))
       case Load(node, _, kids, _) =>
         for ((_, kid) <- kids)

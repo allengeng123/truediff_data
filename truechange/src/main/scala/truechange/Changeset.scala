@@ -1,6 +1,6 @@
 package truechange
 
-class Changeset(val changes: Seq[Change]) {
+case class Changeset(changes: Seq[Change]) {
   def size: Int = changes.size
 
   def foreach(f: Change => Unit): Unit = changes.foreach(f)
@@ -16,29 +16,25 @@ class Changeset(val changes: Seq[Change]) {
    */
   def welltyped(sigs: Map[NodeTag, Signature]): Option[String] = {
 
-    def linkType(link: Link): Type = link match {
-      case RootLink => AnyType
-      case NamedLink(tag, name) => sigs(tag).kids(name)
-      case ListFirstLink(ty) => UnwrappedListType(ty)
-      case ListNextLink(ty) => UnwrappedListType(ty)
-    }
+//    def linkType(link: Link): Type = link match {
+//      case RootLink(ty) => ty
+//      case NamedLink(tag, name) => sigs(tag).kids(name)
+//      case ListFirstLink(ty) => ty
+//      case ListNextLink(ty) => ty
+//    }
 
     var roots = Map[NodeURI, Type]()
     var stubs = Map[NodeURI, Set[Link]]()
 
     def isListLink(link: Link) = link.isInstanceOf[ListNextLink] || link.isInstanceOf[ListFirstLink]
-    def trackStub(link: Link) =
-      if (isListLink(link)) false
-      else if (linkType(link).isInstanceOf[OptionType]) false
-      else true
     def addStub(node: NodeURI, link: Link): Unit =
-      if (trackStub(link))
+      if (!link.isOptional)
         stubs = stubs.updatedWith(node) {
           case Some(set) => Some(set + link)
           case None => Some(Set(link))
         }
     def removeStub(node: NodeURI, link: Link): Unit =
-      if (trackStub(link))
+      if (!link.isOptional)
         stubs = stubs.updatedWith(node) {
           case Some(set) =>
             val newset = set - link
@@ -47,25 +43,25 @@ class Changeset(val changes: Seq[Change]) {
         }
 
     changes.foreach {
-      case Detach(parent, link, node, nodeTag) =>
+      case Detach(parent, link, node, tag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
 
         // parent.link is not a stub yet
         val parentStubs = stubs.getOrElse(parent, Set())
-        if (trackStub(link) && parentStubs.contains(link))
+        if (!link.isOptional && parentStubs.contains(link))
           return Some(s"Detach of $node from $parent with already free $link")
-        val nodeType = sigs.getOrElse(nodeTag, return Some(s"No signature for $nodeTag found")).sort
+        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
         roots += node -> nodeType
         addStub(parent, link)
 
-      case Unload(node, nodeTag, kids, lits) =>
+      case Unload(node, tag, kids, lits) =>
         // node is a root
         roots.getOrElse(node, return Some(s"Unload of unfree node $node"))
 
         // all kids become roots
-        val sig = sigs.getOrElse(nodeTag, return Some(s"No signature for $nodeTag found"))
+        val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
         for ((kidname, kidnode) <- kids) {
           val kidType = sig.kids.getOrElse(kidname, return Some(s"Cannot unload $node, unexpected kid $kidname"))
           roots += kidnode -> kidType
@@ -73,20 +69,20 @@ class Changeset(val changes: Seq[Change]) {
 
         roots -= node
 
-      case Attach(parent, link, node) =>
+      case Attach(parent, link, node, tag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
         // kid is attachable to parent.link
-        val expectedType = linkType(link)
+        val expectedType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
         if (!isListLink(link) && !expectedType.isAssignableFrom(nodeType))
           return Some(s"Cannot attach $node to $link, incompatible types: Expected $expectedType but got $nodeType.")
-        else if (isListLink(link) && !expectedType.isAssignableFrom(UnwrappedListType(nodeType)))
-          return Some(s"Cannot attach $node to $link, incompatible types: Expected $expectedType but got ${UnwrappedListType(nodeType)}.")
+        else if (isListLink(link) && !expectedType.isAssignableFrom(nodeType))
+          return Some(s"Cannot attach $node to $link, incompatible types: Expected $expectedType but got ${nodeType}.")
 
         // parent.link is a stub
         val parentStubs = stubs.getOrElse(parent, Set())
-        if (trackStub(link) && !parentStubs.contains(link))
+        if (!link.isOptional && !parentStubs.contains(link))
           return Some(s"Attach of $node to $parent with unfree slot $link")
         roots -= node
         removeStub(parent, link)

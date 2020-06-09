@@ -15,7 +15,7 @@ case class Unload(node: NodeURI, tag: NodeTag, kids: Iterable[(String, NodeURI)]
   }
 }
 
-case class Attach(parent: NodeURI, link: Link, node: NodeURI) extends Change {
+case class Attach(parent: NodeURI, link: Link, node: NodeURI, tag: NodeTag) extends Change {
   override def toString: String = s"attach $node to $parent.$link"
 }
 

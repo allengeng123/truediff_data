@@ -46,7 +46,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
-      changes += Attach(parent, link, newtree.uri)
+      changes += Attach(parent, OptionalLink(link), newtree.uri, newtree.tag)
       newtree
   }
 
@@ -100,10 +100,10 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
-      val a = this.a.computeChangeset(that.a, parent, link, changes)
+      val a = this.a.computeChangeset(that.a, parent, OptionalLink(link), changes)
       DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
-      changes += Detach(parent, link, this.a.uri, this.a.tag)
+      changes += Detach(parent, OptionalLink(link), this.a.uri, this.a.tag)
       this.a.unloadUnassigned(changes)
       that
   }

@@ -99,7 +99,7 @@ trait Diffable extends Hashable {
     changes += Detach(parent, link, this.uri, this.tag)
     this.unloadUnassigned(changes)
     val newtree = that.loadUnassigned(changes)
-    changes += Attach(parent, link, newtree.uri)
+    changes += Attach(parent, link, newtree.uri, newtree.tag)
     newtree
   }
 

@@ -105,7 +105,7 @@ object DiffableMacro {
 
         val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
 
-        def link(p: TermName, tp: Tree) = q"$oNamedLink(this.tag, ${p.toString})"
+        def link(p: TermName, tp: Tree) = q"$oNamedLink(${p.toString})"
 
         val superDiffable = parents.find(tp => Util.isSubtypeOf(c)(tp, tyDiffable))
         val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$tpname[..$tparams]])"

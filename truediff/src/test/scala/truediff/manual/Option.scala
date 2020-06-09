@@ -37,7 +37,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Maybe =>
-      val a = this.a.computeChangeset(that.a, this.uri, NamedLink(this.tag, "a"), changes).asInstanceOf[DiffableOption[Exp]]
+      val a = this.a.computeChangeset(that.a, this.uri, NamedLink("a"), changes).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
       newtree._uri = this.uri
       newtree

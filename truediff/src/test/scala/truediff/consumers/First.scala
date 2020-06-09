@@ -17,7 +17,7 @@ class First extends Consumer {
     changeset.foreach {
       case Detach(list, ListFirstLink(_), _, _) =>
         firsts -= list
-      case Attach(list, ListFirstLink(_), node) =>
+      case Attach(list, ListFirstLink(_), node, _) =>
         firsts += ((list, node))
       case _ =>
     }

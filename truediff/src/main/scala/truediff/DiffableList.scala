@@ -83,7 +83,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     case (Nil, Nil) => Nil
     case (Nil, thatnode::thatlist) =>
       val newtree = thatnode.loadUnassigned(changes)
-      changes += Attach(thatparent, link, newtree.uri)
+      changes += Attach(thatparent, link, newtree.uri, newtree.tag)
       val newlist = computeChangesetLists(Nil, thatlist, null, newtree.uri, ListNextLink(atype), changes)
       newtree +: newlist
     case (thisnode::thislist, Nil) =>
@@ -98,7 +98,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
           val hasParentChanged = thisparent != thatparent
           if (hasParentChanged || thisnode.uri != reusednode.uri) {
             changes += Detach(thisparent, link, reusednode.uri, reusednode.tag)
-            changes += Attach(thatparent, link, reusednode.uri)
+            changes += Attach(thatparent, link, reusednode.uri, reusednode.tag)
           }
           val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, reusednode.uri, ListNextLink(atype), changes)
           reusednode +: newlist
@@ -107,7 +107,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
           changes += Detach(thisparent, link, thisnode.uri, thisnode.tag)
           thisnode.unloadUnassigned(changes)
           val newtree = thatnode.loadUnassigned(changes)
-          changes += Attach(thatparent, link, newtree.uri)
+          changes += Attach(thatparent, link, newtree.uri, newtree.tag)
           val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, newtree.uri ,ListNextLink(atype), changes)
           newtree +: newlist
       }
@@ -139,7 +139,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     val newtree = DiffableList(newlist, atype)
     changes += Load(newtree.uri, this.tag, Seq(), Seq())
     newlist.foldLeft[(NodeURI,Link)]((newtree.uri, ListFirstLink(atype))){(pred, el) =>
-      changes += Attach(pred._1, pred._2, el.uri)
+      changes += Attach(pred._1, pred._2, el.uri, el.tag)
       (el.uri, ListNextLink(atype))
     }
 
@@ -151,7 +151,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     changes += Load(this.uri, this.tag, Seq(), Seq())
     this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
       el.loadInitial(changes)
-      changes += Attach(pred._1, pred._2, el.uri)
+      changes += Attach(pred._1, pred._2, el.uri, el.tag)
       (el.uri, ListNextLink(atype))
     }
   }

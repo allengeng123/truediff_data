@@ -170,8 +170,8 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Add =>
-      val e1 = this.e1.computeChangeset(that.e1, this.uri, NamedLink(this.tag, "e1"), changes).asInstanceOf[Exp]
-      val e2 = this.e2.computeChangeset(that.e2, this.uri, NamedLink(this.tag, "e2"), changes).asInstanceOf[Exp]
+      val e1 = this.e1.computeChangeset(that.e1, this.uri, NamedLink("e1"), changes).asInstanceOf[Exp]
+      val e2 = this.e2.computeChangeset(that.e2, this.uri, NamedLink("e2"), changes).asInstanceOf[Exp]
       val newtree = Add(e1, e2)
       newtree._uri = this.uri
       newtree
