@@ -3,7 +3,6 @@ package truediff
 import java.io.File
 
 import truechange.Changeset
-import truediff.diffable.Diffable
 
 import scala.io.Source
 

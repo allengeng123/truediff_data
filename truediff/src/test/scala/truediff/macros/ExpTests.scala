@@ -3,7 +3,7 @@ package truediff.macros
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import truechange._
-import truediff.diffable.Diffable
+import truediff.Diffable
 import truediff.macros.Exp.Hole
 
 class ExpTests extends AnyFlatSpec with Matchers {

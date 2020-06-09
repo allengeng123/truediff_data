@@ -1,4 +1,4 @@
-package truediff.diffable
+package truediff
 
 import truechange.NodeURI
 

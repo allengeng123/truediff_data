@@ -1,6 +1,6 @@
 package truediff.macros
 
-import truediff.diffable.Diffable
+import truediff.Diffable
 
 @diffable
 trait Exp extends Diffable

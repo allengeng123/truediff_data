@@ -2,7 +2,7 @@ package truediff.consumers
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import truediff.diffable.Diffable
+import truediff.Diffable
 import truediff.macros._
 
 class ParentNoListsTests extends AnyFlatSpec with Matchers  {

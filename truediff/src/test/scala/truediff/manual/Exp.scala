@@ -1,8 +1,7 @@
 package truediff.manual
 
-import truediff._
 import truechange._
-import truediff.diffable.{Diffable, SubtreeRegistry}
+import truediff.{SubtreeRegistry, _}
 
 trait Exp extends Diffable
 

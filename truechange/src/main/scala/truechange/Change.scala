@@ -14,6 +14,10 @@ object DetachOrUnload {
 
 sealed trait PositiveChange extends Change
 
+
+
+
+
 case class DetachNode(parent: NodeURI, link: Link, node: NodeURI, nodeTag: NodeTag) extends NegativeChange {
   override def toString: String = s"detach $node:$nodeTag from $parent.$link"
 }

@@ -1,4 +1,4 @@
-package truediff.diffable
+package truediff
 
 import org.apache.commons.collections4.trie.PatriciaTrie
 

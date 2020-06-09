@@ -3,7 +3,7 @@ package truediff.macros
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import truechange._
-import truediff.diffable.Diffable
+import truediff.Diffable
 
 class ListTests extends AnyFlatSpec with Matchers {
   def testChangeset(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {

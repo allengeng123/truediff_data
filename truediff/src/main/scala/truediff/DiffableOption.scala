@@ -1,5 +1,5 @@
-package truediff.diffable
-import truediff._
+package truediff
+
 import truechange._
 
 sealed trait DiffableOption[+A <: Diffable] extends Diffable {

@@ -1,8 +1,7 @@
 package truediff.manual
 
-import truediff._
 import truechange._
-import truediff.diffable.{Diffable, DiffableOption, SubtreeRegistry}
+import truediff.{SubtreeRegistry, _}
 
 case class Maybe(a: DiffableOption[Exp]) extends Exp {
 

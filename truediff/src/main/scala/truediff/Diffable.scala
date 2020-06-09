@@ -1,6 +1,5 @@
-package truediff.diffable
+package truediff
 
-import truediff._
 import truechange._
 
 import scala.collection.mutable

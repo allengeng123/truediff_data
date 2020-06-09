@@ -1,8 +1,7 @@
 package truediff.manual
 
-import truediff._
 import truechange._
-import truediff.diffable.{Diffable, DiffableList, SubtreeRegistry}
+import truediff.{SubtreeRegistry, _}
 
 case class Many(es: DiffableList[Exp]) extends Exp {
 

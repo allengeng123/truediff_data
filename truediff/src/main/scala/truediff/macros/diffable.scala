@@ -1,8 +1,7 @@
 package truediff.macros
 
-import truediff._
 import truechange._
-import truediff.diffable._
+import truediff._
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
@@ -21,6 +20,7 @@ object DiffableMacro {
     val tyDiffable = typeOf[Diffable]
     val tHashable = symbolOf[Hashable]
     val oHashable = tHashable.companion
+    val tyHashable = typeOf[Hashable]
     val tUnit = symbolOf[Unit]
     val tInt = symbolOf[Int]
     val tArray = symbolOf[Array[_]]
@@ -131,9 +131,10 @@ object DiffableMacro {
             override lazy val hash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               digest.update(this.getClass.getCanonicalName.getBytes)
-              ..${mapAllParams(
+              ..${Util.mapParams(c)(paramss, tyHashable,
                 p => q"digest.update(this.$p.hash)",
-                p => q"$oHashable.hash(this.$p, digest)"
+                p => q"$oHashable.hash(this.$p, digest)",
+                wat, wat
               )}
               digest.digest()
             }
