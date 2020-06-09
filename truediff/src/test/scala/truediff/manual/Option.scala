@@ -65,13 +65,15 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     ), Seq())
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
-    } else
-      this.a.unloadUnassigned(this.uri, NamedLink(this.tag, "a"), changes)
-      changes += UnloadNode(parent, link, this.uri, this.tag)
+    } else {
+      changes += UnloadNode(this.uri, this.tag, Seq(
+        "a" -> a.uri
+      ), Seq())
+      this.a.unloadUnassigned(changes)
+    }
   }
 }
 

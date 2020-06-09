@@ -217,20 +217,22 @@ object DiffableMacro {
               ..${mapDiffableParams(p => q"this.$p.loadInitial(changes)")}
               changes += $oLoadNode(this.uri, this.tag,
                 $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
-                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral(this.$p))")}),
+                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral(this.$p))")})
               )
             }
 
 
-            override def unloadUnassigned(parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tUnit = {
+            override def unloadUnassigned(changes: $tChangesetBuffer): $tUnit = {
               if (this.assigned != null) {
-                changes += $oDetachNode(parent, link, this.uri, this.tag)
                 this.assigned = null
               } else {
+                changes += $oUnloadNode(this.uri, this.tag,
+                  $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
+                  $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral(this.$p))")})
+                )
                 ..${mapDiffableParamsTyped(
-                  (p,t) => q"this.$p.unloadUnassigned(this.uri, ${link(p,t)}, changes)"
+                  (p,t) => q"this.$p.unloadUnassigned(changes)"
                 )}
-                changes += $oUnloadNode(parent, link, this.uri, this.tag)
               }
             }
 

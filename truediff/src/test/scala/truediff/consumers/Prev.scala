@@ -15,7 +15,7 @@ class Prev extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
-      case DetachOrUnload(_, ListNextLink(_), succ, _) =>
+      case DetachNode(_, ListNextLink(_), succ, _) =>
         prevs -= succ
       case _ =>
     }

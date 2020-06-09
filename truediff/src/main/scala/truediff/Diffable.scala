@@ -23,7 +23,7 @@ trait Diffable extends Hashable {
 
   def foreachDiffable(f: Diffable => Unit): Unit
   def loadUnassigned(changes: ChangesetBuffer): Diffable
-  def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit
+  def unloadUnassigned(changes: ChangesetBuffer): Unit
   def loadInitial(changes: ChangesetBuffer): Unit
 
   protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
@@ -92,7 +92,8 @@ trait Diffable extends Hashable {
         return newtree
     }
 
-    this.unloadUnassigned(parent, link, changes)
+    changes += DetachNode(parent, link, this.uri, this.tag)
+    this.unloadUnassigned(changes)
     val newtree = that.loadUnassigned(changes)
     changes += AttachNode(parent, link, newtree.uri)
     newtree

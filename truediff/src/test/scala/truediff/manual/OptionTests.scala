@@ -47,13 +47,13 @@ class OptionTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Maybe(Some(Add(Num(1), Num(2)))),
       Maybe(None),
-      3
+      4
     )
 
     testChangeset(
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       Add(Maybe(None), Num(3)),
-      3
+      4
     )
   }
 
@@ -61,31 +61,31 @@ class OptionTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Num(0),
       Maybe(None),
-      3
+      4
     )
 
     testChangeset(
       Num(0),
       Maybe(Some(Add(Num(1), Num(2)))),
-      6
+      7
     )
 
     testChangeset(
       Add(Num(0), Num(3)),
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
-      6
+      7
     )
 
     testChangeset(
       Maybe(Some(Add(Num(1), Num(2)))),
       Num(0),
-      6
+      7
     )
 
     testChangeset(
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       Add(Num(0), Num(3)),
-      6
+      7
     )
   }
 

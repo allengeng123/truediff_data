@@ -66,13 +66,14 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     ), Seq())
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else {
-      this.es.unloadUnassigned(this.uri, NamedLink(this.tag, "es"), changes)
-      changes += UnloadNode(parent, link, this.uri, this.tag)
+      changes += UnloadNode(this.uri, this.tag, Seq(
+        "es" -> es.uri
+      ), Seq())
+      this.es.unloadUnassigned(changes)
     }
   }
 }

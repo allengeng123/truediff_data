@@ -55,13 +55,13 @@ class ListTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Many(Num(1) :: Num(2) :: Nil),
       Many(Nil),
-      2
+      4
     )
 
     testChangeset(
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
       Add(Many(Nil), Num(3)),
-      2
+      4
     )
   }
 
@@ -112,42 +112,42 @@ class ListTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Many(Num(1) :: Num(2) :: Nil),
       Many(Num(1) :: Nil),
-      1
+      2
     )
 
     // unload 2
     testChangeset(
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
       Add(Many(Num(1) :: Nil), Num(3)),
-      1
+      2
     )
 
-    // detach 2 from 1.next, unload 2, attach 2 to many
+    // detach 2 from 1.next, unload 1, attach 2 to many
     testChangeset(
       Many(Num(1) :: Num(2) :: Nil),
       Many(Num(2) :: Nil),
-      3
+      4
     )
 
-    // detach 2 from 1.next, unload 2, attach 2 to many
+    // detach 2 from 1.next, unload 1, attach 2 to many
     testChangeset(
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
       Add(Many(Num(2) :: Nil), Num(3)),
-      3
+      4
     )
 
     // detach 3 from 2.next, unload 2, attach 3 to 1.next
     testChangeset(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(1) :: Num(3) :: Nil),
-      3
+      4
     )
 
     // detach 3 from 2.next, unload 2, attach 3 to 1.next
     testChangeset(
       Add(Many(Num(1) :: Num(2) :: Num(3) :: Nil), Num(3)),
       Add(Many(Num(1) :: Num(3) :: Nil), Num(3)),
-      3
+      4
     )
 
      // load 3, attach 3 to 2.next
@@ -176,37 +176,37 @@ class ListTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(5) :: Num(6) :: Nil),
-      9
+      12
     )
 
     testChangeset(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(5) :: Num(3) :: Nil),
-      8
-    )
-
-    testChangeset(
-      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
-      Many(Num(4) :: Num(5) :: Num(6) :: Num(7) :: Nil),
-      11
-    )
-
-    testChangeset(
-      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
-      Many(Num(3) :: Num(4) :: Num(5) :: Num(6) :: Nil),
       10
     )
 
     testChangeset(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
+      Many(Num(4) :: Num(5) :: Num(6) :: Num(7) :: Nil),
+      14
+    )
+
+    testChangeset(
+      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
+      Many(Num(3) :: Num(4) :: Num(5) :: Num(6) :: Nil),
+      12
+    )
+
+    testChangeset(
+      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(3) :: Num(2) :: Nil),
-      7
+      8
     )
 
     testChangeset(
       Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
       Many(Num(2) :: Num(3) :: Num(5) :: Nil),
-      6
+      8
     )
   }
 
@@ -214,25 +214,25 @@ class ListTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Num(0),
       Many(Num(1) :: Num(2) :: Nil),
-      8
+      9
     )
 
     testChangeset(
       Add(Num(0), Num(3)),
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
-      8
+      9
     )
 
     testChangeset(
       Many(Num(1) :: Num(2) :: Nil),
       Num(0),
-      6
+      9
     )
 
     testChangeset(
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
       Add(Num(0), Num(3)),
-      6
+      9
     )
   }
 
@@ -240,7 +240,7 @@ class ListTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Add(Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil), Many(Nil)),
       Add(Many(Nil), Many(Num(2) :: Num(3) :: Nil)),
-      11
+      14
     )
   }
 
@@ -248,13 +248,13 @@ class ListTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
       Add(Add(Num(1), Num(2)), Add(Num(4), Num(3))),
-      10
+      11
     )
 
     testChangeset(
       Add(Add(Num(1), Num(2)), Add(Num(4), Num(3))),
       Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
-      14
+      11
     )
   }
 }

@@ -35,25 +35,25 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Hole(),
       Add(Num(1), Num(2)),
-      5
+      6
     )
 
     testChangeset(
       Add(Hole(), Num(3)),
       Add(Add(Num(1), Num(2)), Num(3)),
-      5
+      6
     )
 
     testChangeset(
       Add(Num(1), Num(2)),
       Hole(),
-      5
+      6
     )
 
     testChangeset(
       Add(Add(Num(1), Num(2)), Num(3)),
       Add(Hole(), Num(3)),
-      5
+      6
     )
   }
 
@@ -63,7 +63,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Add(Num(10), Num(13)),
       Add(Num(13), Num(13)),
-      3
+      4
     )
 
     // should yield changeset:
@@ -71,26 +71,30 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testChangeset(
       Add(Num(13), Num(10)),
       Add(Num(13), Num(13)),
-      3
+      4
     )
   }
 
   "diff" should "leave subtrees intact" in {
     // should yield changeset:
-    //   [unload 1 from x, load 2 as y, attach y to x,
-    //    unload 3 from z, detach (2+3) from z, unload z, attach (2+3) to x]
+    //   [detach 1, unload 1 from x, load 2 as y, attach y to x,
+    //    unload z, unload 3, detach (2+3) from z, attach (2+3) to x]
     testChangeset(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Num(2), Add(Num(2), Num(3))),
-      3 + 4
+      4 + 4
     )
 
     // Note that the tree in which `2` occurs is higher than the one of `2+3`.
     // This test requires a piecewise height-first traversal of subtrees, such that `2+3` is visited before `2`.
+    // [detach 1, unload 1,
+    //  detach (3+(2+3)), unload (3+(2+3)), unload 3,
+    //  load 2, load 0, load 0, load (0+0), load (2+(0+0)),
+    //  attach (2+(0+0)), attach (2+3)]
     testChangeset(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Add(Num(2), Add(Num(0), Num(0))), Add(Num(2), Num(3))),
-      11
+      12
     )
   }
 
@@ -124,11 +128,11 @@ class ExpTests extends AnyFlatSpec with Matchers {
   "diff" should "wrap subtrees" in {
     // should yield changeset:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]
-//    testChangeset(
-//      Add(Num(2), Num(3)),
-//      Add(Num(1), Add(Num(2), Num(3))),
-//      4
-//    )
+    testChangeset(
+      Add(Num(2), Num(3)),
+      Add(Num(1), Add(Num(2), Num(3))),
+      4
+    )
 
     // should yield changeset:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]

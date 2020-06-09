@@ -84,8 +84,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       val newlist = computeChangesetLists(Nil, thatlist, null, newtree.uri, ListNextLink(atype), changes)
       newtree +: newlist
     case (thisnode::thislist, Nil) =>
+      changes += DetachNode(thisparent, link, thisnode.uri, thisnode.tag)
+      thisnode.unloadUnassigned(changes)
       computeChangesetLists(thislist, Nil, thisnode.uri, null, ListNextLink(atype), changes)
-      thisnode.unloadUnassigned(thisparent, link, changes)
       Seq()
     case (thisnode::thislist, thatnode::thatlist) =>
       tryReuseListElem(thisnode, thatnode, thisparent, link, changes) match {
@@ -100,10 +101,11 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
           reusednode +: newlist
         case None =>
           // need to unload thisnode and load thatnode
+          changes += DetachNode(thisparent, link, thisnode.uri, thisnode.tag)
+          thisnode.unloadUnassigned(changes)
           val newtree = thatnode.loadUnassigned(changes)
           changes += AttachNode(thatparent, link, newtree.uri)
           val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, newtree.uri ,ListNextLink(atype), changes)
-          thisnode.unloadUnassigned(thisparent, link, changes)
           newtree +: newlist
       }
   }
@@ -143,29 +145,25 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
-    this.list.foreach(_.loadInitial(changes))
     changes += LoadNode(this.uri, this.tag, Seq(), Seq())
     this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
+      el.loadInitial(changes)
       changes += AttachNode(pred._1, pred._2, el.uri)
       (el.uri, ListNextLink(atype))
     }
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else {
-      unload(this.list, this.uri, ListFirstLink(atype), changes)
-      changes += UnloadNode(parent, link, this.uri, this.tag)
+      changes += UnloadNode(this.uri, this.tag, Seq(), Seq())
+      this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
+        changes += DetachNode(pred._1, pred._2, el.uri, el.tag)
+        el.unloadUnassigned(changes)
+        (el.uri, ListNextLink(atype))
+      }
     }
-  }
-
-  private def unload(l: Seq[Diffable], parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = l match {
-    case Nil =>
-    case a :: as =>
-      unload(as, a.uri, ListNextLink(atype), changes)
-      a.unloadUnassigned(parent, link, changes)
   }
 
   override def hash: Array[Byte] = {

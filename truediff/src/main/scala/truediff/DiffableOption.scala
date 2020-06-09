@@ -59,7 +59,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
     // nothing to load for None
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
     // nothing to unload for None
   }
 }
@@ -102,7 +102,8 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
       val a = this.a.computeChangeset(that.a, parent, link, changes)
       DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
-      this.a.unloadUnassigned(parent, link, changes)
+      changes += DetachNode(parent, link, this.a.uri, this.a.tag)
+      this.a.unloadUnassigned(changes)
       that
   }
 
@@ -115,7 +116,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
     this.a.loadInitial(changes)
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
-    a.unloadUnassigned(parent, link, changes)
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+    a.unloadUnassigned(changes)
   }
 }

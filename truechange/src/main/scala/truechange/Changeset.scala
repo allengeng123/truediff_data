@@ -59,22 +59,18 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         roots += node -> nodeType
         addStub(parent, link)
 
-      case UnloadNode(parent, link, node, nodeTag) =>
-        // parent.link is not a stub yet
-        val parentStubs = stubs.getOrElse(parent, Set())
-        if (trackStub(link) && parentStubs.contains(link))
-          return Some(s"Unload of $node from $parent with already free $link")
+      case UnloadNode(node, nodeTag, kids, lits) =>
+        // node is a root
+        roots.getOrElse(node, return Some(s"Unload of unfree node $node"))
 
-        // all kids are stubs
-        val nodeSig = sigs.getOrElse(nodeTag, return Some(s"No signature for tag $nodeTag found"))
-        val nodeStubs = stubs.getOrElse(node, Set())
-        nodeSig.kids.foreach { case (name, kidType) =>
-          val kidlink = NamedLink(nodeTag, name)
-          if (trackStub(kidlink) && !nodeStubs.contains(kidlink))
-            return Some(s"Unload of $node from $parent with unfree slot $name")
+        // all kids become roots
+        val sig = sigs.getOrElse(nodeTag, return Some(s"No signature for $nodeTag found"))
+        for ((kidname, kidnode) <- kids) {
+          val kidType = sig.kids.getOrElse(kidname, return Some(s"Cannot unload $node, unexpected kid $kidname"))
+          roots += kidnode -> kidType
         }
-        stubs -= node
-        addStub(parent, link)
+
+        roots -= node
     }
 
     pos.foreach {

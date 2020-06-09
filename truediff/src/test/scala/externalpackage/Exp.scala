@@ -51,12 +51,11 @@ object Exp {
       changes += LoadNode(this.uri, this.tag, Seq(), Seq())
     }
 
-    override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+    override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
       if (this.assigned != null) {
-        changes += DetachNode(parent, link, this.uri, this.tag)
         this.assigned = null
       } else
-        changes += UnloadNode(parent, link, this.uri, this.tag)
+        changes += UnloadNode(this.uri, this.tag, Seq(), Seq())
     }
 
     lazy val hash: Array[Byte] = {
@@ -125,12 +124,11 @@ case class Num(n: Int) extends Exp {
     ))
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else
-      changes += UnloadNode(parent, link, this.uri, this.tag)
+      changes += UnloadNode(this.uri, this.tag, Seq(), Seq("n" -> Literal(this.n)))
   }
 }
 
@@ -206,14 +204,16 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     ), Seq())
   }
 
-  override def unloadUnassigned(parent: NodeURI, link: Link, changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
     if (this.assigned != null) {
-      changes += DetachNode(parent, link, this.uri, this.tag)
       this.assigned = null
     } else {
-      this.e1.unloadUnassigned(this.uri, NamedLink(this.tag, "e1"), changes)
-      this.e2.unloadUnassigned(this.uri, NamedLink(this.tag, "e2"), changes)
-      changes += UnloadNode(parent, link, this.uri, this.tag)
+      changes += UnloadNode(this.uri, this.tag, Seq(
+      "e1" -> this.e1.uri,
+      "e2" -> this.e2.uri
+      ), Seq())
+      this.e1.unloadUnassigned(changes)
+      this.e2.unloadUnassigned(changes)
     }
   }
 }

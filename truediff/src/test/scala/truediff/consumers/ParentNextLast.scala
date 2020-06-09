@@ -31,14 +31,14 @@ class ParentNextLast extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
-      case DetachOrUnload(list, ListFirstLink(_), first, _) =>
+      case DetachNode(list, ListFirstLink(_), first, _) =>
         // update parent: remove all list elements
         iterateNext(first){parents -= _}
         // update next: nothing
         // update last: list has no last element anymore
         lasts -= list
 
-      case DetachOrUnload(pred, ListNextLink(_), next, _) =>
+      case DetachNode(pred, ListNextLink(_), next, _) =>
         // update parent: remove all successor elements
         iterateNext(next){parents -= _}
         // update next: remove next
@@ -48,9 +48,12 @@ class ParentNextLast extends Consumer {
         if (list.isDefined)
           lasts += ((list.get, pred))
 
-      case DetachOrUnload(_, _, node, _) =>
+      case DetachNode(_, _, node, _) =>
         // non-list change: only update parent
         parents -= node
+      case UnloadNode(_, _, kids, _) =>
+        for ((_, kid) <- kids)
+          parents -= kid
     }
     changeset.pos.foreach {
       case AttachNode(list, ListFirstLink(_), first) =>
@@ -77,11 +80,11 @@ class ParentNextLast extends Consumer {
         }
 
       case AttachNode(parent, _, node) =>
+        // non-list change
         parents += ((node, parent))
-      case LoadNode(node, _, kids, _) => kids.foreach {
-        case (_,kid) =>
+      case LoadNode(node, _, kids, _) =>
+        for ((_, kid) <- kids)
           parents += ((kid, node))
-      }
     }
   }
 }
