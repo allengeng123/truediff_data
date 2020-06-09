@@ -3,7 +3,7 @@ package truediff
 import truechange.NodeURI
 
 class SubtreeShare() {
-  var availableTrees: Map[NodeURI, Diffable] = Map()
+  private var availableTrees: Map[NodeURI, Diffable] = Map()
 
   def registerAvailableTree(t: Diffable): Unit = {
     if (t.treeheight > 0)
