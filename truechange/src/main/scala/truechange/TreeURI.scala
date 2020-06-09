@@ -2,15 +2,14 @@ package truechange
 
 import scala.reflect.ClassTag
 
-sealed trait Node
 //case object RootNode extends Node
-class NodeURI extends Node {
+class NodeURI {
   override def toString: String = {
     val s = super.toString
     s.substring(s.lastIndexOf('@')+1)
   }
 }
-case class Literal[T: ClassTag](value: T) extends Node {
+case class Literal[T: ClassTag](value: T) {
   def tag: LitTag = scala.reflect.classTag[T].runtimeClass
   override def toString: String = value.toString
 }
