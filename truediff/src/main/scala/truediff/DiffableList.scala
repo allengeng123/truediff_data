@@ -83,11 +83,11 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     case (Nil, Nil) => Nil
     case (Nil, thatnode::thatlist) =>
       val newtree = thatnode.loadUnassigned(changes)
-      changes += AttachNode(thatparent, link, newtree.uri)
+      changes += Attach(thatparent, link, newtree.uri)
       val newlist = computeChangesetLists(Nil, thatlist, null, newtree.uri, ListNextLink(atype), changes)
       newtree +: newlist
     case (thisnode::thislist, Nil) =>
-      changes += DetachNode(thisparent, link, thisnode.uri, thisnode.tag)
+      changes += Detach(thisparent, link, thisnode.uri, thisnode.tag)
       thisnode.unloadUnassigned(changes)
       computeChangesetLists(thislist, Nil, thisnode.uri, null, ListNextLink(atype), changes)
       Seq()
@@ -97,17 +97,17 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
           // could reuse node
           val hasParentChanged = thisparent != thatparent
           if (hasParentChanged || thisnode.uri != reusednode.uri) {
-            changes += DetachNode(thisparent, link, reusednode.uri, reusednode.tag)
-            changes += AttachNode(thatparent, link, reusednode.uri)
+            changes += Detach(thisparent, link, reusednode.uri, reusednode.tag)
+            changes += Attach(thatparent, link, reusednode.uri)
           }
           val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, reusednode.uri, ListNextLink(atype), changes)
           reusednode +: newlist
         case None =>
           // need to unload thisnode and load thatnode
-          changes += DetachNode(thisparent, link, thisnode.uri, thisnode.tag)
+          changes += Detach(thisparent, link, thisnode.uri, thisnode.tag)
           thisnode.unloadUnassigned(changes)
           val newtree = thatnode.loadUnassigned(changes)
-          changes += AttachNode(thatparent, link, newtree.uri)
+          changes += Attach(thatparent, link, newtree.uri)
           val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, newtree.uri ,ListNextLink(atype), changes)
           newtree +: newlist
       }
@@ -137,9 +137,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
     val newlist = that.list.map(_.loadUnassigned(changes))
     val newtree = DiffableList(newlist, atype)
-    changes += LoadNode(newtree.uri, this.tag, Seq(), Seq())
+    changes += Load(newtree.uri, this.tag, Seq(), Seq())
     newlist.foldLeft[(NodeURI,Link)]((newtree.uri, ListFirstLink(atype))){(pred, el) =>
-      changes += AttachNode(pred._1, pred._2, el.uri)
+      changes += Attach(pred._1, pred._2, el.uri)
       (el.uri, ListNextLink(atype))
     }
 
@@ -148,10 +148,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
-    changes += LoadNode(this.uri, this.tag, Seq(), Seq())
+    changes += Load(this.uri, this.tag, Seq(), Seq())
     this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
       el.loadInitial(changes)
-      changes += AttachNode(pred._1, pred._2, el.uri)
+      changes += Attach(pred._1, pred._2, el.uri)
       (el.uri, ListNextLink(atype))
     }
   }
@@ -160,9 +160,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      changes += UnloadNode(this.uri, this.tag, Seq(), Seq())
+      changes += Unload(this.uri, this.tag, Seq(), Seq())
       this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
-        changes += DetachNode(pred._1, pred._2, el.uri, el.tag)
+        changes += Detach(pred._1, pred._2, el.uri, el.tag)
         el.unloadUnassigned(changes)
         (el.uri, ListNextLink(atype))
       }

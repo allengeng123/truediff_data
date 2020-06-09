@@ -52,7 +52,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
     val a = this.a.loadUnassigned(changes).asInstanceOf[DiffableOption[Exp]]
     val newtree = Maybe(a)
-    changes += LoadNode(newtree.uri, this.tag, Seq(
+    changes += Load(newtree.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
     newtree
@@ -60,7 +60,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
     this.a.loadInitial(changes)
-    changes += LoadNode(this.uri, this.tag, Seq(
+    changes += Load(this.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
   }
@@ -69,7 +69,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      changes += UnloadNode(this.uri, this.tag, Seq(
+      changes += Unload(this.uri, this.tag, Seq(
         "a" -> a.uri
       ), Seq())
       this.a.unloadUnassigned(changes)

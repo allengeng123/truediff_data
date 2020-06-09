@@ -52,7 +52,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
     val es = this.es.loadUnassigned(changes).asInstanceOf[DiffableList[Exp]]
     val newtree = Many(es)
-    changes += LoadNode(newtree.uri, this.tag, Seq(
+    changes += Load(newtree.uri, this.tag, Seq(
       "es" -> es.uri
     ), Seq())
     newtree
@@ -61,7 +61,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
     this.es.loadInitial(changes)
-    changes += LoadNode(this.uri, this.tag, Seq(
+    changes += Load(this.uri, this.tag, Seq(
       "es" -> es.uri
     ), Seq())
   }
@@ -70,7 +70,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      changes += UnloadNode(this.uri, this.tag, Seq(
+      changes += Unload(this.uri, this.tag, Seq(
         "es" -> es.uri
       ), Seq())
       this.es.unloadUnassigned(changes)

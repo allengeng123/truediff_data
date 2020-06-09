@@ -5,21 +5,21 @@ import scala.collection.mutable
 class ChangesetBuffer() {
     private val negBuf: mutable.Buffer[NegativeChange] = mutable.ArrayBuffer()
     private val posBuf: mutable.Buffer[PositiveChange] = mutable.ArrayBuffer()
-    private val detachListNext: mutable.Map[(NodeURI, NodeURI), DetachNode] = mutable.Map()
+    private val detachListNext: mutable.Map[(NodeURI, NodeURI), Detach] = mutable.Map()
     private val attachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
 
     def += (elem: Change): this.type = {
       elem match {
-        case detach@DetachNode(pred, next@ListNextLink(_), node, _) =>
+        case detach@Detach(pred, next@ListNextLink(_), node, _) =>
           val nextPair = (pred, node)
           if (attachListNext.remove(nextPair)) {
             // detach cancelled out previous attach
-            posBuf -= AttachNode(pred, next, node)
+            posBuf -= Attach(pred, next, node)
           } else {
             detachListNext += ((nextPair, detach))
             negBuf += detach
           }
-        case attach@AttachNode(pred, ListNextLink(_), node) =>
+        case attach@Attach(pred, ListNextLink(_), node) =>
           val nextPair = (pred, node)
           detachListNext.remove(nextPair) match {
             case Some(detach) =>

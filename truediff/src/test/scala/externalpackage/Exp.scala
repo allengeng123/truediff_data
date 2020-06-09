@@ -42,20 +42,20 @@ object Exp {
       }
 
       val newtree = Hole()
-      changes += LoadNode(newtree.uri, this.tag, Seq(), Seq())
+      changes += Load(newtree.uri, this.tag, Seq(), Seq())
       newtree
     }
 
 
     override def loadInitial(changes: ChangesetBuffer): Unit = {
-      changes += LoadNode(this.uri, this.tag, Seq(), Seq())
+      changes += Load(this.uri, this.tag, Seq(), Seq())
     }
 
     override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
       if (this.assigned != null) {
         this.assigned = null
       } else
-        changes += UnloadNode(this.uri, this.tag, Seq(), Seq())
+        changes += Unload(this.uri, this.tag, Seq(), Seq())
     }
 
     lazy val hash: Array[Byte] = {
@@ -111,7 +111,7 @@ case class Num(n: Int) extends Exp {
     }
 
     val newtree = Num(this.n)
-    changes += LoadNode(newtree.uri, this.tag, Seq(), Seq(
+    changes += Load(newtree.uri, this.tag, Seq(), Seq(
       "n" -> Literal(this.n)
     ))
     newtree
@@ -119,7 +119,7 @@ case class Num(n: Int) extends Exp {
 
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
-    changes += LoadNode(this.uri, this.tag, Seq(), Seq(
+    changes += Load(this.uri, this.tag, Seq(), Seq(
       "n" -> Literal(this.n)
     ))
   }
@@ -128,7 +128,7 @@ case class Num(n: Int) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else
-      changes += UnloadNode(this.uri, this.tag, Seq(), Seq("n" -> Literal(this.n)))
+      changes += Unload(this.uri, this.tag, Seq(), Seq("n" -> Literal(this.n)))
   }
 }
 
@@ -187,7 +187,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     val e1 = that.e1.loadUnassigned(changes).asInstanceOf[Exp]
     val e2 = that.e2.loadUnassigned(changes).asInstanceOf[Exp]
     val newtree = Add(e1, e2)
-    changes += LoadNode(newtree.uri, this.tag, Seq(
+    changes += Load(newtree.uri, this.tag, Seq(
       "e1" -> e1.uri,
       "e2" -> e2.uri
     ), Seq())
@@ -198,7 +198,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
   override def loadInitial(changes: ChangesetBuffer): Unit = {
     this.e1.loadInitial(changes)
     this.e2.loadInitial(changes)
-    changes += LoadNode(this.uri, this.tag, Seq(
+    changes += Load(this.uri, this.tag, Seq(
       "e1" -> this.e1.uri,
       "e2" -> this.e2.uri
     ), Seq())
@@ -208,7 +208,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      changes += UnloadNode(this.uri, this.tag, Seq(
+      changes += Unload(this.uri, this.tag, Seq(
       "e1" -> this.e1.uri,
       "e2" -> this.e2.uri
       ), Seq())

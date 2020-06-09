@@ -96,10 +96,10 @@ trait Diffable extends Hashable {
         return newtree
     }
 
-    changes += DetachNode(parent, link, this.uri, this.tag)
+    changes += Detach(parent, link, this.uri, this.tag)
     this.unloadUnassigned(changes)
     val newtree = that.loadUnassigned(changes)
-    changes += AttachNode(parent, link, newtree.uri)
+    changes += Attach(parent, link, newtree.uri)
     newtree
   }
 

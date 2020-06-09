@@ -15,12 +15,12 @@ class First extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
-      case DetachNode(list, ListFirstLink(_), _, _) =>
+      case Detach(list, ListFirstLink(_), _, _) =>
         firsts -= list
       case _ =>
     }
     changeset.pos.foreach {
-      case AttachNode(list, ListFirstLink(_), node) =>
+      case Attach(list, ListFirstLink(_), node) =>
         firsts += ((list, node))
       case _ =>
     }

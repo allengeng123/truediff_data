@@ -46,7 +46,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
-      changes += AttachNode(parent, link, newtree.uri)
+      changes += Attach(parent, link, newtree.uri)
       newtree
   }
 
@@ -103,7 +103,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
       val a = this.a.computeChangeset(that.a, parent, link, changes)
       DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
-      changes += DetachNode(parent, link, this.a.uri, this.a.tag)
+      changes += Detach(parent, link, this.a.uri, this.a.tag)
       this.a.unloadUnassigned(changes)
       that
   }

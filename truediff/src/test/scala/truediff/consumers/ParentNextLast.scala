@@ -31,14 +31,14 @@ class ParentNextLast extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.neg.foreach {
-      case DetachNode(list, ListFirstLink(_), first, _) =>
+      case Detach(list, ListFirstLink(_), first, _) =>
         // update parent: remove all list elements
         iterateNext(first){parents -= _}
         // update next: nothing
         // update last: list has no last element anymore
         lasts -= list
 
-      case DetachNode(pred, ListNextLink(_), next, _) =>
+      case Detach(pred, ListNextLink(_), next, _) =>
         // update parent: remove all successor elements
         iterateNext(next){parents -= _}
         // update next: remove next
@@ -48,15 +48,15 @@ class ParentNextLast extends Consumer {
         if (list.isDefined)
           lasts += ((list.get, pred))
 
-      case DetachNode(_, _, node, _) =>
+      case Detach(_, _, node, _) =>
         // non-list change: only update parent
         parents -= node
-      case UnloadNode(_, _, kids, _) =>
+      case Unload(_, _, kids, _) =>
         for ((_, kid) <- kids)
           parents -= kid
     }
     changeset.pos.foreach {
-      case AttachNode(list, ListFirstLink(_), first) =>
+      case Attach(list, ListFirstLink(_), first) =>
         // update parent: add all list elements
         iterateNext(first){n => parents += ((list, n))}
         // update next: nothing
@@ -65,7 +65,7 @@ class ParentNextLast extends Consumer {
         iterateNext(first){last = _}
         lasts += ((list, last))
 
-      case AttachNode(pred, ListNextLink(_), succ) =>
+      case Attach(pred, ListNextLink(_), succ) =>
         // update parent: add all successor elements
         val list = parents.get(pred)
         if (list.isDefined)
@@ -79,10 +79,10 @@ class ParentNextLast extends Consumer {
           lasts += ((list.get, last))
         }
 
-      case AttachNode(parent, _, node) =>
+      case Attach(parent, _, node) =>
         // non-list change
         parents += ((node, parent))
-      case LoadNode(node, _, kids, _) =>
+      case Load(node, _, kids, _) =>
         for ((_, kid) <- kids)
           parents += ((kid, node))
     }

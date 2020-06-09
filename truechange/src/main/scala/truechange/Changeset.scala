@@ -46,7 +46,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         }
 
     neg.foreach {
-      case DetachNode(parent, link, node, nodeTag) =>
+      case Detach(parent, link, node, nodeTag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
@@ -59,7 +59,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         roots += node -> nodeType
         addStub(parent, link)
 
-      case UnloadNode(node, nodeTag, kids, lits) =>
+      case Unload(node, nodeTag, kids, lits) =>
         // node is a root
         roots.getOrElse(node, return Some(s"Unload of unfree node $node"))
 
@@ -74,7 +74,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
     }
 
     pos.foreach {
-      case AttachNode(parent, link, node) =>
+      case Attach(parent, link, node) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
@@ -92,7 +92,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         roots -= node
         removeStub(parent, link)
 
-      case LoadNode(node, tag, kids, lits) =>
+      case Load(node, tag, kids, lits) =>
         val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
 
         // node is not a root yet
