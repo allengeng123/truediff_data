@@ -14,14 +14,12 @@ class ParentNoLists extends Consumer {
 
 
   override def update(changeset: Changeset): Unit = {
-    changeset.neg.foreach {
+    changeset.foreach {
       case Detach(_, _, node, _) =>
         parents -= node
       case Unload(_, _, kids, _) =>
         for ((_, kid) <- kids)
           parents -= kid
-    }
-    changeset.pos.foreach {
       case Attach(parent, _, node) =>
         parents += ((node, parent))
       case Load(node, _, kids, _) =>

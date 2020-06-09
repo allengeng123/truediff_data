@@ -13,7 +13,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
     val (changeset,newtree) = src.compareTo(dest)
     println("Changeset:")
-    changeset.cmds.foreach(c => println("  " + c))
+    changeset.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
 
@@ -30,7 +30,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
     val reverseChangeset = dest.compareTo(src)._1
     println("Reverse changeset:")
-    reverseChangeset.cmds.foreach(c => println("  " + c))
+    reverseChangeset.foreach(c => println("  " + c))
     assertResult(expectedChanges)(reverseChangeset.size)
 
     println()

@@ -2,18 +2,11 @@ package truechange
 
 sealed trait Change
 
-sealed trait NegativeChange extends Change
-sealed trait PositiveChange extends Change
-
-
-
-
-
-case class Detach(parent: NodeURI, link: Link, node: NodeURI, tag: NodeTag) extends NegativeChange {
+case class Detach(parent: NodeURI, link: Link, node: NodeURI, tag: NodeTag) extends Change {
   override def toString: String = s"detach ${tag}_$node from $parent.$link"
 }
 
-case class Unload(node: NodeURI, tag: NodeTag, kids: Iterable[(String, NodeURI)], lits: Iterable[(String, Literal[_])]) extends NegativeChange {
+case class Unload(node: NodeURI, tag: NodeTag, kids: Iterable[(String, NodeURI)], lits: Iterable[(String, Literal[_])]) extends Change {
   override def toString: String = {
     val kidsString = s"${kids.map(p => p._1 + "=" + p._2).mkString(", ")}"
     val litsString = s"${lits.map(p => p._1 + "=" + p._2).mkString(", ")}"
@@ -22,11 +15,11 @@ case class Unload(node: NodeURI, tag: NodeTag, kids: Iterable[(String, NodeURI)]
   }
 }
 
-case class Attach(parent: NodeURI, link: Link, node: NodeURI) extends PositiveChange {
+case class Attach(parent: NodeURI, link: Link, node: NodeURI) extends Change {
   override def toString: String = s"attach $node to $parent.$link"
 }
 
-case class Load(node: NodeURI, tag: NodeTag, kids: Iterable[(String, NodeURI)], lits: Iterable[(String, Literal[_])]) extends PositiveChange {
+case class Load(node: NodeURI, tag: NodeTag, kids: Iterable[(String, NodeURI)], lits: Iterable[(String, Literal[_])]) extends Change {
   override def toString: String = {
     val kidsString = s"${kids.map(p => p._1 + "=" + p._2).mkString(", ")}"
     val litsString = s"${lits.map(p => p._1 + "=" + p._2).mkString(", ")}"

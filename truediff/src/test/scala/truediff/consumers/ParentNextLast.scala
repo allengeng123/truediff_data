@@ -30,7 +30,7 @@ class ParentNextLast extends Consumer {
   }
 
   override def update(changeset: Changeset): Unit = {
-    changeset.neg.foreach {
+    changeset.foreach {
       case Detach(list, ListFirstLink(_), first, _) =>
         // update parent: remove all list elements
         iterateNext(first){parents -= _}
@@ -54,8 +54,7 @@ class ParentNextLast extends Consumer {
       case Unload(_, _, kids, _) =>
         for ((_, kid) <- kids)
           parents -= kid
-    }
-    changeset.pos.foreach {
+
       case Attach(list, ListFirstLink(_), first) =>
         // update parent: add all list elements
         iterateNext(first){n => parents += ((list, n))}

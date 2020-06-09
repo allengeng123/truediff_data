@@ -3,8 +3,8 @@ package truechange
 import scala.collection.mutable
 
 class ChangesetBuffer() {
-    private val negBuf: mutable.Buffer[NegativeChange] = mutable.ArrayBuffer()
-    private val posBuf: mutable.Buffer[PositiveChange] = mutable.ArrayBuffer()
+    private val negBuf: mutable.Buffer[Change] = mutable.ArrayBuffer()
+    private val posBuf: mutable.Buffer[Change] = mutable.ArrayBuffer()
     private val detachListNext: mutable.Map[(NodeURI, NodeURI), Detach] = mutable.Map()
     private val attachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
 
@@ -30,8 +30,8 @@ class ChangesetBuffer() {
               posBuf += attach
           }
 
-        case change: NegativeChange => negBuf += change
-        case change: PositiveChange => posBuf += change
+        case _: Detach | _: Unload => negBuf += elem
+        case _: Attach | _: Load => posBuf += elem
       }
       this
     }
@@ -41,5 +41,5 @@ class ChangesetBuffer() {
       this
     }
 
-    def toChangeset: Changeset = new Changeset(negBuf.toSeq, posBuf.toSeq)
+    def toChangeset: Changeset = new Changeset(negBuf.toSeq ++ posBuf.toSeq)
   }

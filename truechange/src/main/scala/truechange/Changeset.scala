@@ -1,8 +1,9 @@
 package truechange
 
-class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
-  def cmds: Iterable[Change] = neg.view.concat(pos.view)
-  def size: Int = neg.size + pos.size
+class Changeset(val changes: Seq[Change]) {
+  def size: Int = changes.size
+
+  def foreach(f: Change => Unit): Unit = changes.foreach(f)
 
   /**
    * Checks if this changeset is well-typed.
@@ -45,7 +46,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
           case None => None
         }
 
-    neg.foreach {
+    changes.foreach {
       case Detach(parent, link, node, nodeTag) =>
         // kid is not a root yet
         if (roots.contains(node))
@@ -71,9 +72,7 @@ class Changeset(val neg: Seq[NegativeChange], val pos: Seq[PositiveChange]) {
         }
 
         roots -= node
-    }
 
-    pos.foreach {
       case Attach(parent, link, node) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))

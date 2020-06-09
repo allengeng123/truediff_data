@@ -13,7 +13,7 @@ class OptionTests extends AnyFlatSpec with Matchers {
 
     val (changeset,newtree) = src.compareTo(dest)
     println("Changeset:")
-    changeset.cmds.foreach(c => println("  " + c))
+    changeset.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
     println()
