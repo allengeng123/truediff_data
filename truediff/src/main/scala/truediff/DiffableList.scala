@@ -20,9 +20,11 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   override def toString: String = s"List(" + list.map(_.toString).mkString(", ") + ")"
   override def toStringWithURI: String = s"List_$uri(" + list.map(_.toStringWithURI).mkString(", ") + ")"
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
-    f(this)
-    this.list.foreach(_.asInstanceOf[Diffable].foreachDiffable(f))
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+    this.list.foreach { t =>
+      f(t)
+      t.foreachDiffableKid(f)
+    }
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
@@ -32,10 +34,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       var thisShares: Map[SubtreeShare, ListBuffer[A]] = Map()
 
       this.list.foreach { thisNode =>
-        val share = subtreeReg.shareFor(thisNode)
-        thisShares.get(share) match {
+        val thisShare = subtreeReg.shareFor(thisNode)
+        thisShares.get(thisShare) match {
           case Some(buf) => buf += thisNode
-          case None => thisShares += share -> ListBuffer(thisNode)
+          case None => thisShares += thisShare -> ListBuffer(thisNode)
         }
       }
 
@@ -53,9 +55,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
       this.list.filter(_.assigned == null).zipAll[Diffable,Diffable](that.list.filter(_.assigned == null), null, null).foreach { case (thisnode, thatnode) =>
         if (thisnode == null) {
-          thatnode.foreachDiffable(subtreeReg.shareFor)
+          thatnode.foreachDiffableKid(subtreeReg.shareFor)
         } else if (thatnode == null) {
-          thisnode.foreachDiffable(subtreeReg.registerShareFor)
+          thisnode.share.registerAvailableTree(thisnode)
+          thisnode.foreachDiffableKid(subtreeReg.registerShareFor)
         } else {
           thisnode.share.registerAvailableTree(thisnode)
           thisnode._assignSharesRecurse(thatnode, subtreeReg)

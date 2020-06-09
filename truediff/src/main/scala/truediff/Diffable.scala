@@ -21,7 +21,11 @@ trait Diffable extends Hashable {
   private[truediff] var share: SubtreeShare = _
   protected[truediff] var assigned: Diffable = _
 
-  def foreachDiffable(f: Diffable => Unit): Unit
+  final def foreachDiffable(f: Diffable => Unit): Unit = {
+    f(this)
+    this.foreachDiffableKid(f)
+  }
+  def foreachDiffableKid(f: Diffable => Unit): Unit
   def loadUnassigned(changes: ChangesetBuffer): Diffable
   def unloadUnassigned(changes: ChangesetBuffer): Unit
   def loadInitial(changes: ChangesetBuffer): Unit
@@ -102,6 +106,7 @@ trait Diffable extends Hashable {
   final def compareTo[T <: Diffable](that: T): (Changeset, T) = {
     val subtreeReg = new SubtreeRegistry
     this.assignShares(that, subtreeReg)
+
     that.assignSubtrees(subtreeReg)
 
     val buf = new ChangesetBuffer

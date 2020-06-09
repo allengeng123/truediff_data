@@ -159,18 +159,16 @@ object DiffableMacro {
                 Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, classOf[$t])")})
             )
 
-            override def foreachDiffable(f: $tDiffable => $tUnit): $tUnit = {
-              f(this)
-              ..${
-                mapDiffableParams(p => q"this.$p.foreachDiffable(f)")}
-            }
+            override def foreachDiffableKid(f: $tDiffable => $tUnit): $tUnit = {
+                ..${mapDiffableParams(p => q"f(this.$p); this.$p.foreachDiffableKid(f)")}
+              }
 
             override protected def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
               case _ =>
-                ..${mapDiffableParams(p => q"this.$p.foreachDiffable(subtreeReg.registerShareFor)")}
-                that.foreachDiffable(subtreeReg.shareFor)
+                this.foreachDiffableKid(subtreeReg.registerShareFor)
+                that.foreachDiffableKid(subtreeReg.shareFor)
             }
 
             override protected def assignSubtreesRecurse(): $tIterable[$tDiffable] =

@@ -15,14 +15,14 @@ object Exp {
 
     override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map())
 
-    override def foreachDiffable(f: Diffable => Unit): Unit = {
+    override def foreachDiffableKid(f: Diffable => Unit): Unit = {
       f(this)
     }
 
     override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
       case that: Hole =>
       case _ =>
-        that.foreachDiffable(t => subtreeReg.shareFor(t))
+        that.foreachDiffableKid(t => subtreeReg.shareFor(t))
     }
 
     override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
@@ -84,14 +84,14 @@ case class Num(n: Int) extends Exp {
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
     f(this)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Num if this.n == that.n =>
     case _ =>
-      that.foreachDiffable(t => subtreeReg.shareFor(t))
+      that.foreachDiffableKid(t => subtreeReg.shareFor(t))
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
@@ -150,10 +150,10 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("e1" -> SortType(classOf[Exp]), "e2" -> SortType(classOf[Exp])), Map())
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
     f(this)
-    this.e1.foreachDiffable(f)
-    this.e2.foreachDiffable(f)
+    this.e1.foreachDiffableKid(f)
+    this.e2.foreachDiffableKid(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
@@ -161,9 +161,9 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
       this.e1.assignShares(that.e1, subtreeReg)
       this.e2.assignShares(that.e2, subtreeReg)
     case _ =>
-      this.e1.foreachDiffable(subtreeReg.registerShareFor)
-      this.e2.foreachDiffable(subtreeReg.registerShareFor)
-      that.foreachDiffable(subtreeReg.shareFor)
+      this.e1.foreachDiffableKid(subtreeReg.registerShareFor)
+      this.e2.foreachDiffableKid(subtreeReg.registerShareFor)
+      that.foreachDiffableKid(subtreeReg.shareFor)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable(e1, e2)

@@ -15,7 +15,9 @@ class SubtreeShare() {
     if (treeAvailable) {
       // we need to yield the available tree for re-attachment
       val (uri, tree) = availableTrees.head // alternative selection strategy possible here
-      tree.foreachDiffable { t =>
+      availableTrees = availableTrees.tail
+      tree.share = null
+      tree.foreachDiffableKid { t =>
         if (t.assigned != null) {
           // t and t.assigned were unchanged, but t is part of a larger subtree that is being moved
           val that = t.assigned

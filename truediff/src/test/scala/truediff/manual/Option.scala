@@ -20,17 +20,17 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("a" -> OptionType(SortType(classOf[Exp]))), Map())
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
-    f(this)
-    this.a.foreachDiffable(f)
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+    f(this.a)
+    this.a.foreachDiffableKid(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Maybe =>
       this.a.assignShares(that.a, subtreeReg)
     case _ =>
-      this.a.foreachDiffable(t => subtreeReg.shareFor(t).registerAvailableTree(t))
-      that.foreachDiffable(t => subtreeReg.shareFor(t))
+      this.foreachDiffableKid(subtreeReg.registerShareFor)
+      that.foreachDiffableKid(subtreeReg.shareFor)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)

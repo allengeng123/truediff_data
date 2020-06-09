@@ -20,17 +20,17 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("es" -> ListType(SortType(classOf[Exp]))), Map())
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
-    f(this)
-    this.es.foreachDiffable(f)
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+    f(this.es)
+    this.es.foreachDiffableKid(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Many =>
       this.es.assignShares(that.es, subtreeReg)
     case _ =>
-      this.es.foreachDiffable(subtreeReg.registerShareFor)
-      that.foreachDiffable(subtreeReg.shareFor)
+      this.foreachDiffableKid(subtreeReg.registerShareFor)
+      that.foreachDiffableKid(subtreeReg.shareFor)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)

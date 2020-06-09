@@ -30,14 +30,14 @@ case object DiffableNone extends DiffableOption[Nothing] {
   final override def tag: NodeTag = OptionType(NothingType)
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
     // nothing
   }
 
   override protected[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case DiffableNone =>
     case _ =>
-      that.foreachDiffable(t => subtreeReg.shareFor(t))
+      that.foreachDiffableKid(subtreeReg.shareFor)
   }
 
   override protected[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
@@ -83,16 +83,17 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
   override def tag: NodeTag = OptionType(atype)
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
-  override def foreachDiffable(f: Diffable => Unit): Unit = {
-    this.a.foreachDiffable(f)
+  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+    f(this.a)
+    this.a.foreachDiffableKid(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableSome[_] =>
       this.a.assignShares(that.a, subtreeReg)
     case _ =>
-      this.a.foreachDiffable(t => subtreeReg.shareFor(t).registerAvailableTree(t))
-      that.foreachDiffable(t => subtreeReg.shareFor(t))
+      this.foreachDiffableKid(subtreeReg.registerShareFor)
+      that.foreachDiffableKid(subtreeReg.shareFor)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
