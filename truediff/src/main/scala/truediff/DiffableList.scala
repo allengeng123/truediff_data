@@ -4,13 +4,16 @@ import truechange._
 
 import scala.collection.mutable.ListBuffer
 
+object DiffableList {
+  def from[A <: Diffable](list: Seq[A], atype: Type): DiffableList[A] = DiffableList(list, atype)
+}
 final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends Diffable {
   def length: Int = list.length
   def apply(i: Int): A = list(i)
   def updated[B >: A <: Diffable](i: Int, elem: B): DiffableList[B] = DiffableList(list.updated(i, elem), atype)
   def indices: Range = Range(0, length)
 
-  override def tag: NodeTag = ListType(atype)
+  override def tag: NodeTag = ListTag(atype)
   override def sig: Signature = Signature(ListType(atype), this.tag, Map(), Map())
 
   override val treeheight: Int = 1 + this.list.foldRight(0)((t, max) => Math.max(t.treeheight, max))
@@ -69,9 +72,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   override protected def assignSubtreesRecurse(): Iterable[A] = this.list
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): DiffableList[Diffable] = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): DiffableList[Diffable] = that match {
     case that: DiffableList[A] =>
-      val newlist = computeChangesetLists(this.list, that.list, this.uri, this.uri, ListFirstLink(atype), changes)
+      val newlist = computeChangesetLists(this.list, that.list, this.uri, this.tag, this.uri, this.tag, ListFirstLink(atype), changes)
       val newtree = DiffableList(newlist, atype)
       newtree._uri = this.uri
       newtree
@@ -79,41 +82,41 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       null
   }
 
-  private[truediff] def computeChangesetLists(thislist: Seq[Diffable], thatlist: Seq[Diffable], thisparent: NodeURI, thatparent: NodeURI, link: Link, changes: ChangesetBuffer): Seq[Diffable] = (thislist, thatlist) match {
+  private[truediff] def computeChangesetLists(thislist: Seq[Diffable], thatlist: Seq[Diffable], thisparent: NodeURI, thisparentTag: NodeTag, thatparent: NodeURI, thatparentTag: NodeTag, link: Link, changes: ChangesetBuffer): Seq[Diffable] = (thislist, thatlist) match {
     case (Nil, Nil) => Nil
     case (Nil, thatnode::thatlist) =>
       val newtree = thatnode.loadUnassigned(changes)
-      changes += Attach(thatparent, link, newtree.uri, newtree.tag)
-      val newlist = computeChangesetLists(Nil, thatlist, null, newtree.uri, ListNextLink(atype), changes)
+      changes += Attach(thatparent, thatparentTag, link, newtree.uri, newtree.tag)
+      val newlist = computeChangesetLists(Nil, thatlist, null, null, newtree.uri, newtree.tag, ListNextLink(atype), changes)
       newtree +: newlist
     case (thisnode::thislist, Nil) =>
-      changes += Detach(thisparent, link, thisnode.uri, thisnode.tag)
+      changes += Detach(thisparent, thisparentTag, link, thisnode.uri, thisnode.tag)
       thisnode.unloadUnassigned(changes)
-      computeChangesetLists(thislist, Nil, thisnode.uri, null, ListNextLink(atype), changes)
+      computeChangesetLists(thislist, Nil, thisnode.uri, thisnode.tag, null, null, ListNextLink(atype), changes)
       Seq()
     case (thisnode::thislist, thatnode::thatlist) =>
-      tryReuseListElem(thisnode, thatnode, thisparent, link, changes) match {
+      tryReuseListElem(thisnode, thatnode, thisparent, thisparentTag, link, changes) match {
         case Some(reusednode) =>
           // could reuse node
           val hasParentChanged = thisparent != thatparent
           if (hasParentChanged || thisnode.uri != reusednode.uri) {
-            changes += Detach(thisparent, link, reusednode.uri, reusednode.tag)
-            changes += Attach(thatparent, link, reusednode.uri, reusednode.tag)
+            changes += Detach(thisparent, thisparentTag, link, reusednode.uri, reusednode.tag)
+            changes += Attach(thatparent, thatparentTag, link, reusednode.uri, reusednode.tag)
           }
-          val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, reusednode.uri, ListNextLink(atype), changes)
+          val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, thisnode.tag, reusednode.uri, reusednode.tag, ListNextLink(atype), changes)
           reusednode +: newlist
         case None =>
           // need to unload thisnode and load thatnode
-          changes += Detach(thisparent, link, thisnode.uri, thisnode.tag)
+          changes += Detach(thisparent, thisparentTag, link, thisnode.uri, thisnode.tag)
           thisnode.unloadUnassigned(changes)
           val newtree = thatnode.loadUnassigned(changes)
-          changes += Attach(thatparent, link, newtree.uri, newtree.tag)
-          val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, newtree.uri ,ListNextLink(atype), changes)
+          changes += Attach(thatparent, thatparentTag, link, newtree.uri, newtree.tag)
+          val newlist = computeChangesetLists(thislist, thatlist, thisnode.uri, thisnode.tag, newtree.uri, newtree.tag ,ListNextLink(atype), changes)
           newtree +: newlist
       }
   }
 
-  private[truediff] def tryReuseListElem(thisnode: Diffable, thatnode: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Option[Diffable] = {
+  private[truediff] def tryReuseListElem(thisnode: Diffable, thatnode: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Option[Diffable] = {
     // this == that
     if (thatnode.assigned != null && thatnode.assigned.uri == thisnode.uri) {
       thisnode.assigned = null
@@ -121,7 +124,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     }
 
     if (thisnode.assigned == null && thatnode.assigned == null) {
-      val newtree = thisnode._computeChangesetRecurse(thatnode, parent, link, changes)
+      val newtree = thisnode._computeChangesetRecurse(thatnode, parent, parentTag, link, changes)
       if (newtree != null)
         return Some(newtree)
     }
@@ -138,9 +141,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     val newlist = that.list.map(_.loadUnassigned(changes))
     val newtree = DiffableList(newlist, atype)
     changes += Load(newtree.uri, this.tag, Seq(), Seq())
-    newlist.foldLeft[(NodeURI,Link)]((newtree.uri, ListFirstLink(atype))){(pred, el) =>
-      changes += Attach(pred._1, pred._2, el.uri, el.tag)
-      (el.uri, ListNextLink(atype))
+    newlist.foldLeft[(NodeURI,NodeTag,Link)]((newtree.uri, newtree.tag, ListFirstLink(atype))){ (pred, el) =>
+      changes += Attach(pred._1, pred._2, pred._3, el.uri, el.tag)
+      (el.uri, el.tag, ListNextLink(atype))
     }
 
     newtree
@@ -149,10 +152,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
     changes += Load(this.uri, this.tag, Seq(), Seq())
-    this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
+    this.list.foldLeft[(NodeURI,NodeTag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
       el.loadInitial(changes)
-      changes += Attach(pred._1, pred._2, el.uri, el.tag)
-      (el.uri, ListNextLink(atype))
+      changes += Attach(pred._1, pred._2, pred._3, el.uri, el.tag)
+      (el.uri, el.tag, ListNextLink(atype))
     }
   }
 
@@ -161,10 +164,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       this.assigned = null
     } else {
       changes += Unload(this.uri, this.tag, Seq(), Seq())
-      this.list.foldLeft[(NodeURI,Link)]((this.uri, ListFirstLink(atype))){(pred, el) =>
-        changes += Detach(pred._1, pred._2, el.uri, el.tag)
+      this.list.foldLeft[(NodeURI,NodeTag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
+        changes += Detach(pred._1, pred._2, pred._3, el.uri, el.tag)
         el.unloadUnassigned(changes)
-        (el.uri, ListNextLink(atype))
+        (el.uri, el.tag, ListNextLink(atype))
       }
     }
   }
@@ -175,7 +178,4 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     this.list.foreach(t => digest.update(t.hash))
     digest.digest()
   }
-}
-object DiffableList {
-  def from[A <: Diffable](list: Seq[A], atype: Type): DiffableList[A] = DiffableList(list, atype)
 }

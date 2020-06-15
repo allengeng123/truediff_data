@@ -27,7 +27,7 @@ object Exp {
 
     override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-    override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+    override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
       case Hole() =>
         val newtree = Hole()
         newtree._uri = this.uri
@@ -80,7 +80,7 @@ case class Num(n: Int) extends Exp {
 
   override def treesize: Int = 1
 
-  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map("n" -> classOf[Int]))
+  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map("n" -> JavaLitType(classOf[Integer])))
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
@@ -96,7 +96,7 @@ case class Num(n: Int) extends Exp {
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
       val newtree = Num(n)
       newtree._uri = this.uri
@@ -112,7 +112,7 @@ case class Num(n: Int) extends Exp {
 
     val newtree = Num(this.n)
     changes += Load(newtree.uri, this.tag, Seq(), Seq(
-      "n" -> Literal(this.n)
+      "n" -> this.n
     ))
     newtree
   }
@@ -120,7 +120,7 @@ case class Num(n: Int) extends Exp {
 
   override def loadInitial(changes: ChangesetBuffer): Unit = {
     changes += Load(this.uri, this.tag, Seq(), Seq(
-      "n" -> Literal(this.n)
+      "n" -> this.n
     ))
   }
 
@@ -128,7 +128,7 @@ case class Num(n: Int) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else
-      changes += Unload(this.uri, this.tag, Seq(), Seq("n" -> Literal(this.n)))
+      changes += Unload(this.uri, this.tag, Seq(), Seq("n" -> this.n))
   }
 }
 
@@ -168,10 +168,10 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable(e1, e2)
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Add =>
-      val e1 = this.e1.computeChangeset(that.e1, this.uri, NamedLink("e1"), changes).asInstanceOf[Exp]
-      val e2 = this.e2.computeChangeset(that.e2, this.uri, NamedLink("e2"), changes).asInstanceOf[Exp]
+      val e1 = this.e1.computeChangeset(that.e1, this.uri, this.tag, NamedLink("e1"), changes).asInstanceOf[Exp]
+      val e2 = this.e2.computeChangeset(that.e2, this.uri, this.tag, NamedLink("e2"), changes).asInstanceOf[Exp]
       val newtree = Add(e1, e2)
       newtree._uri = this.uri
       newtree

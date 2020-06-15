@@ -16,45 +16,47 @@ case class Changeset(changes: Seq[Change]) {
    */
   def welltyped(sigs: Map[NodeTag, Signature]): Option[String] = {
 
-//    def linkType(link: Link): Type = link match {
-//      case RootLink(ty) => ty
-//      case NamedLink(tag, name) => sigs(tag).kids(name)
-//      case ListFirstLink(ty) => ty
-//      case ListNextLink(ty) => ty
-//    }
-
     var roots = Map[NodeURI, Type]()
-    var stubs = Map[NodeURI, Set[Link]]()
-
-    def isListLink(link: Link) = link.isInstanceOf[ListNextLink] || link.isInstanceOf[ListFirstLink]
-    def addStub(node: NodeURI, link: Link): Unit =
-      if (!link.isOptional)
-        stubs = stubs.updatedWith(node) {
-          case Some(set) => Some(set + link)
-          case None => Some(Set(link))
-        }
-    def removeStub(node: NodeURI, link: Link): Unit =
-      if (!link.isOptional)
-        stubs = stubs.updatedWith(node) {
-          case Some(set) =>
-            val newset = set - link
-            if (newset.isEmpty) None else Some(newset)
-          case None => None
-        }
+    var stubs = Map[(NodeURI, Link), Type]()
 
     changes.foreach {
-      case Detach(parent, link, node, tag) =>
+      case Detach(parent, ptag, NamedLink(name), node, tag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
 
         // parent.link is not a stub yet
-        val parentStubs = stubs.getOrElse(parent, Set())
-        if (!link.isOptional && parentStubs.contains(link))
-          return Some(s"Detach of $node from $parent with already free $link")
+        if (stubs.contains((parent, NamedLink(name))))
+          return Some(s"Detach of $node from $parent, but $ptag.$name is already a stub")
+
         val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
         roots += node -> nodeType
-        addStub(parent, link)
+        val stubType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
+        stubs += (parent, NamedLink(name)) -> stubType
+
+      case Detach(parent, ptag, OptionalLink(link), node, tag) =>
+        // kid is not a root yet
+        if (roots.contains(node))
+          return Some(s"Duplicate detach of node $node")
+
+        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
+        roots += node -> nodeType
+
+      case Detach(parent, ptag, ListFirstLink(ty), node, tag) =>
+        // kid is not a root yet
+        if (roots.contains(node))
+          return Some(s"Duplicate detach of node $node")
+
+        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
+        roots += node -> nodeType
+
+      case Detach(parent, ptag, ListNextLink(ty), node, tag) =>
+        // kid is not a root yet
+        if (roots.contains(node))
+          return Some(s"Duplicate detach of node $node")
+
+        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
+        roots += node -> nodeType
 
       case Unload(node, tag, kids, lits) =>
         // node is a root
@@ -63,29 +65,61 @@ case class Changeset(changes: Seq[Change]) {
         // all kids become roots
         val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
         for ((kidname, kidnode) <- kids) {
+          if (roots.contains(kidnode))
+            return Some(s"Cannot unload $node because $kidnode is already free")
           val kidType = sig.kids.getOrElse(kidname, return Some(s"Cannot unload $node, unexpected kid $kidname"))
           roots += kidnode -> kidType
         }
 
         roots -= node
 
-      case Attach(parent, link, node, tag) =>
+      case Attach(parent, ptag, NamedLink(name), node, tag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
         // kid is attachable to parent.link
-        val expectedType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
-        if (!isListLink(link) && !expectedType.isAssignableFrom(nodeType))
-          return Some(s"Cannot attach $node to $link, incompatible types: Expected $expectedType but got $nodeType.")
-        else if (isListLink(link) && !expectedType.isAssignableFrom(nodeType))
-          return Some(s"Cannot attach $node to $link, incompatible types: Expected $expectedType but got ${nodeType}.")
+        val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
+        if (!expectedType.isAssignableFrom(nodeType))
+          return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
 
         // parent.link is a stub
-        val parentStubs = stubs.getOrElse(parent, Set())
-        if (!link.isOptional && !parentStubs.contains(link))
-          return Some(s"Attach of $node to $parent with unfree slot $link")
+        if (!stubs.contains((parent, NamedLink(name))))
+          return Some(s"Attach of $node to $parent with unfree slot $ptag.$name")
         roots -= node
-        removeStub(parent, link)
+        stubs -= ((parent, NamedLink(name)))
+
+      case Attach(parent, ptag, OptionalLink(NamedLink(name)), node, tag) =>
+        // kid is a root
+        val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
+
+        // kid is attachable to parent.link
+        val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
+        if (!expectedType.isAssignableFrom(nodeType))
+          return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
+
+        roots -= node
+
+      case Attach(parent, ptag, link@ListFirstLink(ty), node, tag) =>
+        // kid is a root
+        val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
+
+        // kid is attachable to parent.link
+        val expectedType = ty
+        if (!expectedType.isAssignableFrom(nodeType))
+          return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
+
+        roots -= node
+
+      case Attach(parent, ptag, link@ListNextLink(ty), node, tag) =>
+        // kid is a root
+        val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
+
+        // kid is attachable to parent.link
+        val expectedType = ty
+        if (!expectedType.isAssignableFrom(nodeType))
+          return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
+
+        roots -= node
 
       case Load(node, tag, kids, lits) =>
         val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
@@ -110,10 +144,9 @@ case class Changeset(changes: Seq[Change]) {
         if (sig.lits.size != lits.size)
           return Some(s"Cannot load $tag, expected ${sig.lits.size} lits but got ${lits.size} lits")
         for ((litname, lit) <- lits) {
-          val expectedType = sig.lits.getOrElse(litname, return Some(s"Cannot load $tag, unexpected lit $litname"))
-          val litType = lit.tag
-          if (!expectedType.isAssignableFrom(litType))
-            return Some(s"Cannot load $tag, incompatible type for lit $litname: Expected $expectedType but got $litType.")
+          val expectedLitType = sig.lits.getOrElse(litname, return Some(s"Cannot load $tag, unexpected lit $litname"))
+          if (!expectedLitType.accepts(lit))
+            return Some(s"Cannot load $tag, incompatible literal for $litname: Expected $expectedLitType but got $lit.")
         }
         roots --= kids.map(_._2)
         roots += node -> sig.sort

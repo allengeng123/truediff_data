@@ -119,4 +119,25 @@ object Util {
       seq.reduce((l, r) => q"$op($l, $r)")
   }
 
+  def boxedClassOf(c: whitebox.Context)(t: c.Tree): c.Tree = {
+    import c.universe._
+    val ty = treeType(c)(t)
+    if (ty <:< typeOf[Byte])
+      q"classOf[java.lang.Byte]"
+    else if (ty <:< typeOf[Short])
+      q"classOf[java.lang.Short]"
+    else if (ty <:< typeOf[Int])
+      q"classOf[java.lang.Integer]"
+    else if (ty <:< typeOf[Long])
+      q"classOf[java.lang.Long]"
+    else if (ty <:< typeOf[Float])
+      q"classOf[java.lang.Float]"
+    else if (ty <:< typeOf[Double])
+      q"classOf[java.lang.Double]"
+    else if (ty <:< typeOf[Char])
+      q"classOf[java.lang.Character]"
+    else
+      q"classOf[$t]"
+  }
+
 }

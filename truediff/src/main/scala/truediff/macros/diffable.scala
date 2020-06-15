@@ -18,6 +18,7 @@ object DiffableMacro {
 
     val tDiffable = symbolOf[Diffable]
     val tyDiffable = typeOf[Diffable]
+    val tNodeTag = symbolOf[NodeTag]
     val tHashable = symbolOf[Hashable]
     val oHashable = tHashable.companion
     val tyHashable = typeOf[Hashable]
@@ -35,12 +36,10 @@ object DiffableMacro {
     val oDiffableOption = tDiffableOption.companion
     val tDiffableList = symbolOf[DiffableList[_]]
     val oDiffableList = tDiffableList.companion
-    val tOption = symbolOf[Option[_]]
-    val tSeq = symbolOf[Seq[_]]
     val tIterable = symbolOf[Iterable[_]]
     val oIterable = symbolOf[Iterable.type].asClass.module
+    val oJavaLitType = symbolOf[JavaLitType].companion
 
-    val oLiteral = symbolOf[truechange.Literal[_]].companion
     val tLink = symbolOf[Link]
     val oNamedLink = symbolOf[NamedLink].companion
     val oLoadNode = symbolOf[Load].companion
@@ -156,7 +155,7 @@ object DiffableMacro {
 
             override def sig: $tSignature = $oSignature($sort, this.tag,
                 Map(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, ${asType(t)})")}),
-                Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, classOf[$t])")})
+                Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})
             )
 
             override def foreachDiffableKid(f: $tDiffable => $tUnit): $tUnit = {
@@ -181,10 +180,10 @@ object DiffableMacro {
                   q"$oIterable(..${ps.map(p => q"this.$p")})"
               }}
 
-            override protected def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
+            override protected def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, parentTag: $tNodeTag, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyped(
-                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, ${link(p, t)}, changes).asInstanceOf[$t]",
+                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, this.tag, ${link(p, t)}, changes).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
                 val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
@@ -206,7 +205,7 @@ object DiffableMacro {
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
               changes += $oLoadNode($$newtree.uri, this.tag,
                 $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, $p.uri)")}),
-                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral($p))")}),
+                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $p)")}),
               )
               $$newtree
             }
@@ -215,7 +214,7 @@ object DiffableMacro {
               ..${mapDiffableParams(p => q"this.$p.loadInitial(changes)")}
               changes += $oLoadNode(this.uri, this.tag,
                 $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
-                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral(this.$p))")})
+                $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")})
               )
             }
 
@@ -226,7 +225,7 @@ object DiffableMacro {
               } else {
                 changes += $oUnloadNode(this.uri, this.tag,
                   $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
-                  $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $oLiteral(this.$p))")})
+                  $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")})
                 )
                 ..${mapDiffableParamsTyped(
                   (p,t) => q"this.$p.unloadUnassigned(changes)"

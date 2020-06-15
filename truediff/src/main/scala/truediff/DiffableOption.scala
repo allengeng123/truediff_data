@@ -10,6 +10,7 @@ object DiffableOption {
     case Some(value) => DiffableSome(value, atype)
     case None => DiffableNone
   }
+
 }
 
 case object DiffableNone extends DiffableOption[Nothing] {
@@ -27,7 +28,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val toStringWithURI: String = "None"
 
-  final override def tag: NodeTag = OptionType(NothingType)
+  final override def tag: NodeTag = OptionTag(NothingType)
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
   override def foreachDiffableKid(f: Diffable => Unit): Unit = {
@@ -42,11 +43,11 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override protected[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override protected[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
-      changes += Attach(parent, OptionalLink(link), newtree.uri, newtree.tag)
+      changes += Attach(parent, parentTag, OptionalLink(link), newtree.uri, newtree.tag)
       newtree
   }
 
@@ -80,7 +81,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 
-  override def tag: NodeTag = OptionType(atype)
+  override def tag: NodeTag = OptionTag(atype)
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
   override def foreachDiffableKid(f: Diffable => Unit): Unit = {
@@ -98,12 +99,12 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
-      val a = this.a.computeChangeset(that.a, parent, OptionalLink(link), changes)
+      val a = this.a.computeChangeset(that.a, parent, parentTag, OptionalLink(link), changes)
       DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
-      changes += Detach(parent, OptionalLink(link), this.a.uri, this.a.tag)
+      changes += Detach(parent, parentTag, OptionalLink(link), this.a.uri, this.a.tag)
       this.a.unloadUnassigned(changes)
       that
   }

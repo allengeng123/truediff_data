@@ -6,31 +6,32 @@ import scala.collection.mutable
  * The reference semantics of Changeset reproduces the original tree from the Changeset alone.
  */
 
-case class ReferenceNode(tag: NodeTag, kids: mutable.Map[String, ReferenceNode], lits: mutable.Map[String, Any])
+case class MNode(tag: NodeTag, kids: mutable.Map[String, MNode], lits: Map[String, Any])
 
-class ReferenceTree {
+class StandardTree {
   // the root of this tree
-  var root: ReferenceNode = null
+  var root: MNode = null
   // index of all loaded nodes
-  private val nodes: mutable.Map[NodeURI, ReferenceNode] = mutable.Map()
+  private val index: mutable.Map[NodeURI, MNode] = mutable.Map()
 
   // applies a changeset to this
-  def applyChangeset(changeset: Changeset): Unit =
-    changeset.foreach(this.change)
+  def patch(changeset: Changeset): Unit =
+    changeset.foreach(patch)
 
   // applies a single change to this
-  def change(change: Change): Unit = change match {
-    case Load(nodeURI, tag, kids, lits) =>
-      val node = ReferenceNode(tag,
-        mutable.Map() ++ (for ((n,uri) <- kids) yield (n, nodes(uri))),
-        mutable.Map() ++ (for ((n,lit) <- lits) yield (n, lit.value)))
-      nodes += (nodeURI -> node)
-    case Unload(node, _, _, _) => nodes -= node
-    case Detach(parent, NamedLink(name), _, _) => nodes(parent).kids(name) = null
-    case Attach(parent, NamedLink(name), node, _) => nodes(parent).kids(name) = nodes(node)
+  def patch(change: Change): Unit = change match {
+    case Load(node, tag, kids, lits) =>
+      val subtree = MNode(tag,
+        mutable.Map() ++ kids.map{case (n, uri) => (n, index(uri))},
+        lits.toMap)
+      index += (node -> subtree)
+    case Unload(node, _, _, _) => index -= node
 
-    case Detach(_, RootLink, _, _) => root = null
-    case Attach(_, RootLink, node, _) => root = nodes(node)
+    case Detach(_, _, RootLink, _, _) => root = null
+    case Attach(_, _, RootLink, node, _) => root = index(node)
+    case Detach(parent, _, NamedLink(name), _, _) => index(parent).kids(name) = null
+    case Attach(parent, _, NamedLink(name), node, _) => index(parent).kids(name) = index(node)
+
   }
 }
 

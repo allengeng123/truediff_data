@@ -20,7 +20,7 @@ class OptionTests extends AnyFlatSpec with Matchers {
 
     assertResult(dest)(newtree)
 
-    var sigs: Map[NodeTag, Signature] = Map()
+    var sigs: Map[NodeTag, Signature] = Map(RootTag -> RootSig)
     src.foreachDiffable(t => sigs += t.tag -> t.sig)
     dest.foreachDiffable(t => sigs += t.tag -> t.sig)
     assertResult(None)(changeset.welltyped(sigs))

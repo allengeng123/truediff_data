@@ -9,7 +9,7 @@ trait Diffable extends Hashable {
   protected var _uri: NodeURI = new NodeURI
   def uri: NodeURI = _uri
 
-  def tag: NodeTag = SortType(this.getClass)
+  def tag: NodeTag = ConstrTag(this.getClass.getCanonicalName)
   def sig: Signature
 
   def treeheight: Int
@@ -36,8 +36,8 @@ trait Diffable extends Hashable {
   protected def assignSubtreesRecurse(): Iterable[Diffable]
   private[truediff] def _assignSubtreesRecurse(): Iterable[Diffable] = this.assignSubtreesRecurse()
 
-  protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable
-  private[truediff] def _computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = this.computeChangesetRecurse(that, parent, link, changes)
+  protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag:NodeTag, link: Link, changes: ChangesetBuffer): Diffable
+  private[truediff] def _computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = this.computeChangesetRecurse(that, parent, parentTag, link, changes)
 
   final def assignShares(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     if (this.skipNode) {
@@ -83,7 +83,7 @@ trait Diffable extends Hashable {
     }
   }
 
-  final def computeChangeset(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = {
+  final def computeChangeset(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = {
     // this == that
     if (that.assigned != null && that.assigned.uri == this.uri) {
       this.assigned = null
@@ -91,15 +91,15 @@ trait Diffable extends Hashable {
     }
 
     if (this.assigned == null && that.assigned == null) {
-      val newtree = this.computeChangesetRecurse(that, parent, link, changes)
+      val newtree = this.computeChangesetRecurse(that, parent, parentTag, link, changes)
       if (newtree != null)
         return newtree
     }
 
-    changes += Detach(parent, link, this.uri, this.tag)
+    changes += Detach(parent, parentTag, link, this.uri, this.tag)
     this.unloadUnassigned(changes)
     val newtree = that.loadUnassigned(changes)
-    changes += Attach(parent, link, newtree.uri, newtree.tag)
+    changes += Attach(parent, parentTag, link, newtree.uri, newtree.tag)
     newtree
   }
 
@@ -110,7 +110,7 @@ trait Diffable extends Hashable {
     that.assignSubtrees(subtreeReg)
 
     val buf = new ChangesetBuffer
-    val newtree = this.computeChangeset(that, new NodeURI, RootLink, buf)
+    val newtree = this.computeChangeset(that, new NodeURI, RootTag, RootLink, buf)
     (buf.toChangeset, newtree.asInstanceOf[T])
   }
 }

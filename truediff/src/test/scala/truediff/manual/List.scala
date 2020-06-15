@@ -35,9 +35,9 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
     case that: Many =>
-      val es = this.es.computeChangeset(that.es, this.uri, NamedLink("es"), changes).asInstanceOf[DiffableList[Exp]]
+      val es = this.es.computeChangeset(that.es, this.uri, this.tag, NamedLink("es"), changes).asInstanceOf[DiffableList[Exp]]
       val newtree = Many(es)
       newtree._uri = this.uri
       newtree

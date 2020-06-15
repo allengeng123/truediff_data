@@ -31,14 +31,14 @@ class ParentNextLast extends Consumer {
 
   override def update(changeset: Changeset): Unit = {
     changeset.foreach {
-      case Detach(list, ListFirstLink(_), first, _) =>
+      case Detach(list, _, ListFirstLink(_), first, _) =>
         // update parent: remove all list elements
         iterateNext(first){parents -= _}
         // update next: nothing
         // update last: list has no last element anymore
         lasts -= list
 
-      case Detach(pred, ListNextLink(_), next, _) =>
+      case Detach(pred, _, ListNextLink(_), next, _) =>
         // update parent: remove all successor elements
         iterateNext(next){parents -= _}
         // update next: remove next
@@ -48,14 +48,14 @@ class ParentNextLast extends Consumer {
         if (list.isDefined)
           lasts += ((list.get, pred))
 
-      case Detach(_, _, node, _) =>
+      case Detach(_, _, _, node, _) =>
         // non-list change: only update parent
         parents -= node
       case Unload(_, _, kids, _) =>
         for ((_, kid) <- kids)
           parents -= kid
 
-      case Attach(list, ListFirstLink(_), first, _) =>
+      case Attach(list, _, ListFirstLink(_), first, _) =>
         // update parent: add all list elements
         iterateNext(first){n => parents += ((list, n))}
         // update next: nothing
@@ -64,7 +64,7 @@ class ParentNextLast extends Consumer {
         iterateNext(first){last = _}
         lasts += ((list, last))
 
-      case Attach(pred, ListNextLink(_), succ, _) =>
+      case Attach(pred, _, ListNextLink(_), succ, _) =>
         // update parent: add all successor elements
         val list = parents.get(pred)
         if (list.isDefined)
@@ -78,7 +78,7 @@ class ParentNextLast extends Consumer {
           lasts += ((list.get, last))
         }
 
-      case Attach(parent, _, node, _) =>
+      case Attach(parent, _, _, node, _) =>
         // non-list change
         parents += ((node, parent))
       case Load(node, _, kids, _) =>

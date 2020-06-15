@@ -1,3 +1,5 @@
+name := "truechange-truediff"
+
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
 
 ThisBuild / version := "0.1"
