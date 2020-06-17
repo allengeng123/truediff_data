@@ -39,6 +39,12 @@ class ExpTests extends AnyFlatSpec with Matchers {
     loadChangeset.foreach(c => println("  " + c))
     assertResult(None)(loadChangeset.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
+    val tree = new StandardTree
+    tree.process(loadChangeset)
+    assertResult(None)(tree.conformsTo(sigs))
+    tree.process(changeset)
+    assertResult(None)(tree.conformsTo(sigs))
+
     println()
   }
 
