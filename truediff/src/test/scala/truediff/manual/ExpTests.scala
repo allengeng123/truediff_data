@@ -3,6 +3,7 @@ package truediff.manual
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import truechange._
+import truediff.Diffable
 import truediff.manual.Exp.Hole
 
 class ExpTests extends AnyFlatSpec with Matchers {
@@ -32,6 +33,11 @@ class ExpTests extends AnyFlatSpec with Matchers {
     println("Reverse changeset:")
     reverseChangeset.foreach(c => println("  " + c))
     assertResult(expectedChanges)(reverseChangeset.size)
+
+    val loadChangeset = Diffable.load(src)
+    println("Load changeset:")
+    loadChangeset.foreach(c => println("  " + c))
+    assertResult(None)(loadChangeset.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
     println()
   }

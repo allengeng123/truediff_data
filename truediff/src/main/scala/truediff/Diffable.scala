@@ -110,7 +110,7 @@ trait Diffable extends Hashable {
     that.assignSubtrees(subtreeReg)
 
     val buf = new ChangesetBuffer
-    val newtree = this.computeChangeset(that, new NodeURI, RootTag, RootLink, buf)
+    val newtree = this.computeChangeset(that, null, RootTag, RootLink, buf)
     (buf.toChangeset, newtree.asInstanceOf[T])
   }
 }
@@ -121,6 +121,7 @@ object Diffable {
   def load[T <: Diffable](t: T): Changeset = {
     val buf = new ChangesetBuffer
     t.loadInitial(buf)
+    buf += Attach(null, RootTag, RootLink, t.uri, t.tag)
     buf.toChangeset
   }
 }

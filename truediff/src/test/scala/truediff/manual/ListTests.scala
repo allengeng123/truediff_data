@@ -28,6 +28,17 @@ class ListTests extends AnyFlatSpec with Matchers {
     assertResult(expectedChanges)(changeset.size)
     newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
+
+    val reverseChangeset = dest.compareTo(src)._1
+    println("Reverse changeset:")
+    reverseChangeset.foreach(c => println("  " + c))
+    assertResult(expectedChanges)(reverseChangeset.size)
+
+    val loadChangeset = Diffable.load(src)
+    println("Load changeset:")
+    loadChangeset.foreach(c => println("  " + c))
+    assertResult(None)(loadChangeset.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
+
   }
 
 

@@ -14,10 +14,10 @@ case class Changeset(changes: Seq[Change]) {
    *   1. `parent` exists in the base tree and has a link `link` that points to `node`
    *   2. the tag of `node` is `nodeTag`
    */
-  def welltyped(sigs: Map[NodeTag, Signature]): Option[String] = {
+  def welltyped(sigs: Map[NodeTag, Signature], initRoots: Map[NodeURI, Type] = Map(), initStubs: Map[(NodeURI, Link), Type] = Map()): Option[String] = {
 
-    var roots = Map[NodeURI, Type]()
-    var stubs = Map[(NodeURI, Link), Type]()
+    var roots = initRoots
+    var stubs = initStubs
 
     changes.foreach {
       case Detach(parent, ptag, NamedLink(name), node, tag) =>

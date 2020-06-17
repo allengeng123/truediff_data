@@ -3,11 +3,12 @@ package truechange
 sealed trait Link {
   def isOptional: Boolean
 }
-object RootLink extends NamedLink("#root")
 case class NamedLink(name: String) extends Link {
   override def toString: String = name
   override def isOptional: Boolean = false
 }
+object RootLink extends NamedLink("#root")
+
 case class OptionalLink(link: Link) extends Link {
   override def toString: String = super.toString + "?"
   override def isOptional: Boolean = true
