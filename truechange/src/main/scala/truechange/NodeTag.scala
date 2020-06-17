@@ -1,12 +1,11 @@
 package truechange
 
 sealed trait NodeTag
-case object RootTag extends NodeTag {
-  override def toString: String = "#Root"
-}
-case class ConstrTag(c: String) extends NodeTag {
+case class NamedTag(c: String) extends NodeTag {
   override def toString: String = c
 }
+object RootTag extends NamedTag("#Root")
+
 case class OptionTag(ty: Type) extends NodeTag {
   override def toString: String = s"Option[$ty]"
 }

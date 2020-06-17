@@ -9,7 +9,7 @@ trait Diffable extends Hashable {
   protected var _uri: NodeURI = new NodeURI
   def uri: NodeURI = _uri
 
-  def tag: NodeTag = ConstrTag(this.getClass.getCanonicalName)
+  def tag: NodeTag = NamedTag(this.getClass.getCanonicalName)
   def sig: Signature
 
   def treeheight: Int
@@ -96,10 +96,10 @@ trait Diffable extends Hashable {
         return newtree
     }
 
-    changes += Detach(parent, parentTag, link, this.uri, this.tag)
+    changes += Detach(this.uri, this.tag, link, parent, parentTag)
     this.unloadUnassigned(changes)
     val newtree = that.loadUnassigned(changes)
-    changes += Attach(parent, parentTag, link, newtree.uri, newtree.tag)
+    changes += Attach(newtree.uri, newtree.tag, link, parent, parentTag)
     newtree
   }
 
@@ -121,7 +121,7 @@ object Diffable {
   def load[T <: Diffable](t: T): Changeset = {
     val buf = new ChangesetBuffer
     t.loadInitial(buf)
-    buf += Attach(null, RootTag, RootLink, t.uri, t.tag)
+    buf += Attach(t.uri, t.tag, RootLink, null, RootTag)
     buf.toChangeset
   }
 }

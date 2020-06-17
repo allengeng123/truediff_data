@@ -11,20 +11,20 @@ class ChangesetBuffer() {
 
     def += (elem: Change): this.type = {
       elem match {
-        case detach@Detach(pred, predTag, next@ListNextLink(_), node, tag) =>
+        case detach@Detach(node, tag, next@ListNextLink(_), pred, predTag) =>
           val nextPair = (pred, node)
           if (attachListNext.remove(nextPair)) {
             // detach cancelled out previous attach
-            posBuf -= Attach(pred, predTag, next, node, tag)
+            posBuf -= Attach(node, tag, next, pred, predTag)
           } else {
             detachListNext += nextPair
             negBuf += detach
           }
-        case attach@Attach(pred, predTag, next@ListNextLink(_), node, tag) =>
+        case attach@Attach(node, tag, next@ListNextLink(_), pred, predTag) =>
           val nextPair = (pred, node)
           if (detachListNext.remove(nextPair)) {
             // attach cancelled out previous detach
-            negBuf -= Detach(pred, predTag, next, node, tag)
+            negBuf -= Detach(node, tag, next, pred, predTag)
           } else {
             attachListNext += nextPair
             posBuf += attach

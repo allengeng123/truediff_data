@@ -2,10 +2,10 @@ package truechange
 
 sealed trait Change
 
-case class Detach(parent: NodeURI, ptag: NodeTag, link: Link, node: NodeURI, tag: NodeTag) extends Change {
+case class Detach(node: NodeURI, tag: NodeTag, link: Link, parent: NodeURI, ptag: NodeTag) extends Change {
   override def toString: String = s"detach ${tag}_$node from ${ptag}_$parent.$link"
 }
-case class Attach(parent: NodeURI, ptag: NodeTag, link: Link, node: NodeURI, tag: NodeTag) extends Change {
+case class Attach(node: NodeURI, tag: NodeTag, link: Link, parent: NodeURI, ptag: NodeTag) extends Change {
   override def toString: String = s"attach ${tag}_$node to ${ptag}_$parent.$link"
 }
 

@@ -43,7 +43,6 @@ object DiffableMacro {
     val tLink = symbolOf[Link]
     val oNamedLink = symbolOf[NamedLink].companion
     val oLoadNode = symbolOf[Load].companion
-    val oDetachNode = symbolOf[Detach].companion
     val oUnloadNode = symbolOf[Unload].companion
 
     val tChangesetBuffer = symbolOf[ChangesetBuffer]

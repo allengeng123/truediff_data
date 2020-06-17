@@ -20,7 +20,7 @@ case class Changeset(changes: Seq[Change]) {
     var stubs = initStubs
 
     changes.foreach {
-      case Detach(parent, ptag, NamedLink(name), node, tag) =>
+      case Detach(node, tag, NamedLink(name), parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
@@ -34,7 +34,7 @@ case class Changeset(changes: Seq[Change]) {
         val stubType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
         stubs += (parent, NamedLink(name)) -> stubType
 
-      case Detach(parent, ptag, OptionalLink(link), node, tag) =>
+      case Detach(node, tag, OptionalLink(link), parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
@@ -42,7 +42,7 @@ case class Changeset(changes: Seq[Change]) {
         val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
         roots += node -> nodeType
 
-      case Detach(parent, ptag, ListFirstLink(ty), node, tag) =>
+      case Detach(node, tag, ListFirstLink(ty), parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
@@ -50,7 +50,7 @@ case class Changeset(changes: Seq[Change]) {
         val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
         roots += node -> nodeType
 
-      case Detach(parent, ptag, ListNextLink(ty), node, tag) =>
+      case Detach(node, tag, ListNextLink(ty), parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
@@ -73,7 +73,7 @@ case class Changeset(changes: Seq[Change]) {
 
         roots -= node
 
-      case Attach(parent, ptag, NamedLink(name), node, tag) =>
+      case Attach(node, tag, NamedLink(name), parent, ptag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
@@ -88,7 +88,7 @@ case class Changeset(changes: Seq[Change]) {
         roots -= node
         stubs -= ((parent, NamedLink(name)))
 
-      case Attach(parent, ptag, OptionalLink(NamedLink(name)), node, tag) =>
+      case Attach(node, tag, OptionalLink(NamedLink(name)), parent, ptag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
@@ -99,7 +99,7 @@ case class Changeset(changes: Seq[Change]) {
 
         roots -= node
 
-      case Attach(parent, ptag, link@ListFirstLink(ty), node, tag) =>
+      case Attach(node, tag, link@ListFirstLink(ty), parent, ptag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
@@ -110,7 +110,7 @@ case class Changeset(changes: Seq[Change]) {
 
         roots -= node
 
-      case Attach(parent, ptag, link@ListNextLink(ty), node, tag) =>
+      case Attach(node, tag, link@ListNextLink(ty), parent, ptag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 

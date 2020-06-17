@@ -45,8 +45,8 @@ class StandardTree {
       index += (node -> subtree)
     case Unload(node, _, _, _) => index -= node
 
-    case Detach(parent, _, NamedLink(name), _, _) => index(parent).kids(name) = null
-    case Attach(parent, _, NamedLink(name), node, _) => index(parent).kids(name) = index(node)
+    case Detach(_, _, NamedLink(name), parent, _) => index(parent).kids(name) = null
+    case Attach(node, _, NamedLink(name), parent, _) => index(parent).kids(name) = index(node)
   }
 
   def conformsTo(sigs: Map[NodeTag, Signature]): Option[String] = root.kids.get(RootLink.name) flatMap { t =>
