@@ -71,7 +71,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
   "diff" should "leave subtrees in place" in {
     // should yield changeset:
-    //   [unload 10 from x, load 13 as y, attach y to x]
+    //   [detach 10, unload 10, load 13, attach 13]
     testChangeset(
       Add(Num(10), Num(13)),
       Add(Num(13), Num(13)),
@@ -153,6 +153,14 @@ class ExpTests extends AnyFlatSpec with Matchers {
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       6
     )
+  }
 
+
+  "diff" should "support example from paper" in {
+    testChangeset(
+      Add(Sub(Var("a"), Num(1)), Mul(Var("b"), Var("c"))),
+      Add(Var("c"), Mul(Var("b"), Sub(Var("a"), Num(1)))),
+      4
+    )
   }
 }
