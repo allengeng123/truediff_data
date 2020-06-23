@@ -43,7 +43,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override protected[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override protected[truediff] def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected[truediff] def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
@@ -51,16 +51,16 @@ case object DiffableNone extends DiffableOption[Nothing] {
       newtree
   }
 
-  override def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+  override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
     // nothing to load for None
     this
   }
 
-  override def loadInitial(changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: EditscriptBuffer): Unit = {
     // nothing to load for None
   }
 
-  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
     // nothing to unload for None
   }
 }
@@ -99,9 +99,9 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
-      val a = this.a.computeChangeset(that.a, parent, parentTag, OptionalLink(link), changes)
+      val a = this.a.computeEditscript(that.a, parent, parentTag, OptionalLink(link), changes)
       DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
       changes += Detach(this.a.uri, this.a.tag, OptionalLink(link), parent, parentTag)
@@ -109,16 +109,16 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
       that
   }
 
-  override def loadUnassigned(changes: ChangesetBuffer): DiffableSome[A] = {
+  override def loadUnassigned(changes: EditscriptBuffer): DiffableSome[A] = {
     val a = this.a.loadUnassigned(changes).asInstanceOf[A]
     DiffableSome(a, atype)
   }
 
-  override def loadInitial(changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: EditscriptBuffer): Unit = {
     this.a.loadInitial(changes)
   }
 
-  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
     a.unloadUnassigned(changes)
   }
 }

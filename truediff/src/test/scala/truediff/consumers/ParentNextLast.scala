@@ -29,7 +29,7 @@ class ParentNextLast extends Consumer {
     }
   }
 
-  override def update(changeset: Changeset): Unit = {
+  override def update(changeset: Editscript): Unit = {
     changeset.foreach {
       case Detach(first, _, ListFirstLink(_), list, _) =>
         // update parent: remove all list elements

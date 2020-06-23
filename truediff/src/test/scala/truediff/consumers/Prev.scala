@@ -13,7 +13,7 @@ class Prev extends Consumer {
   def apply(node: NodeURI): Option[NodeURI] = prevs.get(node)
 
 
-  override def update(changeset: Changeset): Unit = {
+  override def update(changeset: Editscript): Unit = {
     changeset.foreach {
       case Detach(succ, _, ListNextLink(_), _, _) =>
         prevs -= succ

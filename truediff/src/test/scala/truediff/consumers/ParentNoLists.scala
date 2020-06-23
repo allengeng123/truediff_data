@@ -13,7 +13,7 @@ class ParentNoLists extends Consumer {
   def apply(node: NodeURI): Option[NodeURI] = parents.get(node)
 
 
-  override def update(changeset: Changeset): Unit = {
+  override def update(changeset: Editscript): Unit = {
     changeset.foreach {
       case Detach(node, _, _, _, _) =>
         parents -= node

@@ -35,16 +35,16 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Maybe =>
-      val a = this.a.computeChangeset(that.a, this.uri, this.tag, NamedLink("a"), changes).asInstanceOf[DiffableOption[Exp]]
+      val a = this.a.computeEditscript(that.a, this.uri, this.tag, NamedLink("a"), changes).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
       newtree._uri = this.uri
       newtree
     case _ => null
   }
 
-  override def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+  override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
@@ -58,14 +58,14 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     newtree
   }
 
-  override def loadInitial(changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: EditscriptBuffer): Unit = {
     this.a.loadInitial(changes)
     changes += Load(this.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
   }
 
-  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {

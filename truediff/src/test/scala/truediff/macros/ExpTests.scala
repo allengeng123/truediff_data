@@ -7,13 +7,13 @@ import truediff.Diffable
 import truediff.macros.Exp.Hole
 
 class ExpTests extends AnyFlatSpec with Matchers {
-  def testChangeset(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
+  def testEditscript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
     println("Comparing:")
     println(s"  ${src.toStringWithURI}")
     println(s"  ${dest.toStringWithURI}")
 
     val (changeset,newtree) = src.compareTo(dest)
-    println("Changeset:")
+    println("Editscript:")
     changeset.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
@@ -30,39 +30,39 @@ class ExpTests extends AnyFlatSpec with Matchers {
     newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
-    val reverseChangeset = dest.compareTo(src)._1
+    val reverseEditscript = dest.compareTo(src)._1
     println("Reverse changeset:")
-    reverseChangeset.foreach(c => println("  " + c))
-    assertResult(expectedChanges)(reverseChangeset.size)
+    reverseEditscript.foreach(c => println("  " + c))
+    assertResult(expectedChanges)(reverseEditscript.size)
 
-    val loadChangeset = Diffable.load(src)
+    val loadEditscript = Diffable.load(src)
     println("Load changeset:")
-    loadChangeset.foreach(c => println("  " + c))
-    assertResult(None)(loadChangeset.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
+    loadEditscript.foreach(c => println("  " + c))
+    assertResult(None)(loadEditscript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
   }
 
 
   "diff" should "fill and create holes" in {
-    testChangeset(
+    testEditscript(
       Hole(),
       Add(Num(1), Num(2)),
       6
     )
 
-    testChangeset(
+    testEditscript(
       Add(Hole(), Num(3)),
       Add(Add(Num(1), Num(2)), Num(3)),
       6
     )
 
-    testChangeset(
+    testEditscript(
       Add(Num(1), Num(2)),
       Hole(),
       6
     )
 
-    testChangeset(
+    testEditscript(
       Add(Add(Num(1), Num(2)), Num(3)),
       Add(Hole(), Num(3)),
       6
@@ -72,7 +72,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
   "diff" should "leave subtrees in place" in {
     // should yield changeset:
     //   [detach 10, unload 10, load 13, attach 13]
-    testChangeset(
+    testEditscript(
       Add(Num(10), Num(13)),
       Add(Num(13), Num(13)),
       4
@@ -80,7 +80,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
     // should yield changeset:
     //   [unload 10 from x, load 13 as y, attach y to x]
-    testChangeset(
+    testEditscript(
       Add(Num(13), Num(10)),
       Add(Num(13), Num(13)),
       4
@@ -91,7 +91,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     // should yield changeset:
     //   [detach 1, unload 1 from x, load 2 as y, attach y to x,
     //    unload z, unload 3, detach (2+3) from z, attach (2+3) to x]
-    testChangeset(
+    testEditscript(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Num(2), Add(Num(2), Num(3))),
       4 + 4
@@ -103,7 +103,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     //  detach (3+(2+3)), unload (3+(2+3)), unload 3,
     //  load 2, load 0, load 0, load (0+0), load (2+(0+0)),
     //  attach (2+(0+0)), attach (2+3)]
-    testChangeset(
+    testEditscript(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Add(Num(2), Add(Num(0), Num(0))), Add(Num(2), Num(3))),
       12
@@ -113,7 +113,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
   "diff" should "reuse all subtrees" in {
     // should yield changeset:
     //   [detach 2, unload 3, unload 2+3 from x, attach 2 to x]
-    testChangeset(
+    testEditscript(
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       Add(Add(Num(2), Num(3)), Num(2)),
       4
@@ -121,7 +121,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
     // should yield changeset:
     //   [detach 2, unload 3, unload 2+3 from x, attach 2 to x]
-    testChangeset(
+    testEditscript(
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       Add(Num(2), Add(Num(2), Num(3))),
       4
@@ -130,7 +130,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     // should yield changeset:
     //   [detach 2 from x, detach 3 from y, detach (2+3) from y,
     //    attach (2+3) to x, attach 2 to y, attach 3 to y]
-    testChangeset(
+    testEditscript(
       Add(Num(2), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       6
@@ -140,7 +140,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
   "diff" should "wrap subtrees" in {
     // should yield changeset:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]
-    testChangeset(
+    testEditscript(
       Add(Num(2), Num(3)),
       Add(Num(1), Add(Num(2), Num(3))),
       4
@@ -148,7 +148,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
     // should yield changeset:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]
-    testChangeset(
+    testEditscript(
       Add(Num(2), Num(3)),
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       6
@@ -157,7 +157,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
 
 
   "diff" should "support example from paper" in {
-    testChangeset(
+    testEditscript(
       Add(Sub(Var("a"), Num(1)), Mul(Var("b"), Var("c"))),
       Add(Var("c"), Mul(Var("b"), Sub(Var("a"), Num(1)))),
       4

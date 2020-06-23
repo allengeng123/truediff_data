@@ -2,14 +2,14 @@ package truechange
 
 import scala.collection.mutable
 
-class ChangesetBuffer() {
-    private val negBuf: mutable.Buffer[Change] = mutable.ArrayBuffer()
-    private val posBuf: mutable.Buffer[Change] = mutable.ArrayBuffer()
+class EditscriptBuffer() {
+    private val negBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
+    private val posBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
 
     private val detachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
     private val attachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
 
-    def += (elem: Change): this.type = {
+    def += (elem: Edit): this.type = {
       elem match {
         case detach@Detach(node, tag, next@ListNextLink(_), pred, predTag) =>
           val nextPair = (pred, node)
@@ -36,10 +36,10 @@ class ChangesetBuffer() {
       this
     }
 
-    def ++= (elem: IterableOnce[Change]): this.type = {
+    def ++= (elem: IterableOnce[Edit]): this.type = {
       elem.iterator.foreach(this += _)
       this
     }
 
-    def toChangeset: Changeset = new Changeset(negBuf.toSeq ++ posBuf.toSeq)
+    def toEditscript: Editscript = new Editscript(negBuf.toSeq ++ posBuf.toSeq)
   }

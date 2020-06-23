@@ -26,9 +26,9 @@ trait Diffable extends Hashable {
     this.foreachDiffableKid(f)
   }
   def foreachDiffableKid(f: Diffable => Unit): Unit
-  def loadUnassigned(changes: ChangesetBuffer): Diffable
-  def unloadUnassigned(changes: ChangesetBuffer): Unit
-  def loadInitial(changes: ChangesetBuffer): Unit
+  def loadUnassigned(changes: EditscriptBuffer): Diffable
+  def unloadUnassigned(changes: EditscriptBuffer): Unit
+  def loadInitial(changes: EditscriptBuffer): Unit
 
   protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
   private[truediff] def _assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = this.assignSharesRecurse(that, subtreeReg)
@@ -36,8 +36,8 @@ trait Diffable extends Hashable {
   protected def assignSubtreesRecurse(): Iterable[Diffable]
   private[truediff] def _assignSubtreesRecurse(): Iterable[Diffable] = this.assignSubtreesRecurse()
 
-  protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag:NodeTag, link: Link, changes: ChangesetBuffer): Diffable
-  private[truediff] def _computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = this.computeChangesetRecurse(that, parent, parentTag, link, changes)
+  protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag:NodeTag, link: Link, changes: EditscriptBuffer): Diffable
+  private[truediff] def _computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = this.computeEditscriptRecurse(that, parent, parentTag, link, changes)
 
   final def assignShares(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     if (this.skipNode) {
@@ -83,7 +83,7 @@ trait Diffable extends Hashable {
     }
   }
 
-  final def computeChangeset(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = {
+  final def computeEditscript(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = {
     // this == that
     if (that.assigned != null && that.assigned.uri == this.uri) {
       this.assigned = null
@@ -91,7 +91,7 @@ trait Diffable extends Hashable {
     }
 
     if (this.assigned == null && that.assigned == null) {
-      val newtree = this.computeChangesetRecurse(that, parent, parentTag, link, changes)
+      val newtree = this.computeEditscriptRecurse(that, parent, parentTag, link, changes)
       if (newtree != null)
         return newtree
     }
@@ -103,25 +103,25 @@ trait Diffable extends Hashable {
     newtree
   }
 
-  final def compareTo[T <: Diffable](that: T): (Changeset, T) = {
+  final def compareTo[T <: Diffable](that: T): (Editscript, T) = {
     val subtreeReg = new SubtreeRegistry
     this.assignShares(that, subtreeReg)
 
     that.assignSubtrees(subtreeReg)
 
-    val buf = new ChangesetBuffer
-    val newtree = this.computeChangeset(that, null, RootTag, RootLink, buf)
-    (buf.toChangeset, newtree.asInstanceOf[T])
+    val buf = new EditscriptBuffer
+    val newtree = this.computeEditscript(that, null, RootTag, RootLink, buf)
+    (buf.toEditscript, newtree.asInstanceOf[T])
   }
 }
 
 object Diffable {
   val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
 
-  def load[T <: Diffable](t: T): Changeset = {
-    val buf = new ChangesetBuffer
+  def load[T <: Diffable](t: T): Editscript = {
+    val buf = new EditscriptBuffer
     t.loadInitial(buf)
     buf += Attach(t.uri, t.tag, RootLink, null, RootTag)
-    buf.toChangeset
+    buf.toEditscript
   }
 }

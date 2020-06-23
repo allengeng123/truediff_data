@@ -6,13 +6,13 @@ import truechange._
 import truediff.Diffable
 
 class OptionTests extends AnyFlatSpec with Matchers {
-  def testChangeset(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
+  def testEditscript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
     println("Comparing:")
     println(s"  ${src.toStringWithURI}")
     println(s"  ${dest.toStringWithURI}")
 
     val (changeset,newtree) = src.compareTo(dest)
-    println("Changeset:")
+    println("Editscript:")
     changeset.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
@@ -29,39 +29,39 @@ class OptionTests extends AnyFlatSpec with Matchers {
     newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
-    val reverseChangeset = dest.compareTo(src)._1
+    val reverseEditscript = dest.compareTo(src)._1
     println("Reverse changeset:")
-    reverseChangeset.foreach(c => println("  " + c))
-    assertResult(expectedChanges)(reverseChangeset.size)
+    reverseEditscript.foreach(c => println("  " + c))
+    assertResult(expectedChanges)(reverseEditscript.size)
 
-    val loadChangeset = Diffable.load(src)
+    val loadEditscript = Diffable.load(src)
     println("Load changeset:")
-    loadChangeset.foreach(c => println("  " + c))
-    assertResult(None)(loadChangeset.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
+    loadEditscript.foreach(c => println("  " + c))
+    assertResult(None)(loadEditscript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
   }
 
 
   "diff" should "fill and clear options" in {
-    testChangeset(
+    testEditscript(
       Maybe(None),
       Maybe(Some(Add(Num(1), Num(2)))),
       4
     )
 
-    testChangeset(
+    testEditscript(
       Add(Maybe(None), Num(3)),
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       4
     )
 
-    testChangeset(
+    testEditscript(
       Maybe(Some(Add(Num(1), Num(2)))),
       Maybe(None),
       4
     )
 
-    testChangeset(
+    testEditscript(
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       Add(Maybe(None), Num(3)),
       4
@@ -69,25 +69,25 @@ class OptionTests extends AnyFlatSpec with Matchers {
   }
 
   "diff" should "load and unload options" in {
-    testChangeset(
+    testEditscript(
       Num(0),
       Maybe(Some(Add(Num(1), Num(2)))),
       7
     )
 
-    testChangeset(
+    testEditscript(
       Add(Num(0), Num(3)),
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       7
     )
 
-    testChangeset(
+    testEditscript(
       Maybe(Some(Add(Num(1), Num(2)))),
       Num(0),
       7
     )
 
-    testChangeset(
+    testEditscript(
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       Add(Num(0), Num(3)),
       7

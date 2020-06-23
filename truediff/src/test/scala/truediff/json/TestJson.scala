@@ -13,7 +13,7 @@ class TestJson extends AnyFlatSpec with Matchers {
     println(s"  $dest")
 
     val (changeset,newtree) = src.compareTo(dest)
-    println("Changeset:")
+    println("Editscript:")
     changeset.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)

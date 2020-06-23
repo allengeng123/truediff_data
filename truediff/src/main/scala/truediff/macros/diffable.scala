@@ -45,7 +45,7 @@ object DiffableMacro {
     val oLoadNode = symbolOf[Load].companion
     val oUnloadNode = symbolOf[Unload].companion
 
-    val tChangesetBuffer = symbolOf[ChangesetBuffer]
+    val tEditscriptBuffer = symbolOf[EditscriptBuffer]
 
     val oOptionType = symbolOf[OptionType].companion
     val oListType = symbolOf[ListType].companion
@@ -179,10 +179,10 @@ object DiffableMacro {
                   q"$oIterable(..${ps.map(p => q"this.$p")})"
               }}
 
-            override protected def computeChangesetRecurse(that: $tDiffable, parent: $tNodeURI, parentTag: $tNodeTag, link: $tLink, changes: $tChangesetBuffer): $tDiffable = that match {
+            override protected def computeEditscriptRecurse(that: $tDiffable, parent: $tNodeURI, parentTag: $tNodeTag, link: $tLink, changes: $tEditscriptBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyped(
-                  (p,t) => q"val $p = this.$p.computeChangeset(that.$p, this.uri, this.tag, ${link(p, t)}, changes).asInstanceOf[$t]",
+                  (p,t) => q"val $p = this.$p.computeEditscript(that.$p, this.uri, this.tag, ${link(p, t)}, changes).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
                 val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
@@ -191,7 +191,7 @@ object DiffableMacro {
               case _ => null
             }
 
-            override def loadUnassigned(changes: $tChangesetBuffer): $tDiffable = {
+            override def loadUnassigned(changes: $tEditscriptBuffer): $tDiffable = {
               val that = this
               if (that.assigned != null) {
                 return that.assigned
@@ -209,7 +209,7 @@ object DiffableMacro {
               $$newtree
             }
 
-            override def loadInitial(changes: $tChangesetBuffer): $tUnit = {
+            override def loadInitial(changes: $tEditscriptBuffer): $tUnit = {
               ..${mapDiffableParams(p => q"this.$p.loadInitial(changes)")}
               changes += $oLoadNode(this.uri, this.tag,
                 $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
@@ -218,7 +218,7 @@ object DiffableMacro {
             }
 
 
-            override def unloadUnassigned(changes: $tChangesetBuffer): $tUnit = {
+            override def unloadUnassigned(changes: $tEditscriptBuffer): $tUnit = {
               if (this.assigned != null) {
                 this.assigned = null
               } else {

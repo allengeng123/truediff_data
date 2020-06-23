@@ -1,7 +1,7 @@
 package truediff.consumers
 
-import truechange.Changeset
+import truechange.Editscript
 
 trait Consumer {
-  def update(changeset: Changeset): Unit
+  def update(changeset: Editscript): Unit
 }

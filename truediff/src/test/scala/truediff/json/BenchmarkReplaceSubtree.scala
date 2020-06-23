@@ -1,7 +1,7 @@
 package truediff.json
 
+import truechange.Editscript
 import truediff.BenchmarkUtils._
-import truechange.Changeset
 import truediff.json.Js._
 
 import scala.util.Random
@@ -66,7 +66,7 @@ object BenchmarkReplaceSubtree extends App {
     val random = new Random(seed = 0)
 
     def measure(timing: Timing): Measurement[Js] = {
-      val ((tree1, tree2), changeset, diffIdenticalTime) = timed[(Js,Js), Changeset](() => {
+      val ((tree1, tree2), changeset, diffIdenticalTime) = timed[(Js,Js), Editscript](() => {
         val tree1 = Parser.parse(content)
         val index = random.nextInt(tree1.treesize)
         val tree2 = replaceSubtree(index, tree1, () => Str(s"Replaced subtree at index $index"))

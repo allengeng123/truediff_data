@@ -27,7 +27,7 @@ object Exp {
 
     override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-    override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
+    override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
       case Hole() =>
         val newtree = Hole()
         newtree._uri = this.uri
@@ -35,7 +35,7 @@ object Exp {
       case _ => null
     }
 
-    override def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+    override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
       val that = this
       if (that.assigned != null) {
         return that.assigned
@@ -47,11 +47,11 @@ object Exp {
     }
 
 
-    override def loadInitial(changes: ChangesetBuffer): Unit = {
+    override def loadInitial(changes: EditscriptBuffer): Unit = {
       changes += Load(this.uri, this.tag, Seq(), Seq())
     }
 
-    override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+    override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
       if (this.assigned != null) {
         this.assigned = null
       } else
@@ -96,7 +96,7 @@ case class Num(n: Int) extends Exp {
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
       val newtree = Num(n)
       newtree._uri = this.uri
@@ -104,7 +104,7 @@ case class Num(n: Int) extends Exp {
     case _ => null
   }
 
-  override def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+  override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
@@ -118,13 +118,13 @@ case class Num(n: Int) extends Exp {
   }
 
 
-  override def loadInitial(changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: EditscriptBuffer): Unit = {
     changes += Load(this.uri, this.tag, Seq(), Seq(
       "n" -> this.n
     ))
   }
 
-  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else
@@ -168,17 +168,17 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable(e1, e2)
 
-  override protected def computeChangesetRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: ChangesetBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Add =>
-      val e1 = this.e1.computeChangeset(that.e1, this.uri, this.tag, NamedLink("e1"), changes).asInstanceOf[Exp]
-      val e2 = this.e2.computeChangeset(that.e2, this.uri, this.tag, NamedLink("e2"), changes).asInstanceOf[Exp]
+      val e1 = this.e1.computeEditscript(that.e1, this.uri, this.tag, NamedLink("e1"), changes).asInstanceOf[Exp]
+      val e2 = this.e2.computeEditscript(that.e2, this.uri, this.tag, NamedLink("e2"), changes).asInstanceOf[Exp]
       val newtree = Add(e1, e2)
       newtree._uri = this.uri
       newtree
     case _ => null
   }
 
-  override def loadUnassigned(changes: ChangesetBuffer): Diffable = {
+  override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
@@ -195,7 +195,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
   }
 
 
-  override def loadInitial(changes: ChangesetBuffer): Unit = {
+  override def loadInitial(changes: EditscriptBuffer): Unit = {
     this.e1.loadInitial(changes)
     this.e2.loadInitial(changes)
     changes += Load(this.uri, this.tag, Seq(
@@ -204,7 +204,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     ), Seq())
   }
 
-  override def unloadUnassigned(changes: ChangesetBuffer): Unit = {
+  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {

@@ -2,19 +2,19 @@ package truediff
 
 import java.io.File
 
-import truechange.Changeset
+import truechange.Editscript
 
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: Changeset, extra: Map[String, Any] = Map()) {
+  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: Editscript, extra: Map[String, Any] = Map()) {
     override def toString: String = {
       val srcsize = src.treesize
       val text = s"""
          |Measurement $name
          |  Src tree size:     $srcsize
          |  Dest tree size:    $srcsize
-         |  Changeset size:    ${changeset.size}
+         |  Editscript size:    ${changeset.size}
          |  Diffing time (ms): $diffTime""".stripMargin
       if (extra.isEmpty)
         text

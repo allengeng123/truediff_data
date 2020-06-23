@@ -1,16 +1,16 @@
 package truechange
 
-case class Changeset(changes: Seq[Change]) {
-  def size: Int = changes.size
+case class Editscript(edits: Seq[Edit]) {
+  def size: Int = edits.size
 
-  def foreach(f: Change => Unit): Unit = changes.foreach(f)
+  def foreach(f: Edit => Unit): Unit = edits.foreach(f)
 
   /**
-   * Checks if this changeset is well-typed.
+   * Checks if this editscript is well-typed.
    *
-   * A changeset is well-typed if ...
+   * A editscript is well-typed if ...
    *
-   * Assumption: If the changeset contains `Detach/Unload(parent, link, node, nodeTag)`, then
+   * Assumption: If the editscript contains `Detach/Unload(parent, link, node, nodeTag)`, then
    *   1. `parent` exists in the base tree and has a link `link` that points to `node`
    *   2. the tag of `node` is `nodeTag`
    */
@@ -19,7 +19,7 @@ case class Changeset(changes: Seq[Change]) {
     var roots = initRoots
     var stubs = initStubs
 
-    changes.foreach {
+    edits.foreach {
       case Detach(node, tag, NamedLink(name), parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))

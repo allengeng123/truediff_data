@@ -4,7 +4,7 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 /**
- * The standard semantics of Changeset reproduces the original tree from the Changeset alone.
+ * The standard semantics of Editscript reproduces the original tree from the Editscript alone.
  */
 
 case class MNode(uri: NodeURI, tag: NodeTag, kids: mutable.Map[String, MNode], lits: Map[String, Any]) {
@@ -32,12 +32,12 @@ class StandardTree {
   // index of all loaded nodes
   private val index: mutable.Map[NodeURI, MNode] = mutable.Map((null, root))
 
-  // applies a changeset to this
-  def process(changeset: Changeset): Unit =
-    changeset.foreach(processChange)
+  // applies a editscript to this
+  def process(editscript: Editscript): Unit =
+    editscript.foreach(processChange)
 
   // applies a single change to this
-  def processChange(change: Change): Unit = change match {
+  def processChange(change: Edit): Unit = change match {
     case Load(node, tag, kids, lits) =>
       val subtree = MNode(node, tag,
         mutable.Map() ++ kids.map{case (n, uri) => (n, index(uri))},

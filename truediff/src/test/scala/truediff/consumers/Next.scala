@@ -13,7 +13,7 @@ class Next extends Consumer {
   def apply(node: NodeURI): Option[NodeURI] = nexts.get(node)
 
 
-  override def update(changeset: Changeset): Unit = {
+  override def update(changeset: Editscript): Unit = {
     changeset.foreach {
       case Detach(_, _, ListNextLink(_), pred, _) =>
         nexts -= pred
