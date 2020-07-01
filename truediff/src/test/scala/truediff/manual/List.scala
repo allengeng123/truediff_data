@@ -20,22 +20,22 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("es" -> ListType(SortType(classOf[Exp]))), Map())
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this.es)
-    this.es.foreachDiffableKid(f)
+    this.es.foreachSubtree(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Many =>
       this.es.assignShares(that.es, subtreeReg)
     case _ =>
-      this.foreachDiffableKid(subtreeReg.registerShareFor)
-      that.foreachDiffableKid(subtreeReg.shareFor)
+      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+      that.foreachSubtree(subtreeReg.assignShare)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Many =>
       val es = this.es.computeEditscript(that.es, this.uri, this.tag, NamedLink("es"), changes).asInstanceOf[DiffableList[Exp]]
       val newtree = Many(es)

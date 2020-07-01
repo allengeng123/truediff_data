@@ -2,12 +2,12 @@ package truediff
 
 import java.io.File
 
-import truechange.Editscript
+import truechange.EditScript
 
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: Editscript, extra: Map[String, Any] = Map()) {
+  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: EditScript, extra: Map[String, Any] = Map()) {
     override def toString: String = {
       val srcsize = src.treesize
       val text = s"""

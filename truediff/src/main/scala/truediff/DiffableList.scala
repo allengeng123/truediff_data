@@ -13,7 +13,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   def updated[B >: A <: Diffable](i: Int, elem: B): DiffableList[B] = DiffableList(list.updated(i, elem), atype)
   def indices: Range = Range(0, length)
 
-  override def tag: NodeTag = ListTag(atype)
+  override def tag: Tag = ListTag(atype)
   override def sig: Signature = Signature(ListType(atype), this.tag, Map(), Map())
 
   override val treeheight: Int = 1 + this.list.foldRight(0)((t, max) => Math.max(t.treeheight, max))
@@ -23,10 +23,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   override def toString: String = s"List(" + list.map(_.toString).mkString(", ") + ")"
   override def toStringWithURI: String = s"List_$uri(" + list.map(_.toStringWithURI).mkString(", ") + ")"
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     this.list.foreach { t =>
       f(t)
-      t.foreachDiffableKid(f)
+      t.foreachSubtree(f)
     }
   }
 
@@ -37,7 +37,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       var thisShares: Map[SubtreeShare, ListBuffer[A]] = Map()
 
       this.list.foreach { thisNode =>
-        val thisShare = subtreeReg.shareFor(thisNode)
+        val thisShare = subtreeReg.assignShare(thisNode)
         thisShares.get(thisShare) match {
           case Some(buf) => buf += thisNode
           case None => thisShares += thisShare -> ListBuffer(thisNode)
@@ -45,7 +45,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       }
 
       that.list.foreach { thatNode =>
-        val thatShare = subtreeReg.shareFor(thatNode)
+        val thatShare = subtreeReg.assignShare(thatNode)
         thisShares.get(thatShare) match {
           case Some(buf) =>
             val thisNode = buf.remove(0)
@@ -58,10 +58,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
       this.list.filter(_.assigned == null).zipAll[Diffable,Diffable](that.list.filter(_.assigned == null), null, null).foreach { case (thisnode, thatnode) =>
         if (thisnode == null) {
-          thatnode.foreachDiffableKid(subtreeReg.shareFor)
+          thatnode.foreachSubtree(subtreeReg.assignShare)
         } else if (thatnode == null) {
           thisnode.share.registerAvailableTree(thisnode)
-          thisnode.foreachDiffableKid(subtreeReg.registerShareFor)
+          thisnode.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
         } else {
           thisnode.share.registerAvailableTree(thisnode)
           thisnode._assignSharesRecurse(thatnode, subtreeReg)
@@ -72,7 +72,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   override protected def assignSubtreesRecurse(): Iterable[A] = this.list
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): DiffableList[Diffable] = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): DiffableList[Diffable] = that match {
     case that: DiffableList[A] =>
       val newlist = computeEditscriptLists(this.list, that.list, this.uri, this.tag, this.uri, this.tag, ListFirstLink(atype), changes)
       val newtree = DiffableList(newlist, atype)
@@ -82,7 +82,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       null
   }
 
-  private[truediff] def computeEditscriptLists(thislist: Seq[Diffable], thatlist: Seq[Diffable], thisparent: NodeURI, thisparentTag: NodeTag, thatparent: NodeURI, thatparentTag: NodeTag, link: Link, changes: EditscriptBuffer): Seq[Diffable] = (thislist, thatlist) match {
+  private[truediff] def computeEditscriptLists(thislist: Seq[Diffable], thatlist: Seq[Diffable], thisparent: URI, thisparentTag: Tag, thatparent: URI, thatparentTag: Tag, link: Link, changes: EditscriptBuffer): Seq[Diffable] = (thislist, thatlist) match {
     case (Nil, Nil) => Nil
     case (Nil, thatnode::thatlist) =>
       val newtree = thatnode.loadUnassigned(changes)
@@ -116,7 +116,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       }
   }
 
-  private[truediff] def tryReuseListElem(thisnode: Diffable, thatnode: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Option[Diffable] = {
+  private[truediff] def tryReuseListElem(thisnode: Diffable, thatnode: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Option[Diffable] = {
     // this == that
     if (thatnode.assigned != null && thatnode.assigned.uri == thisnode.uri) {
       thisnode.assigned = null
@@ -141,7 +141,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     val newlist = that.list.map(_.loadUnassigned(changes))
     val newtree = DiffableList(newlist, atype)
     changes += Load(newtree.uri, this.tag, Seq(), Seq())
-    newlist.foldLeft[(NodeURI,NodeTag,Link)]((newtree.uri, newtree.tag, ListFirstLink(atype))){ (pred, el) =>
+    newlist.foldLeft[(URI,Tag,Link)]((newtree.uri, newtree.tag, ListFirstLink(atype))){ (pred, el) =>
       changes += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
       (el.uri, el.tag, ListNextLink(atype))
     }
@@ -152,7 +152,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   override def loadInitial(changes: EditscriptBuffer): Unit = {
     changes += Load(this.uri, this.tag, Seq(), Seq())
-    this.list.foldLeft[(NodeURI,NodeTag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
+    this.list.foldLeft[(URI,Tag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
       el.loadInitial(changes)
       changes += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
       (el.uri, el.tag, ListNextLink(atype))
@@ -164,7 +164,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       this.assigned = null
     } else {
       changes += Unload(this.uri, this.tag, Seq(), Seq())
-      this.list.foldLeft[(NodeURI,NodeTag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
+      this.list.foldLeft[(URI,Tag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
         changes += Detach(el.uri, el.tag, pred._3, pred._1, pred._2)
         el.unloadUnassigned(changes)
         (el.uri, el.tag, ListNextLink(atype))
@@ -172,7 +172,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     }
   }
 
-  override def hash: Array[Byte] = {
+  override lazy val hash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
     this.list.foreach(t => digest.update(t.hash))

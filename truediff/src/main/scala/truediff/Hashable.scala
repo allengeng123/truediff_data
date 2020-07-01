@@ -4,7 +4,7 @@ import java.security.MessageDigest
 import java.util.Base64
 
 trait Hashable {
-  def hash: Array[Byte]
+  val hash: Array[Byte]
   lazy val hashString: String = Base64.getEncoder.encodeToString(hash)
 }
 

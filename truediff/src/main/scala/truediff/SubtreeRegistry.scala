@@ -5,29 +5,29 @@ import org.apache.commons.collections4.trie.PatriciaTrie
 class SubtreeRegistry {
   private val subtrees = new PatriciaTrie[SubtreeShare]()
 
-  def shareFor(t: Diffable): SubtreeShare = {
+  def assignShare(t: Diffable): SubtreeShare = {
     if (t.skipNode)
       return null
 
-    val share = Option(subtrees.get(t.hashString)) match {
-      case Some(existingShare) =>
-        existingShare
-      case None =>
+    t.assigned = null
+
+    subtrees.get(t.hashString) match {
+      case null =>
         val newShare = new SubtreeShare()
         subtrees.put(t.hashString, newShare)
+        t.share = newShare
         newShare
+      case existingShare =>
+        t.share = existingShare
+        existingShare
     }
-
-    t.share = share
-    t.assigned = null
-    share
   }
 
-  def registerShareFor(t: Diffable): SubtreeShare = {
+  def assignShareAndRegisterTree(t: Diffable): SubtreeShare = {
     if (t.skipNode)
       return null
 
-    val share = shareFor(t)
+    val share = assignShare(t)
     share.registerAvailableTree(t)
     share
   }

@@ -18,7 +18,7 @@ object DiffableMacro {
 
     val tDiffable = symbolOf[Diffable]
     val tyDiffable = typeOf[Diffable]
-    val tNodeTag = symbolOf[NodeTag]
+    val tNodeTag = symbolOf[Tag]
     val tHashable = symbolOf[Hashable]
     val oHashable = tHashable.companion
     val tyHashable = typeOf[Hashable]
@@ -30,7 +30,7 @@ object DiffableMacro {
     val oBigInt = symbolOf[BigInt.type].asClass.module
     val oSeq = symbolOf[Seq.type].asClass.module
     val oMath = symbolOf[Math].companion
-    val tNodeURI = symbolOf[NodeURI]
+    val tURI = symbolOf[URI]
     val tSubtreeRegistry = symbolOf[SubtreeRegistry]
     val tDiffableOption = symbolOf[DiffableOption[_]]
     val oDiffableOption = tDiffableOption.companion
@@ -123,7 +123,7 @@ object DiffableMacro {
                   p => q"this.$p.toStringWithURI",
                   p => q"this.$p.toString"
                 )})
-                this.tag + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
+                this.getClass.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
             override lazy val hash: $tArray[$tByte] = {
@@ -157,16 +157,16 @@ object DiffableMacro {
                 Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})
             )
 
-            override def foreachDiffableKid(f: $tDiffable => $tUnit): $tUnit = {
-                ..${mapDiffableParams(p => q"f(this.$p); this.$p.foreachDiffableKid(f)")}
+            override def foreachSubtree(f: $tDiffable => $tUnit): $tUnit = {
+                ..${mapDiffableParams(p => q"f(this.$p); this.$p.foreachSubtree(f)")}
               }
 
             override protected def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
               case _ =>
-                this.foreachDiffableKid(subtreeReg.registerShareFor)
-                that.foreachDiffableKid(subtreeReg.shareFor)
+                this.foreachSubtree(subtreeReg.registerShareFor)
+                that.foreachSubtree(subtreeReg.shareFor)
             }
 
             override protected def assignSubtreesRecurse(): $tIterable[$tDiffable] =
@@ -179,7 +179,7 @@ object DiffableMacro {
                   q"$oIterable(..${ps.map(p => q"this.$p")})"
               }}
 
-            override protected def computeEditscriptRecurse(that: $tDiffable, parent: $tNodeURI, parentTag: $tNodeTag, link: $tLink, changes: $tEditscriptBuffer): $tDiffable = that match {
+            override protected def computeEditscriptRecurse(that: $tDiffable, parent: $tURI, parentTag: $tNodeTag, link: $tLink, changes: $tEditscriptBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyped(
                   (p,t) => q"val $p = this.$p.computeEditscript(that.$p, this.uri, this.tag, ${link(p, t)}, changes).asInstanceOf[$t]",

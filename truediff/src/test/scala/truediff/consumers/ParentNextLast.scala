@@ -7,19 +7,19 @@ import scala.collection.mutable
 class ParentNextLast extends Consumer {
 
   // maps nodes to their parent node
-  val parents: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+  val parents: mutable.Map[URI, URI] = mutable.Map()
 
   // maps list nodes to their first element node
-  val nexts: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+  val nexts: mutable.Map[URI, URI] = mutable.Map()
 
   // maps list nodes to their last element node
-  val lasts: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+  val lasts: mutable.Map[URI, URI] = mutable.Map()
 
   override def toString: String = s"Parent(${parents.mkString(",")})"
 
-  def apply(node: NodeURI): Option[NodeURI] = parents.get(node)
+  def apply(node: URI): Option[URI] = parents.get(node)
 
-  private def iterateNext(from: NodeURI)(f: NodeURI => Unit): Unit = {
+  private def iterateNext(from: URI)(f: URI => Unit): Unit = {
     f(from)
     var nextNode = nexts.get(from)
     while (nextNode.isDefined) {
@@ -29,7 +29,7 @@ class ParentNextLast extends Consumer {
     }
   }
 
-  override def update(changeset: Editscript): Unit = {
+  override def update(changeset: EditScript): Unit = {
     changeset.foreach {
       case Detach(first, _, ListFirstLink(_), list, _) =>
         // update parent: remove all list elements

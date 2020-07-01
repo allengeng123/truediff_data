@@ -7,8 +7,8 @@ import scala.util.{Failure, Success, Try}
  * The standard semantics of Editscript reproduces the original tree from the Editscript alone.
  */
 
-case class MNode(uri: NodeURI, tag: NodeTag, kids: mutable.Map[String, MNode], lits: Map[String, Any]) {
-  def conformsTo(sigs: Map[NodeTag, Signature], expectedSort: Type): Unit = {
+case class MNode(uri: URI, tag: Tag, kids: mutable.Map[String, MNode], lits: Map[String, Any]) {
+  def conformsTo(sigs: Map[Tag, Signature], expectedSort: Type): Unit = {
     val sig = sigs.getOrElse(tag, throw new Exception(s"Cannot find signature of $tag"))
     if (!expectedSort.isAssignableFrom(sig.sort)) throw new Exception(s"Wrong sort, expected $expectedSort for ${tag}_$uri ~ $sig")
 
@@ -26,30 +26,31 @@ case class MNode(uri: NodeURI, tag: NodeTag, kids: mutable.Map[String, MNode], l
   }
 }
 
-class StandardTree {
+class MTree {
   // the root of this tree
   val root: MNode = MNode(null, RootTag, mutable.Map((RootLink.name, null)), Map())
   // index of all loaded nodes
-  private val index: mutable.Map[NodeURI, MNode] = mutable.Map((null, root))
+  private val index: mutable.Map[URI, MNode] = mutable.Map((null, root))
 
   // applies a editscript to this
-  def process(editscript: Editscript): Unit =
-    editscript.foreach(processChange)
+  def patch(edits: EditScript): MTree = {
+    edits.foreach(processEdit)
+    this
+  }
 
   // applies a single change to this
-  def processChange(change: Edit): Unit = change match {
+  def processEdit(edit: Edit): Unit = edit match {
+    case Detach(_, _, NamedLink(name), parent, _) => index(parent).kids(name) = null
+    case Attach(node, _, NamedLink(name), parent, _) => index(parent).kids(name) = index(node)
+    case Unload(node, _, _, _) => index -= node
     case Load(node, tag, kids, lits) =>
       val subtree = MNode(node, tag,
         mutable.Map() ++ kids.map{case (n, uri) => (n, index(uri))},
         lits.toMap)
       index += (node -> subtree)
-    case Unload(node, _, _, _) => index -= node
-
-    case Detach(_, _, NamedLink(name), parent, _) => index(parent).kids(name) = null
-    case Attach(node, _, NamedLink(name), parent, _) => index(parent).kids(name) = index(node)
   }
 
-  def conformsTo(sigs: Map[NodeTag, Signature]): Option[String] = root.kids.get(RootLink.name) flatMap { t =>
+  def conformsTo(sigs: Map[Tag, Signature]): Option[String] = root.kids.get(RootLink.name) flatMap { t =>
     Try(t.conformsTo(sigs, sigs(root.tag).kids(RootLink.name))) match {
       case Failure(exception) => Some(exception.getMessage)
       case Success(value) => None

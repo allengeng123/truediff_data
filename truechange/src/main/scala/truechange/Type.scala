@@ -40,5 +40,5 @@ case class JavaLitType(cl: Class[_]) extends LitType {
   override def accepts(value: Any): Boolean = cl.isInstance(value)
 }
 
-case class Signature(sort: Type, constr: NodeTag, kids: Map[String, Type], lits: Map[String, LitType])
+case class Signature(sort: Type, constr: Tag, kids: Map[String, Type], lits: Map[String, LitType])
 object RootSig extends Signature(AnyType, RootTag, Map(RootLink.name -> AnyType), Map())

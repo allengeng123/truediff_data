@@ -20,7 +20,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
     digest.digest()
   }
 
-  override def uri: NodeURI = null
+  override def uri: URI = null
 
   override val treeheight: Int = 0
 
@@ -28,22 +28,22 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val toStringWithURI: String = "None"
 
-  final override def tag: NodeTag = OptionTag(NothingType)
+  final override def tag: Tag = OptionTag(NothingType)
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     // nothing
   }
 
   override protected[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case DiffableNone =>
     case _ =>
-      that.foreachDiffableKid(subtreeReg.shareFor)
+      that.foreachSubtree(subtreeReg.assignShare)
   }
 
   override protected[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override protected[truediff] def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.loadUnassigned(changes)
@@ -73,7 +73,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
     digest.digest()
   }
 
-  override def uri: NodeURI = a.uri
+  override def uri: URI = a.uri
 
   override def treeheight: Int = a.treeheight
 
@@ -81,25 +81,25 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 
-  override def tag: NodeTag = OptionTag(atype)
+  override def tag: Tag = OptionTag(atype)
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this.a)
-    this.a.foreachDiffableKid(f)
+    this.a.foreachSubtree(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableSome[_] =>
       this.a.assignShares(that.a, subtreeReg)
     case _ =>
-      this.foreachDiffableKid(subtreeReg.registerShareFor)
-      that.foreachDiffableKid(subtreeReg.shareFor)
+      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+      that.foreachSubtree(subtreeReg.assignShare)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
       val a = this.a.computeEditscript(that.a, parent, parentTag, OptionalLink(link), changes)
       DiffableSome(a.asInstanceOf[A], atype)

@@ -6,14 +6,14 @@ import scala.collection.mutable
 
 class Next extends Consumer {
   // maps list element nodes to their successor element nodes
-  val nexts: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+  val nexts: mutable.Map[URI, URI] = mutable.Map()
 
   override def toString: String = s"Next(${nexts.mkString(",")})"
 
-  def apply(node: NodeURI): Option[NodeURI] = nexts.get(node)
+  def apply(node: URI): Option[URI] = nexts.get(node)
 
 
-  override def update(changeset: Editscript): Unit = {
+  override def update(changeset: EditScript): Unit = {
     changeset.foreach {
       case Detach(_, _, ListNextLink(_), pred, _) =>
         nexts -= pred

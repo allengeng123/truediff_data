@@ -6,8 +6,8 @@ class EditscriptBuffer() {
     private val negBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
     private val posBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
 
-    private val detachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
-    private val attachListNext: mutable.Set[(NodeURI, NodeURI)] = mutable.Set()
+    private val detachListNext: mutable.Set[(URI, URI)] = mutable.Set()
+    private val attachListNext: mutable.Set[(URI, URI)] = mutable.Set()
 
     def += (elem: Edit): this.type = {
       elem match {
@@ -41,5 +41,5 @@ class EditscriptBuffer() {
       this
     }
 
-    def toEditscript: Editscript = new Editscript(negBuf.toSeq ++ posBuf.toSeq)
+    def toEditscript: EditScript = new EditScript(negBuf.toSeq ++ posBuf.toSeq)
   }

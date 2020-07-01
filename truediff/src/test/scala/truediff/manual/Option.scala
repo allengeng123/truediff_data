@@ -20,22 +20,22 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("a" -> OptionType(SortType(classOf[Exp]))), Map())
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this.a)
-    this.a.foreachDiffableKid(f)
+    this.a.foreachSubtree(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Maybe =>
       this.a.assignShares(that.a, subtreeReg)
     case _ =>
-      this.foreachDiffableKid(subtreeReg.registerShareFor)
-      that.foreachDiffableKid(subtreeReg.shareFor)
+      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+      that.foreachSubtree(subtreeReg.assignShare)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Maybe =>
       val a = this.a.computeEditscript(that.a, this.uri, this.tag, NamedLink("a"), changes).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)

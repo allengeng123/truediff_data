@@ -1,12 +1,12 @@
 package truediff
 
-import truechange.NodeURI
+import truechange.URI
 
 class SubtreeShare() {
-  private var availableTrees: Map[NodeURI, Diffable] = Map()
+  private var availableTrees: Map[URI, Diffable] = Map()
 
   def registerAvailableTree(t: Diffable): Unit = {
-    if (t.treeheight > 0)
+    if (!t.skipNode)
       this.availableTrees += ((t.uri, t))
   }
 
@@ -17,13 +17,13 @@ class SubtreeShare() {
       val (uri, tree) = availableTrees.head // alternative selection strategy possible here
       availableTrees = availableTrees.tail
       tree.share = null
-      tree.foreachDiffableKid { t =>
+      tree.foreachSubtree { t =>
         if (t.assigned != null) {
           // t and t.assigned were unchanged, but t is part of a larger subtree that is being moved
           val that = t.assigned
           t.assigned = null
           that.assigned = null
-          that.foreachDiffable(subtreeReg.shareFor)
+          that.foreachTree(subtreeReg.assignShare)
         } else if (t.share != null) {
           t.share.availableTrees -= t.uri
           t.share = null

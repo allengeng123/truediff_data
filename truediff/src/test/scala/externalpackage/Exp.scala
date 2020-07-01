@@ -15,19 +15,19 @@ object Exp {
 
     override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map())
 
-    override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+    override def foreachSubtree(f: Diffable => Unit): Unit = {
       f(this)
     }
 
     override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
       case that: Hole =>
       case _ =>
-        that.foreachDiffableKid(t => subtreeReg.shareFor(t))
+        that.foreachSubtree(t => subtreeReg.assignShare(t))
     }
 
     override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-    override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+    override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
       case Hole() =>
         val newtree = Hole()
         newtree._uri = this.uri
@@ -84,19 +84,19 @@ case class Num(n: Int) extends Exp {
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Num if this.n == that.n =>
     case _ =>
-      that.foreachDiffableKid(t => subtreeReg.shareFor(t))
+      that.foreachSubtree(t => subtreeReg.assignShare(t))
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
       val newtree = Num(n)
       newtree._uri = this.uri
@@ -134,7 +134,7 @@ case class Num(n: Int) extends Exp {
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
 
-  override def hash: Array[Byte] = {
+  override lazy val hash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
     digest.update(this.e1.hash)
@@ -150,10 +150,10 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("e1" -> SortType(classOf[Exp]), "e2" -> SortType(classOf[Exp])), Map())
 
-  override def foreachDiffableKid(f: Diffable => Unit): Unit = {
+  override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this)
-    this.e1.foreachDiffableKid(f)
-    this.e2.foreachDiffableKid(f)
+    this.e1.foreachSubtree(f)
+    this.e2.foreachSubtree(f)
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
@@ -161,14 +161,14 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
       this.e1.assignShares(that.e1, subtreeReg)
       this.e2.assignShares(that.e2, subtreeReg)
     case _ =>
-      this.e1.foreachDiffableKid(subtreeReg.registerShareFor)
-      this.e2.foreachDiffableKid(subtreeReg.registerShareFor)
-      that.foreachDiffableKid(subtreeReg.shareFor)
+      this.e1.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+      this.e2.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+      that.foreachSubtree(subtreeReg.assignShare)
   }
 
   override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable(e1, e2)
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: NodeURI, parentTag: NodeTag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Add =>
       val e1 = this.e1.computeEditscript(that.e1, this.uri, this.tag, NamedLink("e1"), changes).asInstanceOf[Exp]
       val e2 = this.e2.computeEditscript(that.e2, this.uri, this.tag, NamedLink("e2"), changes).asInstanceOf[Exp]

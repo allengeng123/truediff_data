@@ -6,14 +6,14 @@ import scala.collection.mutable
 
 class ParentNoLists extends Consumer {
 
-  val parents: mutable.Map[NodeURI, NodeURI] = mutable.Map()
+  val parents: mutable.Map[URI, URI] = mutable.Map()
 
   override def toString: String = s"Parent(${parents.mkString(",")})"
 
-  def apply(node: NodeURI): Option[NodeURI] = parents.get(node)
+  def apply(node: URI): Option[URI] = parents.get(node)
 
 
-  override def update(changeset: Editscript): Unit = {
+  override def update(changeset: EditScript): Unit = {
     changeset.foreach {
       case Detach(node, _, _, _, _) =>
         parents -= node

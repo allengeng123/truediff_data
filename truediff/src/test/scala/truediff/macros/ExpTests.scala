@@ -17,18 +17,17 @@ class ExpTests extends AnyFlatSpec with Matchers {
     changeset.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
-    println()
 
     assertResult(dest)(newtree)
 
-    var sigs: Map[NodeTag, Signature] = Map(RootTag -> RootSig)
-    src.foreachDiffable(t => sigs += t.tag -> t.sig)
-    dest.foreachDiffable(t => sigs += t.tag -> t.sig)
+    var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
+    src.foreachTree(t => sigs += t.tag -> t.sig)
+    dest.foreachTree(t => sigs += t.tag -> t.sig)
     assertResult(None)(changeset.welltyped(sigs))
 
     assertResult(expectedChanges)(changeset.size)
-    newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
-    newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
+    newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
+    newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
     val reverseEditscript = dest.compareTo(src)._1
     println("Reverse changeset:")
@@ -39,6 +38,8 @@ class ExpTests extends AnyFlatSpec with Matchers {
     println("Load changeset:")
     loadEditscript.foreach(c => println("  " + c))
     assertResult(None)(loadEditscript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
+
+    println()
 
   }
 
@@ -95,6 +96,14 @@ class ExpTests extends AnyFlatSpec with Matchers {
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Num(2), Add(Num(2), Num(3))),
       4 + 4
+    )
+
+    // [detach Add(a,b), detach a, unload a,
+    //  load b, attach b, attach Add(a,b)]
+    testEditscript(
+      Add(Add(Var("a"), Var("b")), Var("c")),
+      Add(Var("a"), Add(Var("a"), Var("b"))),
+      6
     )
 
     // Note that the tree in which `2` occurs is higher than the one of `2+3`.

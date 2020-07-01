@@ -20,14 +20,14 @@ class ListTests extends AnyFlatSpec with Matchers {
 
     assertResult(dest)(newtree)
 
-    var sigs: Map[NodeTag, Signature] = Map(RootTag -> RootSig)
-    src.foreachDiffable(t => sigs += t.tag -> t.sig)
-    dest.foreachDiffable(t => sigs += t.tag -> t.sig)
+    var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
+    src.foreachTree(t => sigs += t.tag -> t.sig)
+    dest.foreachTree(t => sigs += t.tag -> t.sig)
     assertResult(None)(changeset.welltyped(sigs))
 
     assertResult(expectedChanges)(changeset.size)
-    newtree.foreachDiffable(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
-    newtree.foreachDiffable(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
+    newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
+    newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
     val reverseEditscript = dest.compareTo(src)._1
     println("Reverse changeset:")
