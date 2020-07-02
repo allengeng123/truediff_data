@@ -26,6 +26,7 @@ object Js {
   case class Null() extends Js {
     def value = null
   }
+
 }
 
 @diffable

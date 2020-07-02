@@ -3,6 +3,7 @@ package truediff
 import truechange._
 
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 
 object DiffableList {
   def from[A <: Diffable](list: Seq[A], atype: Type): DiffableList[A] = DiffableList(list, atype)
@@ -11,6 +12,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   def length: Int = list.length
   def apply(i: Int): A = list(i)
   def updated[B >: A <: Diffable](i: Int, elem: B): DiffableList[B] = DiffableList(list.updated(i, elem), atype)
+  def map[B <: Diffable](f: A => B)(implicit tag: ClassTag[B]): DiffableList[B] = {
+    val btype = SortType(tag.runtimeClass)
+    DiffableList(list.map(f), btype)
+  }
   def indices: Range = Range(0, length)
 
   override def tag: Tag = ListTag(atype)

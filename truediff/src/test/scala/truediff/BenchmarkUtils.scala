@@ -33,10 +33,13 @@ object BenchmarkUtils {
     val csv: String = {
       val srcsize = src.treesize
       val destsize = dest.treesize
-      val diffTime = avg(vals)
+      val diffTime = ms(avg(vals))
       s"$name, $srcsize, $destsize, ${editScript.size}, $diffTime${if (extra.isEmpty) ", " else extra.values.mkString(", ", ", ", ", ")}${BenchmarkUtils.csv(vals)}"
     }
   }
+
+  def measurementsToCsv(measurements: Seq[Measurement[_]]): String =
+    measurements.head.csvHeader + "\n" + measurements.map { m => m.csv }.mkString("\n")
 
   def readFile(path: String): String = {
     val source = Source.fromFile(path)
@@ -100,11 +103,11 @@ object BenchmarkUtils {
   def nowarmup(repeat: Int): Timing = Timing(0, repeat)
 
   def timedNoSetup[R](block: => R)(implicit timing: Timing): (R, Seq[Long]) = {
-    val (_, out, t) = timed[Unit, R](() => (), _ => block)
+    val (_, out, _, t) = timed[Unit, R](() => (), _ => block)
     (out, t)
   }
 
-  def timed[A,R](setup: () => A, block: A => R)(implicit timing: Timing): (A, R, Seq[Long]) = {
+  def timed[A,R](setup: () => A, block: A => R)(implicit timing: Timing): (A, R, Seq[Long], Seq[Long]) = {
     var input = null.asInstanceOf[A]
     var result = null.asInstanceOf[R]
 
@@ -116,14 +119,16 @@ object BenchmarkUtils {
     }
 
     var sum: Long = 0
+    var setuptimes: Seq[Long] = Nil
     var times: Seq[Long] = Nil
     for (_ <- 1 to timing.repeat) {
-      input = setup()
-      val (res, t) = time(block(input))
+      val (input, setuptime) = time(setup())
+      val (res, blocktime) = time(block(input))
       result = res
-      times = times :+ t
+      setuptimes = setuptimes :+ setuptime
+      times = times :+ blocktime
     }
-    (input, result, times)
+    (input, result, setuptimes, times)
   }
 
   def avg[T](vals: Seq[T])(implicit num: Numeric[T]): Double = if (vals.isEmpty) 0 else num.toDouble(vals.sum) / vals.size
