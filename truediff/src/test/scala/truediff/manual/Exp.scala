@@ -26,7 +26,7 @@ object Exp {
 
     override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
-    override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
+    override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
       case Hole() =>
         val newtree = Hole()
         newtree._uri = this.uri
@@ -34,27 +34,27 @@ object Exp {
       case _ => null
     }
 
-    override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
+    override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
       val that = this
       if (that.assigned != null) {
         return that.assigned
       }
 
       val newtree = Hole()
-      buf += Load(newtree.uri, this.tag, Seq(), Seq())
+      edits += Load(newtree.uri, this.tag, Seq(), Seq())
       newtree
     }
 
 
-    override def loadInitial(buf: EditScriptBuffer): Unit = {
-      buf += Load(this.uri, this.tag, Seq(), Seq())
+    override def loadInitial(edits: EditScriptBuffer): Unit = {
+      edits += Load(this.uri, this.tag, Seq(), Seq())
     }
 
-    override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
+    override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
       if (this.assigned != null) {
         this.assigned = null
       } else {
-        buf += Unload(this.uri, this.tag, Seq(), Seq())
+        edits += Unload(this.uri, this.tag, Seq(), Seq())
       }
     }
 
@@ -95,7 +95,7 @@ case class Num(n: Int) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
-  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
       val newtree = Num(n)
       newtree._uri = this.uri
@@ -103,31 +103,31 @@ case class Num(n: Int) extends Exp {
     case _ => null
   }
 
-  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
+  override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
     val newtree = Num(this.n)
-    buf += Load(newtree.uri, this.tag, Seq(), Seq(
+    edits += Load(newtree.uri, this.tag, Seq(), Seq(
       "n" -> this.n
     ))
     newtree
   }
 
 
-  override def loadInitial(buf: EditScriptBuffer): Unit = {
-    buf += Load(this.uri, this.tag, Seq(), Seq(
+  override def loadInitial(edits: EditScriptBuffer): Unit = {
+    edits += Load(this.uri, this.tag, Seq(), Seq(
       "n" -> this.n
     ))
   }
 
-  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
+  override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      buf += Unload(this.uri, this.tag, Seq(), Seq(
+      edits += Unload(this.uri, this.tag, Seq(), Seq(
         "n" -> this.n
       ))
     }
@@ -170,26 +170,26 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable(e1, e2)
 
-  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case that: Add =>
-      val e1 = this.e1.computeEditScript(that.e1, this.uri, this.tag, NamedLink("e1"), buf).asInstanceOf[Exp]
-      val e2 = this.e2.computeEditScript(that.e2, this.uri, this.tag, NamedLink("e2"), buf).asInstanceOf[Exp]
+      val e1 = this.e1.computeEditScript(that.e1, this.uri, this.tag, NamedLink("e1"), edits).asInstanceOf[Exp]
+      val e2 = this.e2.computeEditScript(that.e2, this.uri, this.tag, NamedLink("e2"), edits).asInstanceOf[Exp]
       val newtree = Add(e1, e2)
       newtree._uri = this.uri
       newtree
     case _ => null
   }
 
-  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
+  override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
-    val e1 = that.e1.loadUnassigned(buf).asInstanceOf[Exp]
-    val e2 = that.e2.loadUnassigned(buf).asInstanceOf[Exp]
+    val e1 = that.e1.loadUnassigned(edits).asInstanceOf[Exp]
+    val e2 = that.e2.loadUnassigned(edits).asInstanceOf[Exp]
     val newtree = Add(e1, e2)
-    buf += Load(newtree.uri, this.tag, Seq(
+    edits += Load(newtree.uri, this.tag, Seq(
       "e1" -> e1.uri,
       "e2" -> e2.uri
     ), Seq())
@@ -197,25 +197,25 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
   }
 
 
-  override def loadInitial(buf: EditScriptBuffer): Unit = {
-    this.e1.loadInitial(buf)
-    this.e2.loadInitial(buf)
-    buf += Load(this.uri, this.tag, Seq(
+  override def loadInitial(edits: EditScriptBuffer): Unit = {
+    this.e1.loadInitial(edits)
+    this.e2.loadInitial(edits)
+    edits += Load(this.uri, this.tag, Seq(
       "e1" -> this.e1.uri,
       "e2" -> this.e2.uri
     ), Seq())
   }
 
-  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
+  override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      buf += Unload(this.uri, this.tag, Seq(
+      edits += Unload(this.uri, this.tag, Seq(
         "e1" -> this.e1.uri,
         "e2" -> this.e2.uri
       ), Seq())
-      this.e1.unloadUnassigned(buf)
-      this.e2.unloadUnassigned(buf)
+      this.e1.unloadUnassigned(edits)
+      this.e2.unloadUnassigned(edits)
     }
   }
 }
@@ -247,7 +247,7 @@ case class Var(name: String) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
-  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case Var(n) if this.name == name =>
       val newtree = Var(name)
       newtree._uri = this.uri
@@ -255,31 +255,31 @@ case class Var(name: String) extends Exp {
     case _ => null
   }
 
-  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
+  override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
     val newtree = Var(this.name)
-    buf += Load(newtree.uri, this.tag, Seq(), Seq(
+    edits += Load(newtree.uri, this.tag, Seq(), Seq(
       "name" -> this.name
     ))
     newtree
   }
 
 
-  override def loadInitial(buf: EditScriptBuffer): Unit = {
-    buf += Load(this.uri, this.tag, Seq(), Seq(
+  override def loadInitial(edits: EditScriptBuffer): Unit = {
+    edits += Load(this.uri, this.tag, Seq(), Seq(
       "name" -> this.name
     ))
   }
 
-  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
+  override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      buf += Unload(this.uri, this.tag, Seq(), Seq(
+      edits += Unload(this.uri, this.tag, Seq(), Seq(
         "name" -> this.name
       ))
     }

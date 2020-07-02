@@ -39,7 +39,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       this.list.foreach { thisNode =>
         val thisShare = subtreeReg.assignShare(thisNode)
         thisShares.get(thisShare) match {
-          case Some(buf) => buf += thisNode
+          case Some(edits) => edits += thisNode
           case None => thisShares += thisShare -> ListBuffer(thisNode)
         }
       }
@@ -47,8 +47,8 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       that.list.foreach { thatNode =>
         val thatShare = subtreeReg.assignShare(thatNode)
         thisShares.get(thatShare) match {
-          case Some(buf) =>
-            val thisNode = buf.remove(0)
+          case Some(edits) =>
+            val thisNode = edits.remove(0)
             thisNode.assigned = thatNode
             thisNode.share = null
             thatNode.assigned = thisNode
@@ -72,9 +72,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   override protected def directSubtrees: Iterable[A] = this.list
 
-  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): DiffableList[Diffable] = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): DiffableList[Diffable] = that match {
     case that: DiffableList[A] =>
-      val newlist = computeEditScriptLists(this.list, that.list, this.uri, this.tag, this.uri, this.tag, ListFirstLink(atype), buf)
+      val newlist = computeEditScriptLists(this.list, that.list, this.uri, this.tag, this.uri, this.tag, ListFirstLink(atype), edits)
       val newtree = DiffableList(newlist, atype)
       newtree._uri = this.uri
       newtree
@@ -132,17 +132,17 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     None
   }
 
-  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
+  override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
-    val newlist = that.list.map(_.loadUnassigned(buf))
+    val newlist = that.list.map(_.loadUnassigned(edits))
     val newtree = DiffableList(newlist, atype)
-    buf += Load(newtree.uri, this.tag, Seq(), Seq())
+    edits += Load(newtree.uri, this.tag, Seq(), Seq())
     newlist.foldLeft[(URI,Tag,Link)]((newtree.uri, newtree.tag, ListFirstLink(atype))){ (pred, el) =>
-      buf += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
+      edits += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
       (el.uri, el.tag, ListNextLink(atype))
     }
 
@@ -150,23 +150,23 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   }
 
 
-  override def loadInitial(buf: EditScriptBuffer): Unit = {
-    buf += Load(this.uri, this.tag, Seq(), Seq())
+  override def loadInitial(edits: EditScriptBuffer): Unit = {
+    edits += Load(this.uri, this.tag, Seq(), Seq())
     this.list.foldLeft[(URI,Tag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
-      el.loadInitial(buf)
-      buf += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
+      el.loadInitial(edits)
+      edits += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
       (el.uri, el.tag, ListNextLink(atype))
     }
   }
 
-  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
+  override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      buf += Unload(this.uri, this.tag, Seq(), Seq())
+      edits += Unload(this.uri, this.tag, Seq(), Seq())
       this.list.foldLeft[(URI,Tag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
-        buf += Detach(el.uri, el.tag, pred._3, pred._1, pred._2)
-        el.unloadUnassigned(buf)
+        edits += Detach(el.uri, el.tag, pred._3, pred._1, pred._2)
+        el.unloadUnassigned(edits)
         (el.uri, el.tag, ListNextLink(atype))
       }
     }

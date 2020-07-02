@@ -119,7 +119,7 @@ trait Diffable extends Hashable {
 object Diffable {
   val highestFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
 
-  def load[T <: Diffable](t: T): EditScript = {
+  def load(t: Diffable): EditScript = {
     val edits = new EditScriptBuffer
     t.loadInitial(edits)
     edits += Attach(t.uri, t.tag, RootLink, null, RootTag)

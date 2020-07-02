@@ -35,44 +35,44 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case that: Maybe =>
-      val a = this.a.computeEditScript(that.a, this.uri, this.tag, NamedLink("a"), buf).asInstanceOf[DiffableOption[Exp]]
+      val a = this.a.computeEditScript(that.a, this.uri, this.tag, NamedLink("a"), edits).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
       newtree._uri = this.uri
       newtree
     case _ => null
   }
 
-  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
+  override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
-    val a = this.a.loadUnassigned(buf).asInstanceOf[DiffableOption[Exp]]
+    val a = this.a.loadUnassigned(edits).asInstanceOf[DiffableOption[Exp]]
     val newtree = Maybe(a)
-    buf += Load(newtree.uri, this.tag, Seq(
+    edits += Load(newtree.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
     newtree
   }
 
-  override def loadInitial(buf: EditScriptBuffer): Unit = {
-    this.a.loadInitial(buf)
-    buf += Load(this.uri, this.tag, Seq(
+  override def loadInitial(edits: EditScriptBuffer): Unit = {
+    this.a.loadInitial(edits)
+    edits += Load(this.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
   }
 
-  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
+  override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      buf += Unload(this.uri, this.tag, Seq(
+      edits += Unload(this.uri, this.tag, Seq(
         "a" -> a.uri
       ), Seq())
-      this.a.unloadUnassigned(buf)
+      this.a.unloadUnassigned(edits)
     }
   }
 }
