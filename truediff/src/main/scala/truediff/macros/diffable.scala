@@ -165,8 +165,8 @@ object DiffableMacro {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
               case _ =>
-                this.foreachSubtree(subtreeReg.registerShareFor)
-                that.foreachSubtree(subtreeReg.shareFor)
+                this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+                that.foreachSubtree(subtreeReg.assignShare)
             }
 
             override protected def assignSubtreesRecurse(): $tIterable[$tDiffable] =
