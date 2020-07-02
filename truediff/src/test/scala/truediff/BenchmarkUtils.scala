@@ -7,19 +7,30 @@ import truechange.EditScript
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement[T <: Diffable](name: String, src: T, dest: T, diffTime: Double, changeset: EditScript, extra: Map[String, Any] = Map()) {
+  case class Measurement[T <: Diffable](name: String, src: T, dest: T, vals: Seq[Long], changeset: EditScript, extra: Map[String, Any] = Map()) {
     override def toString: String = {
       val srcsize = src.treesize
+      val destsize = dest.treesize
+      val diffTime = avg(vals)
       val text = s"""
          |Measurement $name
          |  Src tree size:     $srcsize
-         |  Dest tree size:    $srcsize
+         |  Dest tree size:    $destsize
          |  Editscript size:    ${changeset.size}
-         |  Diffing time (ms): $diffTime""".stripMargin
+         |  Diffing time (ms): ${ms(diffTime)}""".stripMargin
       if (extra.isEmpty)
         text
       else
         text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
+    }
+
+    val csvHeader: String = "Filename, Src tree size, Dest tree size, Editscript size, Average Diffing time (ms), raw data (ms)"
+
+    val csv: String = {
+      val srcsize = src.treesize
+      val destsize = dest.treesize
+      val diffTime = avg(vals)
+      s"$name, $srcsize, $destsize, ${changeset.size}, $diffTime, ${BenchmarkUtils.csv(vals)}"
     }
   }
 
@@ -35,6 +46,19 @@ object BenchmarkUtils {
     for (line <- source.getLines())
       f(line)
     source.close()
+  }
+
+  def files(path: String, transitive: Boolean = true, pattern: String = ".*"): Seq[File] = {
+    val file = new File(path)
+    if (file.isDirectory) {
+      file.listFiles().toList.flatMap { sub =>
+        val subpath = s"$path/${sub.getName}"
+        if (sub.isFile && sub.getName.matches(pattern)) Seq(sub)
+        else if (transitive && sub.isDirectory)
+          files(subpath, transitive, pattern)
+        else Nil
+      }
+    } else Nil
   }
 
   def foreachFile(path: String, transitive: Boolean = true, pattern: String = ".*")(f: String => Unit): Unit = {
@@ -63,12 +87,12 @@ object BenchmarkUtils {
   def warmup(discard: Int): Timing = Timing(discard, 0)
   def nowarmup(repeat: Int): Timing = Timing(0, repeat)
 
-  def timedNoSetup[R](block: => R)(implicit timing: Timing): (R, Double) = {
-    val (_, out, time) = timed[Unit, R](() => (), _ => block)
-    (out, time)
+  def timedNoSetup[R](block: => R)(implicit timing: Timing): (R, Seq[Long]) = {
+    val (_, out, t) = timed[Unit, R](() => (), _ => block)
+    (out, t)
   }
 
-  def timed[A,R](setup: () => A, block: A => R)(implicit timing: Timing): (A, R, Double) = {
+  def timed[A,R](setup: () => A, block: A => R)(implicit timing: Timing): (A, R, Seq[Long]) = {
     var input = null.asInstanceOf[A]
     var result = null.asInstanceOf[R]
 
@@ -80,12 +104,18 @@ object BenchmarkUtils {
     }
 
     var sum: Long = 0
+    var times: Seq[Long] = Nil
     for (_ <- 1 to timing.repeat) {
       input = setup()
-      val output = time(block(input))
-      result = output._1
-      sum += output._2
+      val (res, t) = time(block(input))
+      result = res
+      times = times :+ t
     }
-    (input, result, if (timing.repeat == 0) 0 else ms(sum.toDouble / timing.repeat))
+    (input, result, times)
   }
+
+  def avg[T](vals: Seq[T])(implicit num: Numeric[T]): Double = if (vals.isEmpty) 0 else num.toDouble(vals.sum) / vals.size
+  def throughput(vals: Seq[Long], nodes: Seq[Int]): Double = avg(nodes) / avg(vals)
+
+  def csv[T](vals: Seq[T]): String = vals.mkString(", ")
 }
