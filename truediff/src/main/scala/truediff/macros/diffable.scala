@@ -293,26 +293,38 @@ object DiffableMacro {
     def paramConverter(tp: Tree, arg: Tree): Tree = tp match {
       case tq"$_[$targ]" =>
         val ty = Util.treeType(c)(tp)
-        if (ty <:< tyDiffable)
-          arg
-        else if (ty <:< typeOf[Option[_]])
-          q"$oDiffableOption.from(${paramConverterRec(targ, arg)}, ${asType(targ)})"
-        else if (ty <:< typeOf[Seq[_]])
-          q"$oDiffableList.from(${paramConverterRec(targ, arg)}, ${asType(targ)})"
-        else
+        if (ty <:< typeOf[Option[_]]) {
+          val param = paramConverterRec(targ, arg).getOrElse(return arg)
+          q"$oDiffableOption.from($param, ${asType(targ)})"
+        }
+        else if (ty <:< typeOf[Seq[_]]) {
+          val param = paramConverterRec(targ, arg).getOrElse(return arg)
+          q"$oDiffableList.from($param, ${asType(targ)})"
+        } else
           arg
       case _ => arg
     }
-    def paramConverterRec(tp: Tree, arg: Tree): Tree = tp match {
+    def paramConverterRec(tp: Tree, arg: Tree): Option[Tree] = tp match {
       case tq"$_[$targ]" =>
         val ty = Util.treeType(c)(tp)
-        if (ty <:< typeOf[Option[_]])
-          q"$arg.map(a => $oDiffableOption.from(${paramConverterRec(targ, q"a")}, ${asType(targ)}))"
-        else if (ty <:< typeOf[Seq[_]])
-          q"$arg.map(xs => $oDiffableList.from(${paramConverterRec(targ, q"xs")}, ${asType(targ)}))"
-        else
-          arg
-      case _ => arg
+        if (ty <:< tyDiffable) {
+          Some(arg)
+        } else if (ty <:< typeOf[Option[_]]) {
+          val sub = paramConverterRec(targ, q"a")
+          Some(q"$arg.map(a => $oDiffableOption.from($sub, ${asType(targ)}))")
+        } else if (ty <:< typeOf[Seq[_]]) {
+          val sub = paramConverterRec(targ, q"xs")
+          Some(q"$arg.map(xs => $oDiffableList.from($sub, ${asType(targ)}))")
+        } else
+          None
+      case _ =>
+        val ty = Util.treeType(c)(tp)
+        if (ty <:< tyDiffable) {
+          Some(arg)
+        }
+        else {
+          None
+        }
     }
     def convertFunction: DefDef =
       q"""

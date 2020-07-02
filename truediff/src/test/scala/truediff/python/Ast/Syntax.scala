@@ -4,8 +4,6 @@ import truediff.macros.diffable
 
 @diffable case class identifier(name: String)
 
-@diffable case class intlit(n: int)
-
 @diffable trait file
 object file {
   case class File(body: Seq[stmt]) extends file
@@ -44,7 +42,7 @@ object stmt{
   case class Assert(test: expr, msg: Option[expr]) extends stmt
 
   case class Import(names: Seq[alias]) extends stmt
-  case class ImportFrom(module: Option[identifier], names: Seq[alias], level: Option[intlit]) extends stmt
+  case class ImportFrom(module: Option[identifier], names: Seq[alias], level: Option[Int]) extends stmt
 
   // Doesn't capture requirement that locals must be
   // defined if globals is

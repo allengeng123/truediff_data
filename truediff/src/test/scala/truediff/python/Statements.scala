@@ -1,9 +1,8 @@
 package truediff.python
 
 import fastparse._
-import Expressions.{whitespace => _, _}
-import Lexical.kw
-import truediff.python.Ast.intlit
+import truediff.python.Expressions.{whitespace => _, _}
+import truediff.python.Lexical.kw
 
 object Statements extends Statements(0) {
   def parse(s: String): Ast.file = Ast.file.File(fastparse.parse(s, file_input(_)).get.value)
@@ -116,7 +115,7 @@ class Statements(indent: Int){
     def unNamed = P( ".".rep(1).!.map(x => (Some(x), None)) )
     def star = P( "*".!.map(_ => Seq(Ast.alias(Ast.identifier("*"), None))) )
     P( kw("from") ~ (named | unNamed) ~ kw("import") ~ (star | "(" ~ import_as_names ~ ")" | import_as_names) ).map{
-      case (dots, module, names) => Ast.stmt.ImportFrom(module.map(Ast.identifier), names, dots.map(x => intlit(x.length)))
+      case (dots, module, names) => Ast.stmt.ImportFrom(module.map(Ast.identifier), names, dots.map(x => x.length))
     }
   }
   def import_as_name[_: P]: P[Ast.alias] = P( NAME ~ (kw("as") ~ NAME).? ).map(x => Ast.alias(x._1, x._2))
