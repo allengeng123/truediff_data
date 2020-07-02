@@ -13,8 +13,8 @@ class First extends Consumer {
   def apply(node: URI): Option[URI] = firsts.get(node)
 
 
-  override def update(changeset: EditScript): Unit = {
-    changeset.foreach {
+  override def update(editscript: EditScript): Unit = {
+    editscript.foreach {
       case Detach(_, _, ListFirstLink(_), list, _) =>
         firsts -= list
       case Attach(node, _, ListFirstLink(_), list, _) =>

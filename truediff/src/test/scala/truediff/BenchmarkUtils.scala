@@ -7,7 +7,7 @@ import truechange.EditScript
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement[T <: Diffable](name: String, src: T, dest: T, vals: Seq[Long], changeset: EditScript, extra: Map[String, Any] = Map()) {
+  case class Measurement[T <: Diffable](name: String, src: T, dest: T, vals: Seq[Long], editscript: EditScript, extra: Map[String, Any] = Map()) {
     override def toString: String = {
       val srcsize = src.treesize
       val destsize = dest.treesize
@@ -16,7 +16,7 @@ object BenchmarkUtils {
          |Measurement $name
          |  Src tree size:     $srcsize
          |  Dest tree size:    $destsize
-         |  Editscript size:    ${changeset.size}
+         |  EditScript size:    ${editscript.size}
          |  Diffing time (ms): ${ms(diffTime)}""".stripMargin
       if (extra.isEmpty)
         text
@@ -24,13 +24,13 @@ object BenchmarkUtils {
         text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
     }
 
-    val csvHeader: String = "Filename, Src tree size, Dest tree size, Editscript size, Average Diffing time (ms), raw data (ms)"
+    val csvHeader: String = "Filename, Src tree size, Dest tree size, EditScript size, Average Diffing time (ms), raw data (ms)"
 
     val csv: String = {
       val srcsize = src.treesize
       val destsize = dest.treesize
       val diffTime = avg(vals)
-      s"$name, $srcsize, $destsize, ${changeset.size}, $diffTime, ${BenchmarkUtils.csv(vals)}"
+      s"$name, $srcsize, $destsize, ${editscript.size}, $diffTime, ${BenchmarkUtils.csv(vals)}"
     }
   }
 

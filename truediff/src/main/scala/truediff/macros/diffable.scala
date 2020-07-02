@@ -45,7 +45,7 @@ object DiffableMacro {
     val oLoadNode = symbolOf[Load].companion
     val oUnloadNode = symbolOf[Unload].companion
 
-    val tEditscriptBuffer = symbolOf[EditscriptBuffer]
+    val tEditScriptBuffer = symbolOf[EditScriptBuffer]
 
     val oOptionType = symbolOf[OptionType].companion
     val oListType = symbolOf[ListType].companion
@@ -178,10 +178,10 @@ object DiffableMacro {
                   q"$oIterable(..${ps.map(p => q"this.$p")})"
               }}
 
-            override protected def computeEditscriptRecurse(that: $tDiffable, parent: $tURI, parentTag: $tNodeTag, link: $tLink, changes: $tEditscriptBuffer): $tDiffable = that match {
+            override protected def computeEditScriptRecurse(that: $tDiffable, parent: $tURI, parentTag: $tNodeTag, link: $tLink, edits: $tEditScriptBuffer): $tDiffable = that match {
               case that: $tpname if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyped(
-                  (p,t) => q"val $p = this.$p.computeEditscript(that.$p, this.uri, this.tag, ${link(p, t)}, changes).asInstanceOf[$t]",
+                  (p,t) => q"val $p = this.$p.computeEditScript(that.$p, this.uri, this.tag, ${link(p, t)}, edits).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
                 val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
@@ -190,43 +190,43 @@ object DiffableMacro {
               case _ => null
             }
 
-            override def loadUnassigned(changes: $tEditscriptBuffer): $tDiffable = {
+            override def loadUnassigned(edits: $tEditScriptBuffer): $tDiffable = {
               val that = this
               if (that.assigned != null) {
                 return that.assigned
               }
 
               ..${mapAllParamsTyped(
-                (p,t) => q"val $p = that.$p.loadUnassigned(changes).asInstanceOf[$t]",
+                (p,t) => q"val $p = that.$p.loadUnassigned(edits).asInstanceOf[$t]",
                 (p,t) => q"val $p = that.$p"
               )}
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
-              changes += $oLoadNode($$newtree.uri, this.tag,
+              edits += $oLoadNode($$newtree.uri, this.tag,
                 $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, $p.uri)")}),
                 $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $p)")}),
               )
               $$newtree
             }
 
-            override def loadInitial(changes: $tEditscriptBuffer): $tUnit = {
-              ..${mapDiffableParams(p => q"this.$p.loadInitial(changes)")}
-              changes += $oLoadNode(this.uri, this.tag,
+            override def loadInitial(edits: $tEditScriptBuffer): $tUnit = {
+              ..${mapDiffableParams(p => q"this.$p.loadInitial(edits)")}
+              edits += $oLoadNode(this.uri, this.tag,
                 $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
                 $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")})
               )
             }
 
 
-            override def unloadUnassigned(changes: $tEditscriptBuffer): $tUnit = {
+            override def unloadUnassigned(edits: $tEditScriptBuffer): $tUnit = {
               if (this.assigned != null) {
                 this.assigned = null
               } else {
-                changes += $oUnloadNode(this.uri, this.tag,
+                edits += $oUnloadNode(this.uri, this.tag,
                   $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
                   $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")})
                 )
                 ..${mapDiffableParamsTyped(
-                  (p,t) => q"this.$p.unloadUnassigned(changes)"
+                  (p,t) => q"this.$p.unloadUnassigned(edits)"
                 )}
               }
             }

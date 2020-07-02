@@ -7,8 +7,8 @@ object BenchmarkUnchanged extends App {
   private def benchUnchanged(path: String)(implicit timing: Timing): Measurement[Js] = {
     val content = readFile(s"benchmark/json/$path")
     val (_,parseTime) = timedNoSetup(Parser.parse(content))
-    val (tree,(changeset,_),diffIdenticalTime) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
-    Measurement(s"diff unchanged $path", tree, tree, diffIdenticalTime, changeset, Map("parse time (ms)" -> parseTime))
+    val (tree,(editscript,_),diffIdenticalTime) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
+    Measurement(s"diff unchanged $path", tree, tree, diffIdenticalTime, editscript, Map("parse time (ms)" -> parseTime))
   }
 
   // unchanged diffing

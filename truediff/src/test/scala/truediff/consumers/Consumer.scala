@@ -3,5 +3,5 @@ package truediff.consumers
 import truechange.EditScript
 
 trait Consumer {
-  def update(changeset: EditScript): Unit
+  def update(editscript: EditScript): Unit
 }

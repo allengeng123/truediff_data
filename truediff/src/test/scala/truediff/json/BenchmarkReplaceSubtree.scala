@@ -11,8 +11,8 @@ object BenchmarkReplaceSubtree extends App {
   private def benchUnchanged(path: String)(implicit timing: Timing): Measurement[Js] = {
     val content = readFile(s"benchmark/json/$path")
     val (_,parseTime) = timedNoSetup(Parser.parse(content))
-    val (tree,(changeset,_),diffIdenticalTime) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
-    Measurement(s"diff unchanged $path", tree, tree, diffIdenticalTime, changeset, Map("parse time (ms)" -> parseTime))
+    val (tree,(editscript,_),diffIdenticalTime) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
+    Measurement(s"diff unchanged $path", tree, tree, diffIdenticalTime, editscript, Map("parse time (ms)" -> parseTime))
   }
 
   // unchanged diffing
@@ -66,16 +66,16 @@ object BenchmarkReplaceSubtree extends App {
     val random = new Random(seed = 0)
 
     def measure(timing: Timing): Measurement[Js] = {
-      val ((tree1, tree2), changeset, diffIdenticalTime) = timed[(Js,Js), EditScript](() => {
+      val ((tree1, tree2), editscript, diffIdenticalTime) = timed[(Js,Js), EditScript](() => {
         val tree1 = Parser.parse(content)
         val index = random.nextInt(tree1.treesize)
         val tree2 = replaceSubtree(index, tree1, () => Str(s"Replaced subtree at index $index"))
         (tree1, tree2)
       }, { tt =>
-        val (changeset, _) = tt._1.compareTo(tt._2)
-        changeset
+        val (editscript, _) = tt._1.compareTo(tt._2)
+        editscript
       })(timing)
-      Measurement(s"diff unchanged $path", tree1, tree2, diffIdenticalTime, changeset)
+      Measurement(s"diff unchanged $path", tree1, tree2, diffIdenticalTime, editscript)
     }
 
     measure(warmup(timing.discard))

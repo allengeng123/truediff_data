@@ -6,14 +6,14 @@ import truechange._
 import truediff.Diffable
 
 class OptionTests extends AnyFlatSpec with Matchers {
-  def testEditscript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
+  def testEditScript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
     println("Comparing:")
     println(s"  ${src.toStringWithURI}")
     println(s"  ${dest.toStringWithURI}")
 
-    val (changeset,newtree) = src.compareTo(dest)
-    println("Editscript:")
-    changeset.foreach(c => println("  " + c))
+    val (editscript,newtree) = src.compareTo(dest)
+    println("EditScript:")
+    editscript.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
     println()
@@ -23,45 +23,45 @@ class OptionTests extends AnyFlatSpec with Matchers {
     var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
     src.foreachTree(t => sigs += t.tag -> t.sig)
     dest.foreachTree(t => sigs += t.tag -> t.sig)
-    assertResult(None)(changeset.welltyped(sigs))
+    assertResult(None)(editscript.welltyped(sigs))
 
-    assertResult(expectedChanges)(changeset.size)
+    assertResult(expectedChanges)(editscript.size)
     newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
-    val reverseEditscript = dest.compareTo(src)._1
-    println("Reverse changeset:")
-    reverseEditscript.foreach(c => println("  " + c))
-    assertResult(expectedChanges)(reverseEditscript.size)
+    val reverseEditScript = dest.compareTo(src)._1
+    println("Reverse editscript:")
+    reverseEditScript.foreach(c => println("  " + c))
+    assertResult(expectedChanges)(reverseEditScript.size)
 
-    val loadEditscript = Diffable.load(src)
-    println("Load changeset:")
-    loadEditscript.foreach(c => println("  " + c))
-    assertResult(None)(loadEditscript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
+    val loadEditScript = Diffable.load(src)
+    println("Load editscript:")
+    loadEditScript.foreach(c => println("  " + c))
+    assertResult(None)(loadEditScript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
   }
 
 
   "diff" should "fill and clear options" in {
-    testEditscript(
+    testEditScript(
       Maybe(None),
       Maybe(Some(Add(Num(1), Num(2)))),
       4
     )
 
-    testEditscript(
+    testEditScript(
       Add(Maybe(None), Num(3)),
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       4
     )
 
-    testEditscript(
+    testEditScript(
       Maybe(Some(Add(Num(1), Num(2)))),
       Maybe(None),
       4
     )
 
-    testEditscript(
+    testEditScript(
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       Add(Maybe(None), Num(3)),
       4
@@ -69,25 +69,25 @@ class OptionTests extends AnyFlatSpec with Matchers {
   }
 
   "diff" should "load and unload options" in {
-    testEditscript(
+    testEditScript(
       Num(0),
       Maybe(Some(Add(Num(1), Num(2)))),
       7
     )
 
-    testEditscript(
+    testEditScript(
       Add(Num(0), Num(3)),
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       7
     )
 
-    testEditscript(
+    testEditScript(
       Maybe(Some(Add(Num(1), Num(2)))),
       Num(0),
       7
     )
 
-    testEditscript(
+    testEditScript(
       Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
       Add(Num(0), Num(3)),
       7

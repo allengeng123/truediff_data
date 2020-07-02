@@ -4,7 +4,7 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 /**
- * The standard semantics of Editscript reproduces the original tree from the Editscript alone.
+ * The standard semantics of EditScript reproduces the original tree from the EditScript alone.
  */
 
 case class MNode(uri: URI, tag: Tag, kids: mutable.Map[String, MNode], lits: Map[String, Any]) {

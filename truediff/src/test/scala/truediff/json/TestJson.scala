@@ -12,9 +12,9 @@ class TestJson extends AnyFlatSpec with Matchers {
     println(s"  ${src.toStringWithURI}")
     println(s"  $dest")
 
-    val (changeset,newtree) = src.compareTo(dest)
-    println("Editscript:")
-    changeset.foreach(c => println("  " + c))
+    val (editscript,newtree) = src.compareTo(dest)
+    println("EditScript:")
+    editscript.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
     println()
@@ -25,7 +25,7 @@ class TestJson extends AnyFlatSpec with Matchers {
     var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
     src.foreachTree(t => sigs += t.tag -> t.sig)
     dest.foreachTree(t => sigs += t.tag -> t.sig)
-    assertResult(None)(changeset.welltyped(sigs))
+    assertResult(None)(editscript.welltyped(sigs))
 
     newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))

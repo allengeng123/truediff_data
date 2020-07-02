@@ -26,9 +26,9 @@ trait Diffable extends Hashable {
     this.foreachSubtree(f)
   }
   def foreachSubtree(f: Diffable => Unit): Unit
-  def loadUnassigned(changes: EditscriptBuffer): Diffable
-  def unloadUnassigned(changes: EditscriptBuffer): Unit
-  def loadInitial(changes: EditscriptBuffer): Unit
+  def loadUnassigned(edits: EditScriptBuffer): Diffable
+  def unloadUnassigned(edits: EditScriptBuffer): Unit
+  def loadInitial(edits: EditScriptBuffer): Unit
 
   protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
   private[truediff] def _assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = this.assignSharesRecurse(that, subtreeReg)
@@ -36,8 +36,8 @@ trait Diffable extends Hashable {
   protected def directSubtrees: Iterable[Diffable]
   private[truediff] def _directSubtrees: Iterable[Diffable] = this.directSubtrees
 
-  protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable
-  private[truediff] def _computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = this.computeEditscriptRecurse(that, parent, parentTag, link, changes)
+  protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable
+  private[truediff] def _computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = this.computeEditScriptRecurse(that, parent, parentTag, link, edits)
 
   @inline
   final def assignTree(that: Diffable): Unit = {
@@ -84,23 +84,23 @@ trait Diffable extends Hashable {
     }
   }
 
-  final def computeEditscript(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = {
-    // this == that
-    if (that.assigned != null && that.assigned.uri == this.uri) {
+  final def computeEditScript(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = {
+    if (this.assigned != null && this.assigned.uri == that.uri) {
+      // this == that
       this.assigned = null
       return this
     }
 
     if (this.assigned == null && that.assigned == null) {
-      val newtree = this.computeEditscriptRecurse(that, parent, parentTag, link, changes)
+      val newtree = this.computeEditScriptRecurse(that, parent, parentTag, link, edits)
       if (newtree != null)
         return newtree
     }
 
-    changes += Detach(this.uri, this.tag, link, parent, parentTag)
-    this.unloadUnassigned(changes)
-    val newtree = that.loadUnassigned(changes)
-    changes += Attach(newtree.uri, newtree.tag, link, parent, parentTag)
+    edits += Detach(this.uri, this.tag, link, parent, parentTag)
+    this.unloadUnassigned(edits)
+    val newtree = that.loadUnassigned(edits)
+    edits += Attach(newtree.uri, newtree.tag, link, parent, parentTag)
     newtree
   }
 
@@ -110,9 +110,9 @@ trait Diffable extends Hashable {
 
     this.assignSubtrees(that, subtreeReg)
 
-    val buf = new EditscriptBuffer
-    val newtree = this.computeEditscript(that, null, RootTag, RootLink, buf)
-    (buf.toEditscript, newtree.asInstanceOf[T])
+    val edits = new EditScriptBuffer
+    val newtree = this.computeEditScript(that, null, RootTag, RootLink, edits)
+    (edits.toEditScript, newtree.asInstanceOf[T])
   }
 }
 
@@ -120,9 +120,9 @@ object Diffable {
   val highestFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
 
   def load[T <: Diffable](t: T): EditScript = {
-    val buf = new EditscriptBuffer
-    t.loadInitial(buf)
-    buf += Attach(t.uri, t.tag, RootLink, null, RootTag)
-    buf.toEditscript
+    val edits = new EditScriptBuffer
+    t.loadInitial(edits)
+    edits += Attach(t.uri, t.tag, RootLink, null, RootTag)
+    edits.toEditScript
   }
 }

@@ -12,13 +12,13 @@ class ParentNoListsTests extends AnyFlatSpec with Matchers  {
 
 
     val tree1 = Add(Add(Num(1), Num(2)), Add(Num(3), Num(4)))
-    val (changeset1) = Diffable.load(tree1)
+    val (editscript1) = Diffable.load(tree1)
     val n1 = tree1.e1.asInstanceOf[Add].e1.uri
     val n2 = tree1.e1.asInstanceOf[Add].e2.uri
     val n3 = tree1.e2.asInstanceOf[Add].e1.uri
     val n4 = tree1.e2.asInstanceOf[Add].e2.uri
 
-    parent.update(changeset1)
+    parent.update(editscript1)
 
     assert(parent.parents.size == tree1.treesize)
     assert(parent(n1).isDefined)
@@ -29,8 +29,8 @@ class ParentNoListsTests extends AnyFlatSpec with Matchers  {
 
 
 
-    val (changeset2, tree2) = tree1.compareTo(Add(Add(Num(4), Num(2)), Add(Num(3), Num(1))))
-    parent.update(changeset2)
+    val (editscript2, tree2) = tree1.compareTo(Add(Add(Num(4), Num(2)), Add(Num(3), Num(1))))
+    parent.update(editscript2)
     assert(parent.parents.size == tree2.treesize)
     assert(parent(n4).isDefined)
     assert(parent(n2) == parent(n4))
@@ -40,8 +40,8 @@ class ParentNoListsTests extends AnyFlatSpec with Matchers  {
 
 
 
-    val (changeset3, tree3) = tree2.compareTo(Add(Add(Num(4), Add(Num(2), Num(5))), Add(Num(3), Num(1))))
-    parent.update(changeset3)
+    val (editscript3, tree3) = tree2.compareTo(Add(Add(Num(4), Add(Num(2), Num(5))), Add(Num(3), Num(1))))
+    parent.update(editscript3)
     assert(parent.parents.size == tree3.treesize)
     assert(parent(n4).isDefined)
     assert(parent(n2) != parent(n4))

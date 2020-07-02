@@ -2,7 +2,7 @@ package truechange
 
 import scala.collection.mutable
 
-class EditscriptBuffer() {
+class EditScriptBuffer() {
     private val negBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
     private val posBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
 
@@ -41,5 +41,5 @@ class EditscriptBuffer() {
       this
     }
 
-    def toEditscript: EditScript = new EditScript(negBuf.toSeq ++ posBuf.toSeq)
+    def toEditScript: EditScript = new EditScript(negBuf.toSeq ++ posBuf.toSeq)
   }

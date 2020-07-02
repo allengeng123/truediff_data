@@ -35,44 +35,44 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
     case that: Maybe =>
-      val a = this.a.computeEditscript(that.a, this.uri, this.tag, NamedLink("a"), changes).asInstanceOf[DiffableOption[Exp]]
+      val a = this.a.computeEditScript(that.a, this.uri, this.tag, NamedLink("a"), buf).asInstanceOf[DiffableOption[Exp]]
       val newtree = Maybe(a)
       newtree._uri = this.uri
       newtree
     case _ => null
   }
 
-  override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
+  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
-    val a = this.a.loadUnassigned(changes).asInstanceOf[DiffableOption[Exp]]
+    val a = this.a.loadUnassigned(buf).asInstanceOf[DiffableOption[Exp]]
     val newtree = Maybe(a)
-    changes += Load(newtree.uri, this.tag, Seq(
+    buf += Load(newtree.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
     newtree
   }
 
-  override def loadInitial(changes: EditscriptBuffer): Unit = {
-    this.a.loadInitial(changes)
-    changes += Load(this.uri, this.tag, Seq(
+  override def loadInitial(buf: EditScriptBuffer): Unit = {
+    this.a.loadInitial(buf)
+    buf += Load(this.uri, this.tag, Seq(
       "a" -> a.uri
     ), Seq())
   }
 
-  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
+  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      changes += Unload(this.uri, this.tag, Seq(
+      buf += Unload(this.uri, this.tag, Seq(
         "a" -> a.uri
       ), Seq())
-      this.a.unloadUnassigned(changes)
+      this.a.unloadUnassigned(buf)
     }
   }
 }

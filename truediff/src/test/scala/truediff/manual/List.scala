@@ -35,45 +35,45 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(es)
 
-  override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, buf: EditScriptBuffer): Diffable = that match {
     case that: Many =>
-      val es = this.es.computeEditscript(that.es, this.uri, this.tag, NamedLink("es"), changes).asInstanceOf[DiffableList[Exp]]
+      val es = this.es.computeEditScript(that.es, this.uri, this.tag, NamedLink("es"), buf).asInstanceOf[DiffableList[Exp]]
       val newtree = Many(es)
       newtree._uri = this.uri
       newtree
     case _ => null
   }
 
-  override def loadUnassigned(changes: EditscriptBuffer): Diffable = {
+  override def loadUnassigned(buf: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
       return that.assigned
     }
 
-    val es = this.es.loadUnassigned(changes).asInstanceOf[DiffableList[Exp]]
+    val es = this.es.loadUnassigned(buf).asInstanceOf[DiffableList[Exp]]
     val newtree = Many(es)
-    changes += Load(newtree.uri, this.tag, Seq(
+    buf += Load(newtree.uri, this.tag, Seq(
       "es" -> es.uri
     ), Seq())
     newtree
   }
 
 
-  override def loadInitial(changes: EditscriptBuffer): Unit = {
-    this.es.loadInitial(changes)
-    changes += Load(this.uri, this.tag, Seq(
+  override def loadInitial(buf: EditScriptBuffer): Unit = {
+    this.es.loadInitial(buf)
+    buf += Load(this.uri, this.tag, Seq(
       "es" -> es.uri
     ), Seq())
   }
 
-  override def unloadUnassigned(changes: EditscriptBuffer): Unit = {
+  override def unloadUnassigned(buf: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      changes += Unload(this.uri, this.tag, Seq(
+      buf += Unload(this.uri, this.tag, Seq(
         "es" -> es.uri
       ), Seq())
-      this.es.unloadUnassigned(changes)
+      this.es.unloadUnassigned(buf)
     }
   }
 }
