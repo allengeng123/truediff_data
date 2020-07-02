@@ -310,10 +310,10 @@ object DiffableMacro {
         if (ty <:< tyDiffable) {
           Some(arg)
         } else if (ty <:< typeOf[Option[_]]) {
-          val sub = paramConverterRec(targ, q"a")
+          val sub = paramConverterRec(targ, q"a").getOrElse(return None)
           Some(q"$arg.map(a => $oDiffableOption.from($sub, ${asType(targ)}))")
         } else if (ty <:< typeOf[Seq[_]]) {
-          val sub = paramConverterRec(targ, q"xs")
+          val sub = paramConverterRec(targ, q"xs").getOrElse(return None)
           Some(q"$arg.map(xs => $oDiffableList.from($sub, ${asType(targ)}))")
         } else
           None
