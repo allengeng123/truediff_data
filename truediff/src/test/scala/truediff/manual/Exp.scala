@@ -24,7 +24,7 @@ object Exp {
         that.foreachSubtree(subtreeReg.assignShare)
     }
 
-    override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
+    override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
     override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
       case Hole() =>
@@ -93,7 +93,7 @@ case class Num(n: Int) extends Exp {
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
+  override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
@@ -168,7 +168,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable(e1, e2)
+  override protected def directSubtrees: Iterable[Diffable] = Iterable(e1, e2)
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Add =>
@@ -245,7 +245,7 @@ case class Var(name: String) extends Exp {
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
+  override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case Var(n) if this.name == name =>

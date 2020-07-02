@@ -33,8 +33,8 @@ trait Diffable extends Hashable {
   protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
   private[truediff] def _assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = this.assignSharesRecurse(that, subtreeReg)
 
-  protected def assignSubtreesRecurse(): Iterable[Diffable]
-  private[truediff] def _assignSubtreesRecurse(): Iterable[Diffable] = this.assignSubtreesRecurse()
+  protected def directSubtrees: Iterable[Diffable]
+  private[truediff] def _directSubtrees: Iterable[Diffable] = this.directSubtrees
 
   protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable
   private[truediff] def _computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = this.computeEditscriptRecurse(that, parent, parentTag, link, changes)
@@ -43,7 +43,7 @@ trait Diffable extends Hashable {
   final def assignTree(that: Diffable): Unit = {
     this.assigned = that
     that.assigned = this
-    this.share = null
+    this.share = null // reset to prevent memory leaks
   }
 
   final def assignShares(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
@@ -67,18 +67,18 @@ trait Diffable extends Hashable {
     }
   }
 
-  protected final def assignSubtrees(subtreeReg: SubtreeRegistry): Unit = {
-    val queue = new mutable.PriorityQueue[Diffable]()(Diffable.heightFirstOrdering)
-    queue += this
+  protected final def assignSubtrees(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
+    val queue = new mutable.PriorityQueue[Diffable]()(Diffable.highestFirstOrdering)
+    queue += that
 
     while (queue.nonEmpty) {
-      val that = queue.dequeue()
-      if (that.skipNode) {
+      val next = queue.dequeue()
+      if (next.skipNode) {
         // skip
-      } else if (that.assigned == null) {
-        that.share.takeAvailableTree(subtreeReg) match {
-          case Some(src) => src.assignTree(that)
-          case None => queue ++= that.assignSubtreesRecurse()
+      } else if (next.assigned == null) {
+        next.share.takeAvailableTree(subtreeReg) match {
+          case Some(src) => src.assignTree(next)
+          case None => queue ++= next.directSubtrees
         }
       }
     }
@@ -108,7 +108,7 @@ trait Diffable extends Hashable {
     val subtreeReg = new SubtreeRegistry
     this.assignShares(that, subtreeReg)
 
-    that.assignSubtrees(subtreeReg)
+    this.assignSubtrees(that, subtreeReg)
 
     val buf = new EditscriptBuffer
     val newtree = this.computeEditscript(that, null, RootTag, RootLink, buf)
@@ -117,7 +117,7 @@ trait Diffable extends Hashable {
 }
 
 object Diffable {
-  val heightFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
+  val highestFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
 
   def load[T <: Diffable](t: T): EditScript = {
     val buf = new EditscriptBuffer

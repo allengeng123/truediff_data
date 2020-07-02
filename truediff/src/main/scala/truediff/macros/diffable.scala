@@ -168,7 +168,7 @@ object DiffableMacro {
                 that.foreachSubtree(subtreeReg.assignShare)
             }
 
-            override protected def assignSubtreesRecurse(): $tIterable[$tDiffable] =
+            override protected def directSubtrees: $tIterable[$tDiffable] =
               ${diffableParams match {
                 case Seq() =>
                   q"$oIterable.empty"

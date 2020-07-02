@@ -41,7 +41,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected[truediff] def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.empty
+  override protected[truediff] def directSubtrees: Iterable[Diffable] = Iterable.empty
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case DiffableNone => this
@@ -97,7 +97,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
+  override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: DiffableSome[_] =>

@@ -33,7 +33,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(a)
+  override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Maybe =>

@@ -33,7 +33,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[Diffable] = Iterable.single(es)
+  override protected def directSubtrees: Iterable[Diffable] = Iterable.single(es)
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): Diffable = that match {
     case that: Many =>

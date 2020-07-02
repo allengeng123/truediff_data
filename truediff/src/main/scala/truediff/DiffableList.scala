@@ -70,7 +70,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
   }
 
-  override protected def assignSubtreesRecurse(): Iterable[A] = this.list
+  override protected def directSubtrees: Iterable[A] = this.list
 
   override protected def computeEditscriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, changes: EditscriptBuffer): DiffableList[Diffable] = that match {
     case that: DiffableList[A] =>
