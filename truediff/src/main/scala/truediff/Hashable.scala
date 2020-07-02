@@ -11,7 +11,6 @@ trait Hashable {
 object Hashable {
   def mkDigest: MessageDigest = MessageDigest.getInstance("SHA-256")
 
-  @scala.annotation.tailrec
   def hash(v: Any, d: MessageDigest): Unit = {
     d.update(v.getClass.getCanonicalName.getBytes)
     v match {
@@ -29,6 +28,7 @@ object Hashable {
       case v: BigDecimal => d.update(v.bigDecimal.unscaledValue().toByteArray); d.update(intToBytes(v.scale))
       case None => d.update(0.toByte)
       case Some(v) => d.update(1.toByte); hash(v, d)
+      case seq: Seq[_] => hash(seq.size, d); seq.foreach(hash(_, d))
       case _ => throw new IllegalArgumentException(s"Cannot compute hash of $v (class ${v.getClass})")
     }
   }

@@ -38,9 +38,7 @@ object HashableMacro {
               digest.update(this.getClass.getCanonicalName.getBytes)
               ..${Util.mapParams(c)(paramss, tyHashasble,
                 p => q"digest.update(this.$p.hash)",
-                p => q"$oHashable.hash(this.$p, digest)",
-                p => q"{if ($p.isEmpty) digest.update(0:$tByte) else {digest.update(1:$tByte); digest.update($p.get)}}",
-                p => q"{digest.update($oBigInt($p.size).toByteArray); $p.foreach((x: $tHashable) => digest.update(x.hash))}"
+                p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
             }

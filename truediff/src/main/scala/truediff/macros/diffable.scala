@@ -84,19 +84,19 @@ object DiffableMacro {
         val watt = (p: TermName,_:Tree) => throw new UnsupportedOperationException(s"parameter $p of $tpname")
 
         def mapAllParams[A](diffable: TermName => A, nonDiffable: TermName => A): Seq[A] =
-          Util.mapParams(c)(paramss, tyDiffable, diffable, nonDiffable, wat, wat)
+          Util.mapParams(c)(paramss, tyDiffable, diffable, nonDiffable)
         def mapAllParamsTyped[A](diffable: (TermName,Tree) => A, nonDiffable: (TermName,Tree) => A): Seq[A] =
-          Util.mapParamsTyped(c)(paramss, tyDiffable, diffable, nonDiffable, watt, watt)
+          Util.mapParamsTyped(c)(paramss, tyDiffable, diffable, nonDiffable)
 
         def mapDiffableParams[A](diffable: TermName => A): Seq[A] =
-          Util.mapParams(c)(paramss, tyDiffable, p => Some(diffable(p)), _ => None, wat, wat).flatten
+          Util.mapParams(c)(paramss, tyDiffable, p => Some(diffable(p)), _ => None).flatten
         def mapDiffableParamsTyped[A](diffable: (TermName,Tree) => A): Seq[A] =
-          Util.mapParamsTyped(c)(paramss, tyDiffable, (p,t) => Some(diffable(p,t)), (_,_) => None, watt, watt).flatten
+          Util.mapParamsTyped(c)(paramss, tyDiffable, (p,t) => Some(diffable(p,t)), (_,_) => None).flatten
 
         def mapNonDiffableParams[A](nonDiffable: TermName => A): Seq[A] =
-          Util.mapParams(c)(paramss, tyDiffable, _ => None, p => Some(nonDiffable(p)), wat, wat).flatten
+          Util.mapParams(c)(paramss, tyDiffable, _ => None, p => Some(nonDiffable(p))).flatten
         def mapNonDiffableParamsTyped[A](nonDiffable: (TermName,Tree) => A): Seq[A] =
-          Util.mapParamsTyped(c)(paramss, tyDiffable, (_,_) => None, (p,t) => Some(nonDiffable(p,t)), watt, watt).flatten
+          Util.mapParamsTyped(c)(paramss, tyDiffable, (_,_) => None, (p,t) => Some(nonDiffable(p,t))).flatten
 
         def nondiffableCond(other: Tree) =
           Util.reduceInfix(c)(mapNonDiffableParams(p => q"this.$p == $other.$p"), TermName("$amp$amp"), q"")
@@ -131,8 +131,7 @@ object DiffableMacro {
               digest.update(this.getClass.getCanonicalName.getBytes)
               ..${Util.mapParams(c)(paramss, tyHashable,
                 p => q"digest.update(this.$p.hash)",
-                p => q"$oHashable.hash(this.$p, digest)",
-                wat, wat
+                p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
             }
@@ -249,20 +248,32 @@ object DiffableMacro {
 
     def rewriteParam(param: Tree): Tree = param match {
       case q"$mods val $p: $tp = $rhs" =>
-        q"$mods val $p: ${rewriteParamType(tp)} = $rhs"
+        val ptype = rewriteParamType(tp).getOrElse(tp)
+        q"$mods val $p: $ptype = $rhs"
     }
-    def rewriteParamType(tp: Tree): Tree = tp match {
+    def rewriteParamType(tp: Tree): Option[Tree] = tp match {
       case tq"$_[$targ]" =>
         val ty = Util.treeType(c)(tp)
-        if (ty <:< typeOf[Option[_]]) {
+        if (ty <:< tyDiffable) {
+          Some(tp)
+        } else if (ty <:< typeOf[Option[_]]) {
+          val arg = rewriteParamType(targ).getOrElse(return None)
           hasCollectionParam = true
-          tq"$tDiffableOption[${rewriteParamType(targ)}]"
+          Some(tq"$tDiffableOption[$arg]")
         } else if (ty <:< typeOf[Seq[_]]) {
+          val arg = rewriteParamType(targ).getOrElse(return None)
           hasCollectionParam = true
-          tq"$tDiffableList[${rewriteParamType(targ)}]"
-        } else
-          tp
-      case _ => tp
+          Some(tq"$tDiffableList[$arg]")
+        } else {
+          None
+        }
+      case _ =>
+        val ty = Util.treeType(c)(tp)
+        if (ty <:< tyDiffable) {
+          Some(tp)
+        } else {
+          None
+        }
     }
     def asType(tp: Tree): Tree = tp match {
       case tq"$_[$targ]" =>

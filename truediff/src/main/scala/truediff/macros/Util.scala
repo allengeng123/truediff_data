@@ -16,8 +16,6 @@ object Util {
     splitType: c.Type,
     sub: c.TermName => A,
     notSub: c.TermName => A,
-    option: c.TermName => A,
-    seq: c.TermName => A
   ): Seq[A] = {
     import c.universe._
     for (ps <- paramss;
@@ -26,10 +24,6 @@ object Util {
       yield
         if (ty <:< splitType)
           sub(p)
-        else if (ty <:< appliedType(typeOf[Option[_]].typeConstructor, splitType))
-          option(p)
-        else if (ty <:< appliedType(typeOf[Seq[_]].typeConstructor, splitType))
-          seq(p)
         else
           notSub(p)
   }
@@ -39,8 +33,6 @@ object Util {
     splitType: c.Type,
     sub: (c.TermName, c.Tree) => A,
     notSub: (c.TermName, c.Tree) => A,
-    option: (c.TermName, c.Tree) => A,
-    seq: (c.TermName, c.Tree) => A
   ): Seq[A] = {
     import c.universe._
     for (ps <- paramss;
@@ -49,10 +41,6 @@ object Util {
       yield
         if (ty <:< splitType)
           sub(p, tp)
-        else if (ty <:< appliedType(typeOf[Option[_]].typeConstructor, splitType))
-          option(p, tp)
-        else if (ty <:< appliedType(typeOf[Seq[_]].typeConstructor, splitType))
-          seq(p, tp)
         else
           notSub(p, tp)
   }
