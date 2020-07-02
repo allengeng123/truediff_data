@@ -1,13 +1,13 @@
 package truediff
 
-import java.io.File
+import java.io.{File, PrintWriter}
 
 import truechange.EditScript
 
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement[T <: Diffable](name: String, src: T, dest: T, vals: Seq[Long], editscript: EditScript, extra: Map[String, Any] = Map()) {
+  case class Measurement[T <: Diffable](name: String, src: T, dest: T, vals: Seq[Long], editScript: EditScript, extra: Map[String, Any] = Map()) {
     override def toString: String = {
       val srcsize = src.treesize
       val destsize = dest.treesize
@@ -16,7 +16,7 @@ object BenchmarkUtils {
          |Measurement $name
          |  Src tree size:     $srcsize
          |  Dest tree size:    $destsize
-         |  EditScript size:    ${editscript.size}
+         |  EditScript size:    ${editScript.size}
          |  Diffing time (ms): ${ms(diffTime)}""".stripMargin
       if (extra.isEmpty)
         text
@@ -24,13 +24,17 @@ object BenchmarkUtils {
         text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
     }
 
-    val csvHeader: String = "Filename, Src tree size, Dest tree size, EditScript size, Average Diffing time (ms), raw data (ms)"
+    def extend(newExtras: Map[String, Any]): Measurement[T] = {
+      Measurement(name, src, dest, vals, editScript, extra ++ newExtras)
+    }
+
+    val csvHeader: String = s"Filename, Src tree size, Dest tree size, EditScript size, Average Diffing time (ms)${if (extra.isEmpty) ", " else extra.keys.mkString(", ", ", ", ", ")}raw data (ns)"
 
     val csv: String = {
       val srcsize = src.treesize
       val destsize = dest.treesize
       val diffTime = avg(vals)
-      s"$name, $srcsize, $destsize, ${editscript.size}, $diffTime, ${BenchmarkUtils.csv(vals)}"
+      s"$name, $srcsize, $destsize, ${editScript.size}, $diffTime${if (extra.isEmpty) ", " else extra.values.mkString(", ", ", ", ", ")}${BenchmarkUtils.csv(vals)}"
     }
   }
 
@@ -39,6 +43,14 @@ object BenchmarkUtils {
     val str = source.mkString
     source.close()
     str
+  }
+
+  def writeFile(path: String, content: String): Unit = {
+    val file = new File(path)
+    file.createNewFile()
+    val writer = new PrintWriter(file)
+    writer.write(content)
+    writer.close()
   }
 
   def foreachFileLine(path: String)(f: String => Unit): Unit = {

@@ -9,14 +9,14 @@ import truediff.BenchmarkUtils._
 object BenchmarkCommits extends App {
 
   private def benchmark()(implicit timing: Timing): Seq[Measurement[Ast.file]] = {
-    val rootDir = new File("benchmark/python")
+    val rootDir = new File("benchmark/python_test")
     val commits = rootDir.listFiles()
       .filter(_.getName.startsWith("django-"))
       .sortBy(f=>f.getName.substring("django-".length, f.getName.lastIndexOf('-')).toInt)
 
     val commitFiles = files(commits.head.getAbsolutePath, transitive = false, pattern = ".*py")
 
-    commitFiles.flatMap { file =>
+    commitFiles.take(5).flatMap { file =>
       var currentTree = null.asInstanceOf[Ast.file]
       commits.toList.map { commit =>
         val currentFile = new File(commit, file.getName)
@@ -46,6 +46,15 @@ object BenchmarkCommits extends App {
 
   // collect data
   val measurements = benchmark()(Timing(10, 50))
-  measurements.foreach { m => println(m.csv) }
   // TODO process data
+  // what data do we want to collect?
+  val derivedMeasurements = measurements.map { m =>
+    val extra = Map("Throughput (ms)" -> ms(throughput(m.vals, Seq(m.dest.treesize))))
+    m.extend(Map())
+  }
+  val measurementsPerFile = derivedMeasurements.map ( m => m.name -> m).toMap
+
+  // write data
+  val filecontent = derivedMeasurements.head.csvHeader + "\n" + derivedMeasurements.map { m => m.csv }.mkString("\n")
+  writeFile("benchmark/measurements/python_measurements.csv", filecontent)
 }
