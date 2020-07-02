@@ -39,7 +39,8 @@ object BenchmarkUtils {
   }
 
   def measurementsToCsv(measurements: Seq[Measurement[_]]): String =
-    measurements.head.csvHeader + "\n" + measurements.map { m => m.csv }.mkString("\n")
+    if (measurements.isEmpty) ""
+    else measurements.head.csvHeader + "\n" + measurements.map { m => m.csv }.mkString("\n")
 
   def readFile(path: String): String = {
     val source = Source.fromFile(path)

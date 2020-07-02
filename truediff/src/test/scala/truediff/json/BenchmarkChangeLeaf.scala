@@ -3,7 +3,7 @@ package truediff.json
 import truediff.BenchmarkUtils._
 import truediff.json.Js._
 
-object BenchmarChangeLeaf extends App {
+object BenchmarkChangeLeaf extends App {
 
   def changeLeaf(js: Js, index: Int): Js = {
     var visitedLeaves = 0
@@ -47,18 +47,21 @@ object BenchmarChangeLeaf extends App {
   implicit val timing: Timing = Timing(discard=10, repeat = 50)
 
   // TODO fixed to file where exception occurs
-  val jsons = files("benchmark/json").filter{_.getName == "citm_catalog.json"}
+  val jsons = files("benchmark/json_test").filter{_.getName == "citm_catalog.json"}
 
   val measurements = jsons.flatMap { json =>
     val content = readFile(json.getAbsolutePath)
     val (tree, (editscript, _), parseTimes, diffTimes) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
+    println(tree)
 
     val initalMeasurement = Measurement(json.getAbsolutePath + s" initial", tree, tree, diffTimes, editscript)
-    println(initalMeasurement.csv)
+//    println(initalMeasurement.csv)
 
     val numleaves = countLeaves(tree)
-    for (i <- 1 to numleaves; if i % 1 == 0) yield {
+    // TODO this is set to select error case
+    for (i <- 1 to numleaves; if i % 37 == 0) yield {
       val changedTree = changeLeaf(tree, i)
+      println(changedTree)
       val (newTree, (editscript, _), parseTimes, diffTimes) = timed(() => tree, (t: Js) => tree.compareTo(changedTree))
       val mes = Measurement(json.getAbsolutePath + s"leaf $i", tree, newTree, diffTimes, editscript)
       println(mes.csv)
