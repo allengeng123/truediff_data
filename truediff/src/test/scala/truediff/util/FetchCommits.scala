@@ -1,8 +1,8 @@
-package truediff
+package truediff.util
 
 import java.io.File
 
-import sys.process._
+import scala.sys.process._
 
 object FetchCommits extends App {
 

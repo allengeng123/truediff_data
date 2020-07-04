@@ -1,6 +1,6 @@
 package truediff.json
 
-import truediff.BenchmarkUtils._
+import truediff.util.BenchmarkUtils._
 import truediff.json.Js._
 
 object BenchmarkChangeLeaf extends App {
@@ -54,7 +54,7 @@ object BenchmarkChangeLeaf extends App {
     val (tree, (editscript, _), parseTimes, diffTimes) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
     println(tree)
 
-    val initalMeasurement = Measurement(json.getAbsolutePath + s" initial", tree, tree, diffTimes, editscript)
+    val initalMeasurement = Measurement(json.getAbsolutePath + s" initial", tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, diffTimes, editscript)
 //    println(initalMeasurement.csv)
 
     val numleaves = countLeaves(tree)
@@ -63,11 +63,11 @@ object BenchmarkChangeLeaf extends App {
       val changedTree = changeLeaf(tree, i)
       println(changedTree)
       val (newTree, (editscript, _), parseTimes, diffTimes) = timed(() => tree, (t: Js) => tree.compareTo(changedTree))
-      val mes = Measurement(json.getAbsolutePath + s"leaf $i", tree, newTree, diffTimes, editscript)
+      val mes = Measurement(json.getAbsolutePath + s"leaf $i", tree.treesize, tree.treeheight, newTree.treesize, newTree.treeheight, diffTimes, editscript)
       println(mes.csv)
       mes
     }
   }
 
-  writeFile("benchmark/measurements/json_changeleaves.csv", measurementsToCsv(measurements))
+  writeFile("benchmark/measurements/json_changeleaves.csv", measurementsToCSV(measurements))
 }

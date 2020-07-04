@@ -1,89 +1,93 @@
 package truediff.json
 
-import truechange.EditScript
-import truediff.BenchmarkUtils._
+import truediff.Diffable
+import truediff.util.CSVUtil.csvRowToString
+import truediff.util.BenchmarkUtils._
 import truediff.json.Js._
 
-import scala.util.Random
-
 object BenchmarkReplaceSubtree extends App {
+  def countInner(field: Field): Int = 1 + countInner(field.value)
 
-  private def benchUnchanged(path: String)(implicit timing: Timing): Measurement[Js] = {
-    val content = readFile(s"benchmark/json/$path")
-    val (_,parseTime) = timedNoSetup(Parser.parse(content))
-    val (tree,(editscript,_),_, diffIdenticalTime) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
-    Measurement(s"diff unchanged $path", tree, tree, diffIdenticalTime, editscript, Map("parse time (ms)" -> parseTime))
+  def countInner(js: Js): Int = js match {
+    case Str(value) => 0
+    case False() => 0
+    case True() => 0
+    case Null() => 0
+    case Num(value) => 0
+    case Obj(value) => 1 + value.list.map(countInner).sum
+    case Arr(value) => 1 + value.list.map(countInner).sum
   }
 
-  // unchanged diffing
-//  println(benchUnchanged("parboiled2bench.json")(Timing(discard = 100, repeat = 10)))
-//  println(benchUnchanged("citm_catalog.json")(Timing(discard = 100, repeat = 10)))
-//  println(benchUnchanged("twitter.json")(Timing(discard = 100, repeat = 10)))
-//  println(benchUnchanged("canada.json")(Timing(discard = 3, repeat = 3)))
+  def changeInner(js: Js, index: Int, newjs: () => Js, newfield: () => Field): Js = {
+    var visitedInner = 0
 
-
-  // replace one subtree by newtree, indexed in post-order
-  def replaceSubtree(index: Int, t: Js, newtree: () => Js): Js = t match {
-    case _ if index == 0 => newtree()
-    case Obj(fields) =>
-      var restindex = index
-      for (i <- fields.indices) {
-        val field = fields(i)
-        if (restindex < field.value.treesize) {
-          val replaced = replaceSubtree(restindex, field.value, newtree)
-          return Obj(fields.updated(i, Field(field.name, replaced)))
-        } else if (restindex < field.treesize) {
-          return Obj(fields.updated(i, Field(field.name, newtree())))
+    def transJs(js: Js): Js = js match {
+      case Arr(values) =>
+        if (visitedInner == index) {
+          visitedInner += 1
+          newjs()
         } else {
-          restindex -= field.treesize
+          visitedInner += 1
+          Arr(values.list.map(transJs))
         }
-      }
-      if (restindex == 0)
-        newtree()
-      else
-        throw new IndexOutOfBoundsException()
-    case Arr(ts) =>
-      var restindex = index
-      for (i <- ts.indices) {
-        val sub = ts(i)
-        if (restindex < sub.treesize) {
-          val replaced = replaceSubtree(restindex, sub, newtree)
-          return Arr(ts.updated(i, replaced))
+      case Obj(fields) =>
+        if (visitedInner == index) {
+          visitedInner += 1
+          newjs()
         } else {
-          restindex -= sub.treesize
+          visitedInner += 1
+          Obj(fields.list.map(transField))
         }
-      }
-      if (restindex == 0)
-        newtree()
-      else
-        throw new IndexOutOfBoundsException()
-    case _ => throw new IndexOutOfBoundsException()
-  }
-
-  private def benchReplacedSubtree(path: String)(implicit timing: Timing): Measurement[Js] = {
-    val content = readFile(s"benchmark/json/$path")
-
-    val random = new Random(seed = 0)
-
-    def measure(timing: Timing): Measurement[Js] = {
-      val ((tree1, tree2), editscript, parseTime, diffIdenticalTime) = timed[(Js,Js), EditScript](() => {
-        val tree1 = Parser.parse(content)
-        val index = random.nextInt(tree1.treesize)
-        val tree2 = replaceSubtree(index, tree1, () => Str(s"Replaced subtree at index $index"))
-        (tree1, tree2)
-      }, { tt =>
-        val (editscript, _) = tt._1.compareTo(tt._2)
-        editscript
-      })(timing)
-      Measurement(s"diff unchanged $path", tree1, tree2, diffIdenticalTime, editscript)
+      case _ => js
     }
 
-    measure(warmup(timing.discard))
+    def transField(field: Field): Field = {
+      if (visitedInner == index) {
+        visitedInner += 1
+        newfield()
+      } else {
+        visitedInner += 1
+        Field(field.name, transJs(field.value))
+      }
+    }
 
-    // actual
-    Range(0, timing.repeat).foreach(_ => println(measure(nowarmup(1))))
-    measure(nowarmup(1))
+    transJs(js)
   }
 
-  println(benchReplacedSubtree("parboiled2bench.json")(Timing(discard = 20, repeat = 100)))
+  val jsons = files("benchmark/json")
+
+  def measure(jstree: () => Js, fieldtree: () => Field)(implicit timing: Timing): Seq[Measurement] = {
+    jsons.flatMap { json =>
+      val content = readFile(json.getAbsolutePath)
+      val (tree, (editscript, _), parseTimes, diffTimes) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
+
+      val initalMeasurement = Measurement(json.getAbsolutePath + s" initial", tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, diffTimes, editscript)
+
+      val numinner = countInner(tree)
+      // only measure for every 100th inner node
+      val measurements = for (i <- 1 until numinner; if i % 100 == 0) yield {
+        val changedTree = changeInner(tree, i, jstree, fieldtree)
+        val (newTree, (editscript, _), parseTimes, diffTimes) = timed(() => tree, (t: Js) => tree.compareTo(changedTree))
+        val mes = Measurement(json.getAbsolutePath + s" inner node $i", tree.treesize, tree.treeheight, changedTree.treesize, changedTree.treeheight, diffTimes, editscript)
+        println(csvRowToString(mes.csv))
+        mes
+      }
+      initalMeasurement+:measurements
+    }
+  }
+
+  val timing = Timing(discard = 5, repeat = 10)
+
+  val singleMeasurements = measure(
+    () => Str(s"Replaced subtree"),
+    () => Field(s"Replaced subtree", Null()))(timing)
+
+  writeFile("benchmark/measurements/json_replacesubtrees_with_single.csv", measurementsToCSV(singleMeasurements))
+
+  val replacementTree = Parser.parse(readFile("benchmark/json/twitter.json"))
+  val treeMeasurements = measure(
+    () => replacementTree,
+    () => Field(s"Replaced subtree", replacementTree))(timing)
+
+  writeFile("benchmark/measurements/json_replacesubtrees_with_tree.csv", measurementsToCSV(treeMeasurements))
 }

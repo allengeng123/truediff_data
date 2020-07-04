@@ -3,12 +3,12 @@ package truediff.python
 import java.io.File
 
 import truechange.EditScript
-import truediff.BenchmarkUtils._
+import truediff.util.BenchmarkUtils._
 
 
 object BenchmarkCommits extends App {
 
-  private def benchmark()(implicit timing: Timing): Seq[Measurement[Ast.file]] = {
+  private def benchmark()(implicit timing: Timing): Seq[Measurement] = {
     val rootDir = new File("benchmark/python")
     val commits = rootDir.listFiles()
       .filter(_.getName.startsWith("django-"))
@@ -38,8 +38,8 @@ object BenchmarkCommits extends App {
           )
           val extra = Map("Average Parsetime (ms)" -> ms(avg(parseTimes)))
           val measurement =
-            if (currentTree == null) Measurement[Ast.file](currentFile.getAbsolutePath, tree, tree, times, editscript, extra)
-            else Measurement[Ast.file](currentFile.getAbsolutePath, currentTree, tree, times, editscript, extra)
+            if (currentTree == null) Measurement(currentFile.getAbsolutePath, tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, times, editscript, extra)
+            else Measurement(currentFile.getAbsolutePath, currentTree.treesize, currentTree.treeheight, tree.treesize, tree.treeheight, times, editscript, extra)
           currentTree = tree
           Seq(measurement)
         } else Seq()
@@ -51,7 +51,7 @@ object BenchmarkCommits extends App {
   val measurements = benchmark()(Timing(10, 50))
   // what data do we want to collect?
   val derivedMeasurements = measurements.map { m =>
-    val extra = Map("Throughput (ms)" -> ms(throughput(m.vals, Seq(m.dest.treesize))))
+    val extra = Map("Throughput (ms)" -> ms(throughput(m.vals, Seq(m.destSize))))
     m.extend(Map())
   }
 
@@ -60,5 +60,5 @@ object BenchmarkCommits extends App {
   val measurementsPerFile = derivedMeasurements.map ( m => m.name -> m).toMap
 
   // write data
-  writeFile("benchmark/measurements/python_measurements.csv", measurementsToCsv(derivedMeasurements))
+  writeFile("benchmark/measurements/python_measurements.csv", measurementsToCSV(derivedMeasurements))
 }
