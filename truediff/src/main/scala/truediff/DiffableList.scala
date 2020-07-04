@@ -54,6 +54,8 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
         thisShares.get(thatShare) match {
           case Some(edits) =>
             val thisNode = edits.remove(0)
+            if (edits.isEmpty)
+              thisShares -= thatShare
             thisNode.assigned = thatNode
             thisNode.share = null
             thatNode.assigned = thisNode
