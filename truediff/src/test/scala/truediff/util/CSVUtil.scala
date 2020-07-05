@@ -28,6 +28,6 @@ object CSVUtil {
   }
 
   def csvValAsString(v: Any): String = v.asInstanceOf[String]
-  def csvValAsInt(v: Any): Int = csvValAsString(v).stripLeading().stripTrailing().toInt
-  def csvValAsDouble(v: Any): Double = csvValAsString(v).stripLeading().stripTrailing().toDouble
+  def csvValAsInt(v: Any): Int = csvValAsString(v).trim().toInt
+  def csvValAsDouble(v: Any): Double = csvValAsString(v).trim().toDouble
 }
