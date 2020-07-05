@@ -1,6 +1,6 @@
 package truediff.json
 
-import truediff.Diffable
+import truechange.EditScript
 import truediff.util.CSVUtil.csvRowToString
 import truediff.util.BenchmarkUtils._
 import truediff.json.Js._
@@ -61,22 +61,28 @@ object BenchmarkReplaceSubtree extends App {
       val content = readFile(json.getAbsolutePath)
       val (tree, (editscript, _), parseTimes, diffTimes) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
 
-      val initalMeasurement = Measurement(json.getAbsolutePath + s" initial", tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, diffTimes, editscript)
+      val initalMeasurement = Measurement(json.getName + s" initial", tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, diffTimes, editscript)
 
       val numinner = countInner(tree)
-      // only measure for every 100th inner node
-      val measurements = for (i <- 1 until numinner; if i % 100 == 0) yield {
-        val changedTree = changeInner(tree, i, jstree, fieldtree)
-        val (newTree, (editscript, _), parseTimes, diffTimes) = timed(() => tree, (t: Js) => tree.compareTo(changedTree))
-        val mes = Measurement(json.getAbsolutePath + s" inner node $i", tree.treesize, tree.treeheight, changedTree.treesize, changedTree.treeheight, diffTimes, editscript)
+      // only measure for every 500th inner node
+      val changedMeasurements = for (i <- 1 to numinner; if i % 500 == 0) yield {
+        val (newTree, editscript, parseTimes, diffTimes) =
+          timed[(Js, Js), (EditScript, Js)](
+            () => {
+              val tree = Parser.parse(content)
+              val changed = changeInner(tree, i, jstree, fieldtree)
+              (tree, changed)
+            },
+            (in: (Js, Js)) => in._1.compareTo(in._2))
+        val mes = Measurement(json.getName + s" inner $i", tree.treesize, tree.treeheight, newTree._2.treesize, newTree._2.treeheight, diffTimes, editscript._1)
         println(csvRowToString(mes.csv))
         mes
       }
-      initalMeasurement+:measurements
+      initalMeasurement +: changedMeasurements
     }
   }
 
-  val timing = Timing(discard = 5, repeat = 10)
+  val timing = Timing(discard = 10, repeat = 50)
 
   val singleMeasurements = measure(
     () => Str(s"Replaced subtree"),
@@ -84,10 +90,15 @@ object BenchmarkReplaceSubtree extends App {
 
   writeFile("benchmark/measurements/json_replacesubtrees_with_single.csv", measurementsToCSV(singleMeasurements))
 
-  val replacementTree = Parser.parse(readFile("benchmark/json/twitter.json"))
   val treeMeasurements = measure(
-    () => replacementTree,
-    () => Field(s"Replaced subtree", replacementTree))(timing)
+    () => {
+      val replacementTree = Parser.parse(readFile("benchmark/json/twitter.json"))
+      replacementTree
+    },
+    () => {
+      val replacementTree = Parser.parse(readFile("benchmark/json/twitter.json"))
+      Field(s"Replaced subtree", replacementTree)
+    })(timing)
 
   writeFile("benchmark/measurements/json_replacesubtrees_with_tree.csv", measurementsToCSV(treeMeasurements))
 }

@@ -1,6 +1,8 @@
 package truediff.json
 
+import truechange.EditScript
 import truediff.util.BenchmarkUtils._
+import truediff.util.CSVUtil.csvRowToString
 import truediff.json.Js._
 
 object BenchmarkChangeLeaf extends App {
@@ -46,27 +48,31 @@ object BenchmarkChangeLeaf extends App {
 
   implicit val timing: Timing = Timing(discard=10, repeat = 50)
 
-  // TODO fixed to file where exception occurs
-  val jsons = files("benchmark/json_test").filter{_.getName == "citm_catalog.json"}
+  val jsons = files("benchmark/json")
 
   val measurements = jsons.flatMap { json =>
     val content = readFile(json.getAbsolutePath)
     val (tree, (editscript, _), parseTimes, diffTimes) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
     println(tree)
 
-    val initalMeasurement = Measurement(json.getAbsolutePath + s" initial", tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, diffTimes, editscript)
-//    println(initalMeasurement.csv)
+    val initalMeasurement = Measurement(json.getName + s" initial", tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, diffTimes, editscript)
 
     val numleaves = countLeaves(tree)
-    // TODO this is set to select error case
-    for (i <- 1 to numleaves; if i % 37 == 0) yield {
-      val changedTree = changeLeaf(tree, i)
-      println(changedTree)
-      val (newTree, (editscript, _), parseTimes, diffTimes) = timed(() => tree, (t: Js) => tree.compareTo(changedTree))
-      val mes = Measurement(json.getAbsolutePath + s"leaf $i", tree.treesize, tree.treeheight, newTree.treesize, newTree.treeheight, diffTimes, editscript)
-      println(mes.csv)
+    val changedMeasurements = for (i <- 1 to numleaves; if i % 500 == 0) yield {
+      val (newTree, editscript, parseTimes, diffTimes) =
+        timed[(Js, Js), (EditScript, Js)](
+          () => {
+            val tree = Parser.parse(content)
+            val changed = changeLeaf(tree, i)
+            (tree, changed)
+          },
+          (in: (Js, Js)) => in._1.compareTo(in._2))
+      val mes = Measurement(json.getName + s" leaf $i", tree.treesize, tree.treeheight, newTree._2.treesize, newTree._2.treeheight, diffTimes, editscript._1)
+      println(csvRowToString(mes.csv))
       mes
     }
+
+    initalMeasurement +: changedMeasurements
   }
 
   writeFile("benchmark/measurements/json_changeleaves.csv", measurementsToCSV(measurements))

@@ -8,7 +8,7 @@ object CSVUtil {
     csv.map(csvRowToString).mkString("\n")
   }
 
-  def csvRowToString(vals: CSVRow): String = vals.mkString(", ")
+  def csvRowToString(vals: CSVRow): String = vals.mkString(",")
 
   def fromCSV(content: String, skipHeader: Boolean = false): CSV = {
     val lines = content.split("\n").toIndexedSeq
@@ -26,4 +26,8 @@ object CSVUtil {
   def columnOfCSV(index: Int, csv: CSV): Seq[Any] = {
     csv.map(row => row(index))
   }
+
+  def csvValAsString(v: Any): String = v.asInstanceOf[String]
+  def csvValAsInt(v: Any): Int = csvValAsString(v).stripLeading().stripTrailing().toInt
+  def csvValAsDouble(v: Any): Double = csvValAsString(v).stripLeading().stripTrailing().toDouble
 }

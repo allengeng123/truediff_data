@@ -4,21 +4,24 @@ import java.io.File
 
 import truechange.EditScript
 import truediff.util.BenchmarkUtils._
+import truediff.util.CSVUtil.csvRowToString
 
 
 object BenchmarkCommits extends App {
+  val projectName = "keras"
 
   private def benchmark()(implicit timing: Timing): Seq[Measurement] = {
-    val rootDir = new File("benchmark/python")
+    val rootDir = new File(s"benchmark/python_$projectName")
     val commits = rootDir.listFiles()
-      .filter(_.getName.startsWith("django-"))
-      .sortBy(f=>f.getName.substring("django-".length, f.getName.lastIndexOf('-')).toInt)
+      .filter(_.getName.startsWith(s"$projectName-"))
+      .sortBy(f=>f.getName.substring(s"$projectName-".length, f.getName.lastIndexOf('-')).toInt)
 
     val commitFiles = files(commits.head.getAbsolutePath, transitive = false, pattern = ".*py")
 
     commitFiles.flatMap { file =>
       var currentTree = null.asInstanceOf[Ast.file]
-      commits.take(100).toList.flatMap { commit =>
+      // TODO we need to compare
+      commits.toList.flatMap { commit =>
         val currentFile = new File(commit, file.getName)
         if (currentFile.exists()) {
           val content = readFile(currentFile.getAbsolutePath)
@@ -27,7 +30,7 @@ object BenchmarkCommits extends App {
               Statements.parse(content)
             } catch {
               case e: Exception if e.getMessage != null && e.getMessage.startsWith("Parse Error") =>
-                println(s"  parsing ${file.getAbsoluteFile} failed, skipping file")
+                println(s"  parsing ${file.getName} failed, skipping file")
                 Ast.file.File(Seq())
             },
             (ast: Ast.file) =>
@@ -38,8 +41,9 @@ object BenchmarkCommits extends App {
           )
           val extra = Map("Average Parsetime (ms)" -> ms(avg(parseTimes)))
           val measurement =
-            if (currentTree == null) Measurement(currentFile.getAbsolutePath, tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, times, editscript, extra)
+            if (currentTree == null) Measurement(currentFile.getName, tree.treesize, tree.treeheight, tree.treesize, tree.treeheight, times, editscript, extra)
             else Measurement(currentFile.getAbsolutePath, currentTree.treesize, currentTree.treeheight, tree.treesize, tree.treeheight, times, editscript, extra)
+          println(csvRowToString(measurement.csv))
           currentTree = tree
           Seq(measurement)
         } else Seq()
@@ -48,17 +52,18 @@ object BenchmarkCommits extends App {
   }
 
   // collect data
-  val measurements = benchmark()(Timing(10, 50))
+  val measurements = benchmark()(Timing(discard = 1, repeat = 5))
   // what data do we want to collect?
-  val derivedMeasurements = measurements.map { m =>
-    val extra = Map("Throughput (ms)" -> ms(throughput(m.vals, Seq(m.destSize))))
-    m.extend(Map())
-  }
+//  val derivedMeasurements = measurements.map { m =>
+//    val extra = Map("Throughput (ms)" -> ms(throughput(m.vals, Seq(m.destSize))))
+//    m.extend(Map())
+//  }
 
   val changingMeasurements = measurements.filter { m => m.editScript.size > 0 }
 
-  val measurementsPerFile = derivedMeasurements.map ( m => m.name -> m).toMap
+  val measurementsPerFile = measurements.map ( m => m.name -> m).toMap
 
   // write data
-  writeFile("benchmark/measurements/python_measurements.csv", measurementsToCSV(derivedMeasurements))
+  writeFile("benchmark/measurements/python_keras_measurements.csv", measurementsToCSV(measurements))
+  writeFile("benchmark/measurements/python_keras_changing_measurements.csv", measurementsToCSV(changingMeasurements))
 }

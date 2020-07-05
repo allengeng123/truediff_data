@@ -27,7 +27,7 @@ object BenchmarkUtils {
       Measurement(name, srcSize, srcHeight, destSize, destHeight, vals, editScript, extra ++ newExtras)
     }
 
-    val csvHeader: String = s"Filename, Src tree size, Dest tree size, Src tree height, Dest tree height, EditScript size, Average Diffing time (ms)${if (extra.isEmpty) ", " else extra.keys.mkString(", ", ", ", ", ")}raw data (ns)"
+    val csvHeader: String = s"Filename,Src tree size,Dest tree size,Src tree height,Dest tree height,EditScript size,Average Diffing time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
 
     val csv: CSVRow = {
       val diffTime = ms(avg(vals))
