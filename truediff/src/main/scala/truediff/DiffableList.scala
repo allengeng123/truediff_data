@@ -2,7 +2,6 @@ package truediff
 
 import truechange._
 
-import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 object DiffableList {
@@ -35,45 +34,80 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     }
   }
 
+  // trim equal elements off the front of the lists
+  private def trimFront[B <: Diffable](l1: Seq[B], l2: Seq[B], subtreeReg: SubtreeRegistry) : (Seq[B], Seq[B]) = {
+    var thislist = l1
+    var thatlist = l2
+    while (thislist.nonEmpty && thatlist.nonEmpty) {
+      val thisShare = subtreeReg.assignShare(thislist.head)
+      val thatShare = subtreeReg.assignShare(thatlist.head)
+      if (thisShare == thatShare) {
+        thislist.head.assignTree(thatlist.head)
+        thislist = thislist.tail
+        thatlist = thatlist.tail
+      } else {
+        return (thislist, thatlist)
+      }
+    }
+    (thislist, thatlist)
+  }
+
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableList[A] =>
-      // pre-assign subtrees that are list elements in this and that
 
-      var thisShares: Map[SubtreeShare, ListBuffer[A]] = Map()
+      val (thislist1, thatlist1) = trimFront(this.list, that.list, subtreeReg)
+      val (thislist2, thatlist2) = trimFront(thislist1.reverse, thatlist1.reverse, subtreeReg)
 
-      this.list.foreach { thisNode =>
-        val thisShare = subtreeReg.assignShare(thisNode)
-        thisShares.get(thisShare) match {
-          case Some(edits) => edits += thisNode
-          case None => thisShares += thisShare -> ListBuffer(thisNode)
-        }
-      }
-
-      that.list.foreach { thatNode =>
-        val thatShare = subtreeReg.assignShare(thatNode)
-        thisShares.get(thatShare) match {
-          case Some(edits) =>
-            val thisNode = edits.remove(0)
-            if (edits.isEmpty)
-              thisShares -= thatShare
-            thisNode.assigned = thatNode
-            thisNode.share = null
-            thatNode.assigned = thisNode
-          case None =>
-        }
-      }
-
-      this.list.filter(_.assigned == null).zipAll[Diffable,Diffable](that.list.filter(_.assigned == null), null, null).foreach { case (thisnode, thatnode) =>
+      thislist2.zipAll[Diffable,Diffable](thatlist2, null, null).foreach { case (thisnode, thatnode) =>
         if (thisnode == null) {
+          subtreeReg.assignShare(thatnode)
           thatnode.foreachSubtree(subtreeReg.assignShare)
         } else if (thatnode == null) {
-          thisnode.share.registerAvailableTree(thisnode)
+          subtreeReg.assignShareAndRegisterTree(thisnode)
           thisnode.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
         } else {
-          thisnode.share.registerAvailableTree(thisnode)
+          subtreeReg.assignShareAndRegisterTree(thisnode)
+          subtreeReg.assignShare(thatnode)
           thisnode._assignSharesRecurse(thatnode, subtreeReg)
         }
       }
+
+    // pre-assign subtrees that are list elements in this and that
+//      var thisShares: Map[SubtreeShare, ListBuffer[A]] = Map()
+//
+//      this.list.foreach { thisNode =>
+//        val thisShare = subtreeReg.assignShare(thisNode)
+//        thisShares.get(thisShare) match {
+//          case Some(edits) => edits += thisNode
+//          case None => thisShares += thisShare -> ListBuffer(thisNode)
+//        }
+//      }
+//
+//      that.list.foreach { thatNode =>
+//        val thatShare = subtreeReg.assignShare(thatNode)
+//        thisShares.get(thatShare) match {
+//          case Some(edits) =>
+//            val thisNode = edits.remove(0)
+//            if (edits.isEmpty)
+//              thisShares -= thatShare
+//            thisNode.assigned = thatNode
+//            thisNode.share = null
+//            thatNode.assigned = thisNode
+//          case None =>
+//        }
+//      }
+//
+//      this.list.filter(_.assigned == null).zipAll[Diffable,Diffable](that.list.filter(_.assigned == null), null, null).foreach { case (thisnode, thatnode) =>
+//        if (thisnode == null) {
+//          thatnode.foreachSubtree(subtreeReg.assignShare)
+//        } else if (thatnode == null) {
+//          thisnode.share.registerAvailableTree(thisnode)
+//          thisnode.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+//        } else {
+//          thisnode.share.registerAvailableTree(thisnode)
+//          thisnode._assignSharesRecurse(thatnode, subtreeReg)
+//        }
+//      }
 
   }
 
