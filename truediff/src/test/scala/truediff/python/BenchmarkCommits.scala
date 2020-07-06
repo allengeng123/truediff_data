@@ -15,9 +15,11 @@ object BenchmarkCommits extends App {
 
   private def benchmark()(implicit timing: Timing): Seq[Measurement] = {
     val rootDir = new File(s"benchmark/python_$projectName")
+    // Measure the first 100 commits
     val commits = rootDir.listFiles()
       .filter(_.getName.startsWith(s"$projectName-"))
       .sortBy(getCommitNumber)
+      .take(100)
 
     val prevCommit: Map[File, File] = commits.tail.zipWithIndex.map { case (commit, i) =>
       commit -> commits(i)
