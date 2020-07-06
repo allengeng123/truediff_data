@@ -28,7 +28,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val toStringWithURI: String = "None"
 
-  final override def tag: Tag = OptionTag(NothingType)
+  final override val tag: Tag = OptionTag(NothingType)
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {
@@ -81,7 +81,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 
-  override def tag: Tag = OptionTag(atype)
+  override val tag: Tag = OptionTag(atype)
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {

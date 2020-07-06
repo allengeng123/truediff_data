@@ -2,6 +2,7 @@ package truediff
 
 import truechange._
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 object DiffableList {
@@ -17,7 +18,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   }
   def indices: Range = Range(0, length)
 
-  override def tag: Tag = ListTag(atype)
+  override val tag: Tag = ListTag(atype)
   override def sig: Signature = Signature(ListType(atype), this.tag, Map(), Map())
 
   override val treeheight: Int = 1 + this.list.foldRight(0)((t, max) => Math.max(t.treeheight, max))
@@ -123,38 +124,75 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       null
   }
 
-  private[truediff] def computeEditScriptLists(thislist: Seq[Diffable], thatlist: Seq[Diffable], thisparent: URI, thisparentTag: Tag, thatparent: URI, thatparentTag: Tag, link: Link, edits: EditScriptBuffer): Seq[Diffable] = (thislist, thatlist) match {
-    case (Nil, Nil) => Nil
-    case (Nil, thatnode::thatlist) =>
-      val newtree = thatnode.loadUnassigned(edits)
-      edits += Attach(newtree.uri, newtree.tag, link, thatparent, thatparentTag)
-      val newlist = computeEditScriptLists(Nil, thatlist, null, null, newtree.uri, newtree.tag, ListNextLink(atype), edits)
-      newtree +: newlist
-    case (thisnode::thislist, Nil) =>
-      edits += Detach(thisnode.uri, thisnode.tag, link, thisparent, thisparentTag)
-      thisnode.unloadUnassigned(edits)
-      computeEditScriptLists(thislist, Nil, thisnode.uri, thisnode.tag, null, null, ListNextLink(atype), edits)
-      Seq()
-    case (thisnode::thislist, thatnode::thatlist) =>
-      tryReuseListElem(thisnode, thatnode, thisparent, thisparentTag, link, edits) match {
+  private[truediff] def computeEditScriptLists(thislist: Seq[Diffable], thatlist: Seq[Diffable], thisparent: URI, thisparentTag: Tag, thatparent: URI, thatparentTag: Tag, link: Link, edits: EditScriptBuffer): Seq[Diffable] = {
+    var vthislist: Seq[Diffable] = thislist
+    var vthatlist: Seq[Diffable] = thatlist
+    var vthisparent: URI = thisparent
+    var vthisparentTag: Tag = thisparentTag
+    var vthatparent: URI = thatparent
+    var vthatparentTag: Tag = thatparentTag
+    var vlink: Link = link
+    val NEXT = ListNextLink(atype)
+
+    val result = ListBuffer[Diffable]()
+
+    while (vthislist.nonEmpty && vthatlist.nonEmpty) {
+      val thisnode = vthislist.head
+      vthislist = vthislist.tail
+      val thatnode = vthatlist.head
+      vthatlist = vthatlist.tail
+      tryReuseListElem(thisnode, thatnode, vthisparent, vthisparentTag, vlink, edits) match {
         case Some(reusednode) =>
           // could reuse node
-          val hasParentChanged = thisparent != thatparent
+          val hasParentChanged = vthisparent != vthatparent
           if (hasParentChanged || thisnode.uri != reusednode.uri) {
-            edits += Detach(reusednode.uri, reusednode.tag, link, thisparent, thisparentTag)
-            edits += Attach(reusednode.uri, reusednode.tag, link, thatparent, thatparentTag)
+            edits += Detach(reusednode.uri, reusednode.tag, vlink, vthisparent, vthisparentTag)
+            edits += Attach(reusednode.uri, reusednode.tag, vlink, vthatparent, vthatparentTag)
           }
-          val newlist = computeEditScriptLists(thislist, thatlist, thisnode.uri, thisnode.tag, reusednode.uri, reusednode.tag, ListNextLink(atype), edits)
-          reusednode +: newlist
+          result += reusednode
+          vthisparent = thisnode.uri
+          vthisparentTag = thisnode.tag
+          vthatparent = reusednode.uri
+          vthatparentTag = reusednode.tag
+          vlink = NEXT
         case None =>
           // need to unload thisnode and load thatnode
-          edits += Detach(thisnode.uri, thisnode.tag, link, thisparent, thisparentTag)
+          edits += Detach(thisnode.uri, thisnode.tag, vlink, vthisparent, vthisparentTag)
           thisnode.unloadUnassigned(edits)
           val newtree = thatnode.loadUnassigned(edits)
-          edits += Attach(newtree.uri, newtree.tag, link, thatparent, thatparentTag)
-          val newlist = computeEditScriptLists(thislist, thatlist, thisnode.uri, thisnode.tag, newtree.uri, newtree.tag ,ListNextLink(atype), edits)
-          newtree +: newlist
+          edits += Attach(newtree.uri, newtree.tag, vlink, vthatparent, vthatparentTag)
+          result += newtree
+          vthisparent = thisnode.uri
+          vthisparentTag = thisnode.tag
+          vthatparent = newtree.uri
+          vthatparentTag = newtree.tag
+          vlink = NEXT
       }
+    }
+
+    // load remaining thatlist nodes
+    while (vthatlist.nonEmpty) {
+      val thatnode = vthatlist.head
+      vthatlist = vthatlist.tail
+      val newtree = thatnode.loadUnassigned(edits)
+      edits += Attach(newtree.uri, newtree.tag, vlink, vthatparent, vthatparentTag)
+      result += newtree
+      vthatparent = newtree.uri
+      vthatparentTag = newtree.tag
+      vlink = NEXT
+    }
+
+    // unload remaining thislist nodes
+    while (vthislist.nonEmpty) {
+      val thisnode = vthislist.head
+      vthislist = vthislist.tail
+      edits += Detach(thisnode.uri, thisnode.tag, vlink, vthisparent, vthisparentTag)
+      thisnode.unloadUnassigned(edits)
+      vthisparent = thisnode.uri
+      vthisparentTag = thisnode.tag
+    }
+
+    result.toList
   }
 
   private[truediff] def tryReuseListElem(thisnode: Diffable, thatnode: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Option[Diffable] = {

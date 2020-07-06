@@ -9,7 +9,7 @@ trait Diffable extends Hashable {
   protected var _uri: URI = new JVMURI
   def uri: URI = _uri
 
-  def tag: Tag = NamedTag(this.getClass.getCanonicalName)
+  val tag: Tag = NamedTag(this.getClass.getCanonicalName)
   def sig: Signature
 
   def treeheight: Int

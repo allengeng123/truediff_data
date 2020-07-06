@@ -16,7 +16,6 @@ class ListTests extends AnyFlatSpec with Matchers {
     editscript.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
-    println()
 
     assertResult(dest)(newtree)
 
@@ -39,6 +38,7 @@ class ListTests extends AnyFlatSpec with Matchers {
     loadEditScript.foreach(c => println("  " + c))
     assertResult(None)(loadEditScript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
+    println()
   }
 
 
@@ -78,95 +78,95 @@ class ListTests extends AnyFlatSpec with Matchers {
 
   "diff" should "prune and extend lists" in {
     // load 2, attach 2 to 1.next
-    testEditScript(
-      Many(Num(1) :: Nil),
-      Many(Num(1) :: Num(2) :: Nil),
-      2
-    )
-
-    // load 2, attach 2 to 1.next
-    testEditScript(
-      Add(Many(Num(1) :: Nil), Num(3)),
-      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
-      2
-    )
-
-    // detach 2 from many, load 1, attach 1 to many, attach 2 to 1.next
-    testEditScript(
-      Many(Num(2) :: Nil),
-      Many(Num(1) :: Num(2) :: Nil),
-      4
-    )
-
-    // detach 2 from many, load 1, attach 1 to many, attach 2 to 1.next
-    testEditScript(
-      Add(Many(Num(2) :: Nil), Num(3)),
-      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
-      4
-    )
-
-    // load 2, detach 3 from 1.next, attach 2 to 1.next, attach 3 to 2.next
-    testEditScript(
-      Many(Num(1) :: Num(3) :: Nil),
-      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
-      4
-    )
-
-    // load 2, detach 3 from 1.next, attach 2 to 1.next, attach 3 to 2.next
-    testEditScript(
-      Add(Many(Num(1) :: Num(3) :: Nil), Num(3)),
-      Add(Many(Num(1) :: Num(2) :: Num(3) :: Nil), Num(3)),
-      4
-    )
-
-    // unload 2
-    testEditScript(
-      Many(Num(1) :: Num(2) :: Nil),
-      Many(Num(1) :: Nil),
-      2
-    )
-
-    // unload 2
-    testEditScript(
-      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
-      Add(Many(Num(1) :: Nil), Num(3)),
-      2
-    )
-
-    // detach 2 from 1.next, unload 1, attach 2 to many
-    testEditScript(
-      Many(Num(1) :: Num(2) :: Nil),
-      Many(Num(2) :: Nil),
-      4
-    )
-
-    // detach 2 from 1.next, unload 1, attach 2 to many
-    testEditScript(
-      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
-      Add(Many(Num(2) :: Nil), Num(3)),
-      4
-    )
-
-    // detach 3 from 2.next, unload 2, attach 3 to 1.next
-    testEditScript(
-      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
-      Many(Num(1) :: Num(3) :: Nil),
-      4
-    )
-
-    // detach 3 from 2.next, unload 2, attach 3 to 1.next
-    testEditScript(
-      Add(Many(Num(1) :: Num(2) :: Num(3) :: Nil), Num(3)),
-      Add(Many(Num(1) :: Num(3) :: Nil), Num(3)),
-      4
-    )
-
-    // load 3, attach 3 to 2.next
-    testEditScript(
-      Many(Num(1) :: Num(2) :: Nil),
-      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
-      2
-    )
+//    testEditScript(
+//      Many(Num(1) :: Nil),
+//      Many(Num(1) :: Num(2) :: Nil),
+//      2
+//    )
+//
+//    // load 2, attach 2 to 1.next
+//    testEditScript(
+//      Add(Many(Num(1) :: Nil), Num(3)),
+//      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
+//      2
+//    )
+//
+//    // detach 2 from many, load 1, attach 1 to many, attach 2 to 1.next
+//    testEditScript(
+//      Many(Num(2) :: Nil),
+//      Many(Num(1) :: Num(2) :: Nil),
+//      4
+//    )
+//
+//    // detach 2 from many, load 1, attach 1 to many, attach 2 to 1.next
+//    testEditScript(
+//      Add(Many(Num(2) :: Nil), Num(3)),
+//      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
+//      4
+//    )
+//
+//    // load 2, detach 3 from 1.next, attach 2 to 1.next, attach 3 to 2.next
+//    testEditScript(
+//      Many(Num(1) :: Num(3) :: Nil),
+//      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
+//      4
+//    )
+//
+//    // load 2, detach 3 from 1.next, attach 2 to 1.next, attach 3 to 2.next
+//    testEditScript(
+//      Add(Many(Num(1) :: Num(3) :: Nil), Num(3)),
+//      Add(Many(Num(1) :: Num(2) :: Num(3) :: Nil), Num(3)),
+//      4
+//    )
+//
+//    // unload 2
+//    testEditScript(
+//      Many(Num(1) :: Num(2) :: Nil),
+//      Many(Num(1) :: Nil),
+//      2
+//    )
+//
+//    // unload 2
+//    testEditScript(
+//      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
+//      Add(Many(Num(1) :: Nil), Num(3)),
+//      2
+//    )
+//
+//    // detach 2 from 1.next, unload 1, attach 2 to many
+//    testEditScript(
+//      Many(Num(1) :: Num(2) :: Nil),
+//      Many(Num(2) :: Nil),
+//      4
+//    )
+//
+//    // detach 2 from 1.next, unload 1, attach 2 to many
+//    testEditScript(
+//      Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
+//      Add(Many(Num(2) :: Nil), Num(3)),
+//      4
+//    )
+//
+//    // detach 3 from 2.next, unload 2, attach 3 to 1.next
+//    testEditScript(
+//      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
+//      Many(Num(1) :: Num(3) :: Nil),
+//      4
+//    )
+//
+//    // detach 3 from 2.next, unload 2, attach 3 to 1.next
+//    testEditScript(
+//      Add(Many(Num(1) :: Num(2) :: Num(3) :: Nil), Num(3)),
+//      Add(Many(Num(1) :: Num(3) :: Nil), Num(3)),
+//      4
+//    )
+//
+//    // load 3, attach 3 to 2.next
+//    testEditScript(
+//      Many(Num(1) :: Num(2) :: Nil),
+//      Many(Num(1) :: Num(2) :: Num(3) :: Nil),
+//      2
+//    )
 
     // detach 2 from many, load 1, attach 1 to many, attach 2 to 1
     testEditScript(
