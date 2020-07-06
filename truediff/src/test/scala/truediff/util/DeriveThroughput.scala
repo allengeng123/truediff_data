@@ -18,6 +18,5 @@ object DeriveThroughput extends App {
       val diffTime = csvValAsDouble(avgDiffTimes(i))
       println((srcSize + destSize) / diffTime)
     }
-//    println(csv)
   }
 }
