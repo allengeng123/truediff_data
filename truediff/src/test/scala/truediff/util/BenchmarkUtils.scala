@@ -131,5 +131,4 @@ object BenchmarkUtils {
   }
 
   def avg[T](vals: Seq[T])(implicit num: Numeric[T]): Double = if (vals.isEmpty) 0 else num.toDouble(vals.sum) / vals.size
-  def throughput(vals: Seq[Long], nodes: Seq[Int]): Double = avg(nodes) / avg(vals)
 }
