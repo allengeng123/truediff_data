@@ -77,6 +77,7 @@ object DiffableMacro {
         val paramss: Seq[Seq[Tree]] = theparamss.asInstanceOf[Seq[Seq[Tree]]].map(_.map(p => rewriteParam(p)))
         classParamss = theparamss.flatten
         classTp = tq"$tpname[..$tparams]"
+        val thisType = tq"$tpname[..${tparams.map(_ => WildcardType)}]"
 
         oThis = TermName(tpname.toString)
 
@@ -106,7 +107,7 @@ object DiffableMacro {
         def link(p: TermName, tp: Tree) = q"$oNamedLink(${p.toString})"
 
         val superDiffable = parents.find(tp => Util.isSubtypeOf(c)(tp, tyDiffable))
-        val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$tpname[..$tparams]])"
+        val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$thisType])"
         val newparents =
           if (superDiffable.isDefined)
             parents
@@ -161,7 +162,7 @@ object DiffableMacro {
               }
 
             override protected def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
-              case that: $tpname if ${nondiffableCond(q"that")} =>
+              case that: $thisType if ${nondiffableCond(q"that")} =>
                 ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
               case _ =>
                 this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
@@ -179,7 +180,7 @@ object DiffableMacro {
               }}
 
             override protected def computeEditScriptRecurse(that: $tDiffable, parent: $tURI, parentTag: $tNodeTag, link: $tLink, edits: $tEditScriptBuffer): $tDiffable = that match {
-              case that: $tpname if ${nondiffableCond(q"that")} =>
+              case that: $thisType if ${nondiffableCond(q"that")} =>
                 ..${mapAllParamsTyped(
                   (p,t) => q"val $p = this.$p.computeEditScript(that.$p, this.uri, this.tag, ${link(p, t)}, edits).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"

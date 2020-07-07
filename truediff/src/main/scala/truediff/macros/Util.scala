@@ -1,14 +1,18 @@
 package truediff.macros
 
-import scala.reflect.macros.whitebox
+import scala.reflect.macros.{TypecheckException, whitebox}
 
 object Util {
-  def treeType(c: whitebox.Context)(tp: Any) = {
+  def treeType(c: whitebox.Context)(tp: c.Tree): c.Type = {
     import c.universe._
-    val t = q"{type T = ${tp.asInstanceOf[c.Tree]}; ()}"
-    val tt = c.typecheck(t)
-    val q"{type T = $ttp; ()}" = tt
-    ttp.tpe
+    val t = q"{type $$TypeTest = ${tp.asInstanceOf[c.Tree]}; ()}"
+    try {
+      val tt = c.typecheck(t)
+      val q"{type $$TypeTest = $ttp; ()}" = tt
+      ttp.tpe
+    } catch {
+      case _: TypecheckException => typeOf[Any]
+    }
   }
 
   def mapParams[A](c: whitebox.Context)(
