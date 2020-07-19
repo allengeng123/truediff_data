@@ -1,11 +1,9 @@
 package truediff
 
 import java.security.MessageDigest
-import java.util.Base64
 
 trait Hashable {
   val hash: Array[Byte]
-  lazy val hashString: String = Base64.getEncoder.encodeToString(hash)
 }
 
 object Hashable {

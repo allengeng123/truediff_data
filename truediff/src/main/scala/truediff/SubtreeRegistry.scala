@@ -1,9 +1,9 @@
 package truediff
 
-import org.apache.commons.collections4.trie.PatriciaTrie
+import truediff.trie.ByteArrayPatriciaTrie
 
 class SubtreeRegistry {
-  private val subtrees = new PatriciaTrie[SubtreeShare]()
+  private val subtrees = new ByteArrayPatriciaTrie[SubtreeShare]()
 
   def assignShare(t: Diffable): SubtreeShare = {
     if (t.skipNode)
@@ -11,10 +11,10 @@ class SubtreeRegistry {
 
     t.assigned = null
 
-    subtrees.get(t.hashString) match {
+    subtrees.get(t.hash) match {
       case null =>
         val newShare = new SubtreeShare()
-        subtrees.put(t.hashString, newShare)
+        subtrees.put(t.hash, newShare)
         t.share = newShare
         newShare
       case existingShare =>
