@@ -1,5 +1,9 @@
 package truechange
 
+import truechange.Type.Subsorts
+
+import scala.language.implicitConversions
+
 case class EditScript(edits: Seq[Edit]) {
   def size: Int = edits.size
 
@@ -18,6 +22,8 @@ case class EditScript(edits: Seq[Edit]) {
 
     var roots = initRoots
     var stubs = initStubs
+
+    implicit val subsorts: Subsorts = Map()
 
     edits.foreach {
       case Detach(node, tag, NamedLink(name), parent, ptag) =>
@@ -79,7 +85,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        if (!expectedType.isAssignableFrom(nodeType))
+        if (!nodeType.subtypeOf(expectedType))
           return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
 
         // parent.link is a stub
@@ -94,7 +100,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        if (!expectedType.isAssignableFrom(nodeType))
+        if (!nodeType.subtypeOf(expectedType))
           return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
 
         roots -= node
@@ -105,7 +111,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = ty
-        if (!expectedType.isAssignableFrom(nodeType))
+        if (!nodeType.subtypeOf(expectedType))
           return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
 
         roots -= node
@@ -116,7 +122,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = ty
-        if (!expectedType.isAssignableFrom(nodeType))
+        if (!nodeType.subtypeOf(expectedType))
           return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
 
         roots -= node
@@ -136,7 +142,7 @@ case class EditScript(edits: Seq[Edit]) {
           val kidType =
             if (kidnode == null) NothingType
             else roots.getOrElse(kidnode, return Some(s"Load of $node with unfree kid $kidnode"))
-          if (!expectedType.isAssignableFrom(kidType))
+          if (!kidType.subtypeOf(expectedType))
             return Some(s"Cannot load $tag, incompatible type for kid $kidname: Expected $expectedType but got $kidType.")
         }
 

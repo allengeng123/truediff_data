@@ -1,36 +1,44 @@
 package truechange
 
+import truechange.Type.Subsorts
+
 sealed trait Type {
-  def isAssignableFrom(ty: Type): Boolean
+  def subtypeOf(other: Type)(implicit subsorts: Subsorts): Boolean
+}
+object Type {
+  type Subsorts = Map[SortType, Set[SortType]]
 }
 case object NothingType extends Type {
   override def toString: String = "Nothing"
-  override def isAssignableFrom(ty: Type): Boolean = ty == NothingType
+  override def subtypeOf(other: Type)(implicit subsorts: Subsorts): Boolean =
+    other == NothingType
 }
 case object AnyType extends Type {
   override def toString: String = "Any"
-  override def isAssignableFrom(ty: Type): Boolean = true
+  override def subtypeOf(other: Type)(implicit subsorts: Subsorts): Boolean =
+    true
 }
-case class SortType(tag: Class[_]) extends Type {
-  override def toString: String = tag.getSimpleName
+case class SortType(name: String) extends Type {
+  override def toString: String = name
 
-  override def isAssignableFrom(ty: Type): Boolean = ty match {
-    case SortType(tag2) => tag.isAssignableFrom(tag2)
-    case NothingType => true
+  override def subtypeOf(other: Type)(implicit subsorts: Subsorts): Boolean = other match {
+    case AnyType => true
+    case ty: SortType => subsorts.getOrElse(this, Set()).contains(ty)
     case _ => false
   }
 }
 case class ListType(ty: Type) extends Type {
   override def toString: String = s"List[$ty]"
-  override def isAssignableFrom(other: Type): Boolean = other match {
-    case ListType(otherTy) => ty.isAssignableFrom(otherTy)
-    case NothingType => true
+  override def subtypeOf(other: Type)(implicit subsorts: Subsorts): Boolean = other match {
+    case ListType(otherTy) => ty.subtypeOf(otherTy)
+    case AnyRef => true
     case _ => false
   }
 }
 case class OptionType(ty: Type) extends Type {
   override def toString: String = s"Option[$ty]"
-  override def isAssignableFrom(other: Type): Boolean = ty.isAssignableFrom(other)
+  override def subtypeOf(other: Type)(implicit subsorts: Subsorts): Boolean =
+    ty.subtypeOf(other)
 }
 
 trait LitType {

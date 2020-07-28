@@ -9,8 +9,15 @@ trait Diffable extends Hashable {
   protected var _uri: URI = new JVMURI
   def uri: URI = _uri
 
-  val tag: Tag = NamedTag(this.getClass.getCanonicalName)
+  val _tag: Tag = NamedTag(this.getClass.getCanonicalName)
+  def tag: Tag = _tag
+
   def sig: Signature
+  def collectSignatures: Map[Tag, Signature] = {
+    var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
+    this.foreachTree(t => if (!t.skipNode) sigs += t.tag -> t.sig)
+    sigs
+  }
 
   def treeheight: Int
   def treesize: Int

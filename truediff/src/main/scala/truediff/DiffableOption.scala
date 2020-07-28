@@ -28,7 +28,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val toStringWithURI: String = "None"
 
-  final override val tag: Tag = OptionTag(NothingType)
+  final override def tag: Tag = throw new UnsupportedOperationException
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {
@@ -46,9 +46,9 @@ case object DiffableNone extends DiffableOption[Nothing] {
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case DiffableNone => this
     case that: DiffableSome[_] =>
-      val newtree = that.loadUnassigned(edits)
+      val newtree = that.a.loadUnassigned(edits)
       edits += Attach(newtree.uri, newtree.tag, OptionalLink(link), parent, parentTag)
-      newtree
+      DiffableSome(newtree, that.atype)
   }
 
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
@@ -81,7 +81,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 
-  override val tag: Tag = OptionTag(atype)
+  override def tag: Tag = throw new UnsupportedOperationException
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {

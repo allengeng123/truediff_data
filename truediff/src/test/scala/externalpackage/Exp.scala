@@ -13,7 +13,7 @@ object Exp {
 
     override def toStringWithURI: String = s"Hole_$uri()"
 
-    override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map())
+    override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map())
 
     override def foreachSubtree(f: Diffable => Unit): Unit = {
       f(this)
@@ -80,7 +80,7 @@ case class Num(n: Int) extends Exp {
 
   override def treesize: Int = 1
 
-  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map(), Map("n" -> JavaLitType(classOf[Integer])))
+  override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map("n" -> JavaLitType(classOf[Integer])))
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
@@ -148,7 +148,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def toStringWithURI: String = s"Add_$uri(${e1.toStringWithURI}, ${e2.toStringWithURI})"
 
-  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("e1" -> SortType(classOf[Exp]), "e2" -> SortType(classOf[Exp])), Map())
+  override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("e1" -> SortType(classOf[Exp].getCanonicalName), "e2" -> SortType(classOf[Exp].getCanonicalName)), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this)

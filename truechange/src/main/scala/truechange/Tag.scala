@@ -6,9 +6,6 @@ case class NamedTag(c: String) extends Tag {
 }
 object RootTag extends NamedTag("#Root")
 
-case class OptionTag(ty: Type) extends Tag {
-  override def toString: String = s"Option[$ty]"
-}
 case class ListTag(ty: Type) extends Tag {
   override def toString: String = s"List[$ty]"
 }

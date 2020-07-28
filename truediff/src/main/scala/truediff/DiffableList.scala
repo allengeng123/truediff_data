@@ -13,7 +13,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   def apply(i: Int): A = list(i)
   def updated[B >: A <: Diffable](i: Int, elem: B): DiffableList[B] = DiffableList(list.updated(i, elem), atype)
   def map[B <: Diffable](f: A => B)(implicit tag: ClassTag[B]): DiffableList[B] = {
-    val btype = SortType(tag.runtimeClass)
+    val btype = SortType(tag.runtimeClass.getCanonicalName)
     DiffableList(list.map(f), btype)
   }
   def indices: Range = Range(0, length)

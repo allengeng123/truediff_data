@@ -19,9 +19,7 @@ class ListTests extends AnyFlatSpec with Matchers {
 
     assertResult(dest)(newtree)
 
-    var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
-    src.foreachTree(t => sigs += t.tag -> t.sig)
-    dest.foreachTree(t => sigs += t.tag -> t.sig)
+    val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
     assertResult(None)(editscript.welltyped(sigs))
 
     assertResult(expectedChanges)(editscript.size)

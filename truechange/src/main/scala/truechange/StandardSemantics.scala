@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 case class MNode(uri: URI, tag: Tag, kids: mutable.Map[String, MNode], lits: Map[String, Any]) {
   def conformsTo(sigs: Map[Tag, Signature], expectedSort: Type): Unit = {
     val sig = sigs.getOrElse(tag, throw new Exception(s"Cannot find signature of $tag"))
-    if (!expectedSort.isAssignableFrom(sig.sort)) throw new Exception(s"Wrong sort, expected $expectedSort for ${tag}_$uri ~ $sig")
+    if (!sig.sort.subtypeOf(expectedSort)(Map())) throw new Exception(s"Wrong sort, expected $expectedSort for ${tag}_$uri ~ $sig")
 
     if (sig.kids.size != kids.size) throw new Exception(s"Wrong number of kids in ${tag}_$uri ~ $sig")
     for ((name, kidtype) <- sig.kids) {
@@ -32,7 +32,7 @@ class MTree {
   // index of all loaded nodes
   private val index: mutable.Map[URI, MNode] = mutable.Map((null, root))
 
-  // applies a editscript to this
+  // applies an editscript to this
   def patch(edits: EditScript): MTree = {
     edits.foreach(processEdit)
     this

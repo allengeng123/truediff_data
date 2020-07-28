@@ -18,7 +18,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def toStringWithURI: String = s"Maybe_$uri(${a.toStringWithURI})"
 
-  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("a" -> OptionType(SortType(classOf[Exp]))), Map())
+  override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("a" -> OptionType(SortType(classOf[Exp].getCanonicalName))), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this.a)
@@ -78,5 +78,5 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 }
 
 object Maybe {
-  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a.map(a => a), SortType(classOf[Exp])))
+  def apply(a: Option[Exp]): Maybe = Maybe(DiffableOption.from(a.map(a => a), SortType(classOf[Exp].getCanonicalName)))
 }

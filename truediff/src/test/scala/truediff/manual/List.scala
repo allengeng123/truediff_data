@@ -18,7 +18,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def toStringWithURI: String = s"Many_$uri(${es.toStringWithURI})"
 
-  override def sig: Signature = Signature(SortType(classOf[Exp]), this.tag, Map("es" -> ListType(SortType(classOf[Exp]))), Map())
+  override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("es" -> ListType(SortType(classOf[Exp].getCanonicalName))), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {
     f(this.es)
@@ -79,5 +79,5 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 }
 
 object Many {
-  def apply(es: Seq[Exp]): Many = Many(DiffableList.from(es, SortType(classOf[Exp])))
+  def apply(es: Seq[Exp]): Many = Many(DiffableList.from(es, SortType(classOf[Exp].getCanonicalName)))
 }

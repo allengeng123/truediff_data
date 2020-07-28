@@ -107,7 +107,7 @@ object DiffableMacro {
         def link(p: TermName, tp: Tree) = q"$oNamedLink(${p.toString})"
 
         val superDiffable = parents.find(tp => Util.isSubtypeOf(c)(tp, tyDiffable))
-        val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$thisType])"
+        val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$thisType].getCanonicalName)"
         val newparents =
           if (superDiffable.isDefined)
             parents
@@ -288,8 +288,8 @@ object DiffableMacro {
         } else if (ty <:< typeOf[DiffableList[_]]) {
           q"$oListType(${asType(targ)})"
         } else
-          q"$oSortType(classOf[$tp])"
-      case _ => q"$oSortType(classOf[$tp])"
+          q"$oSortType(classOf[$tp].getCanonicalName)"
+      case _ => q"$oSortType(classOf[$tp].getCanonicalName)"
     }
     def paramConverter(tp: Tree, arg: Tree): Tree = tp match {
       case tq"$_[$targ]" =>

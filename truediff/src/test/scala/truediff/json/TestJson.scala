@@ -22,9 +22,7 @@ class TestJson extends AnyFlatSpec with Matchers {
 
     assertResult(dest)(newtree)
 
-    var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)
-    src.foreachTree(t => sigs += t.tag -> t.sig)
-    dest.foreachTree(t => sigs += t.tag -> t.sig)
+    val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
     assertResult(None)(editscript.welltyped(sigs))
 
     newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
