@@ -85,7 +85,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        if (!nodeType.subtypeOf(expectedType))
+        if (!expectedType.isAssignableFrom(nodeType))
           return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
 
         // parent.link is a stub
@@ -100,7 +100,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        if (!nodeType.subtypeOf(expectedType))
+        if (!expectedType.isAssignableFrom(nodeType))
           return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
 
         roots -= node
@@ -111,7 +111,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = ty
-        if (!nodeType.subtypeOf(expectedType))
+        if (!expectedType.isAssignableFrom(nodeType))
           return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
 
         roots -= node
@@ -122,7 +122,7 @@ case class EditScript(edits: Seq[Edit]) {
 
         // kid is attachable to parent.link
         val expectedType = ty
-        if (!nodeType.subtypeOf(expectedType))
+        if (!expectedType.isAssignableFrom(nodeType))
           return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
 
         roots -= node
@@ -142,7 +142,7 @@ case class EditScript(edits: Seq[Edit]) {
           val kidType =
             if (kidnode == null) NothingType
             else roots.getOrElse(kidnode, return Some(s"Load of $node with unfree kid $kidnode"))
-          if (!kidType.subtypeOf(expectedType))
+          if (!expectedType.isAssignableFrom(kidType))
             return Some(s"Cannot load $tag, incompatible type for kid $kidname: Expected $expectedType but got $kidType.")
         }
 
