@@ -16,8 +16,6 @@ class ListTests extends AnyFlatSpec with Matchers {
     editscript.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
-    println()
-
     assertResult(dest)(newtree)
 
     val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
@@ -37,6 +35,7 @@ class ListTests extends AnyFlatSpec with Matchers {
     loadEditScript.foreach(c => println("  " + c))
     assertResult(None)(loadEditScript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
 
+    println()
   }
 
 
@@ -178,6 +177,13 @@ class ListTests extends AnyFlatSpec with Matchers {
       Many(Num(1) :: Num(3) :: Num(4) :: Nil),
       Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
       4
+    )
+
+
+    testEditScript(
+      Many(Num(1) :: Num(2) :: Nil),
+      Many(Num(3) :: Num(1) :: Nil),
+      6
     )
   }
 

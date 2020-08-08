@@ -1,16 +1,9 @@
-image: openjdk:8
+image: hseeberger/scala-sbt:11.0.6_1.3.10_2.13.1
 
 stages:
   - test
 
 before_script:
-  - apt-get update -y
-  - apt-get install apt-transport-https -y
-  ## Install SBT
-  - echo "deb http://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list
-  - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
-  - apt-get update -y
-  - apt-get install sbt -y
   - sbt sbtVersion
 
 test:
