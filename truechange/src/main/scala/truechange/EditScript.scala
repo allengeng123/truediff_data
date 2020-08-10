@@ -168,4 +168,6 @@ case class EditScript(edits: Seq[Edit]) {
 
     None
   }
+
+  def print(): Unit = edits.foreach(e => println("  " + e))
 }

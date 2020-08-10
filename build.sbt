@@ -2,7 +2,7 @@ name := "truechange-truediff"
 
 
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
-ThisBuild / version := "0.1.1"
+ThisBuild / version := "0.1.2-SNAPSHOT"
 ThisBuild / scalaVersion := "2.13.1"
 ThisBuild / homepage := Some(url("https://gitlab.rlp.net/plmz/truediff"))
 ThisBuild / scmInfo := Some(ScmInfo(url("https://gitlab.rlp.net/plmz/truediff"), "git@gitlab.rlp.net:plmz/truediff.git"))
@@ -16,7 +16,11 @@ Global / useGpgPinentry := true
 ThisBuild / scalacOptions += "-target:11"
 
 lazy val root = (project in file("."))
-  .aggregate(truechange, truediff)
+  .aggregate(
+    truechange,
+    truediff,
+    truediff_antlr
+  )
   .settings(skip in publish := true)
 
 lazy val truechange = project.settings(
@@ -42,7 +46,19 @@ lazy val truediff = project.dependsOn(truechange).settings(
   )
 )
 
+lazy val truediff_antlr = (project in file("truediff-antlr")).settings(
+  name := "truediff-antlr",
+  scalacOptions ++= Seq(
+    "-Ymacro-annotations"
+    , "-J-Xss10m"
+  ),
+  libraryDependencies ++= Seq(
+    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1",
+    "org.antlr" % "antlr4" % "4.8-1",
 
+    "org.scalatest" %% "scalatest" % "3.1.0" % "test"
+  )
+)
 
 
 
