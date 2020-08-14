@@ -47,7 +47,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
     case DiffableNone => this
     case that: DiffableSome[_] =>
       val newtree = that.a.loadUnassigned(edits)
-      edits += Attach(newtree.uri, newtree.tag, OptionalLink(link), parent, parentTag)
+      edits += Attach(newtree.uri, newtree.tag, link, parent, parentTag)
       DiffableSome(newtree, that.atype)
   }
 
@@ -101,10 +101,10 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case that: DiffableSome[_] =>
-      val a = this.a.computeEditScript(that.a, parent, parentTag, OptionalLink(link), edits)
+      val a = this.a.computeEditScript(that.a, parent, parentTag, link, edits)
       DiffableSome(a.asInstanceOf[A], atype)
     case DiffableNone =>
-      edits += Detach(this.a.uri, this.a.tag, OptionalLink(link), parent, parentTag)
+      edits += Detach(this.a.uri, this.a.tag, link, parent, parentTag)
       this.a.unloadUnassigned(edits)
       that
   }

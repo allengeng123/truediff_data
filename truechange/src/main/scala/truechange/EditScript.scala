@@ -26,43 +26,24 @@ case class EditScript(edits: Seq[Edit]) {
     implicit val subsorts: Subsorts = Map()
 
     edits.foreach {
-      case Detach(node, tag, NamedLink(name), parent, ptag) =>
+      case Detach(node, tag, link, parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))
           return Some(s"Duplicate detach of node $node")
 
-        // parent.link is not a stub yet
-        if (stubs.contains((parent, NamedLink(name))))
-          return Some(s"Detach of $node from $parent, but $ptag.$name is already a stub")
-
-        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
-        roots += node -> nodeType
-        val stubType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        stubs += (parent, NamedLink(name)) -> stubType
-
-      case Detach(node, tag, OptionalLink(link), parent, ptag) =>
-        // kid is not a root yet
-        if (roots.contains(node))
-          return Some(s"Duplicate detach of node $node")
+        if (trackStub(link, ptag, sigs)) {
+          // parent.link is not a stub yet
+          if (stubs.contains((parent, link)))
+            return Some(s"Detach of $node from $parent, but $ptag.$link is already a stub")
+          targetType(link, ptag, sigs) match {
+            case Left(stubType) => stubs += (parent, link) -> stubType
+            case Right(err) => return Some(err)
+          }
+        }
 
         val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
         roots += node -> nodeType
 
-      case Detach(node, tag, ListFirstLink(ty), parent, ptag) =>
-        // kid is not a root yet
-        if (roots.contains(node))
-          return Some(s"Duplicate detach of node $node")
-
-        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
-        roots += node -> nodeType
-
-      case Detach(node, tag, ListNextLink(ty), parent, ptag) =>
-        // kid is not a root yet
-        if (roots.contains(node))
-          return Some(s"Duplicate detach of node $node")
-
-        val nodeType = sigs.getOrElse(tag, return Some(s"No signature for $tag found")).sort
-        roots += node -> nodeType
 
       case Unload(node, tag, kids, lits) =>
         // node is a root
@@ -79,53 +60,28 @@ case class EditScript(edits: Seq[Edit]) {
 
         roots -= node
 
-      case Attach(node, tag, NamedLink(name), parent, ptag) =>
+
+      case Attach(node, tag, link, parent, ptag) =>
         // kid is a root
         val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
 
         // kid is attachable to parent.link
-        val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        if (!expectedType.isAssignableFrom(nodeType))
-          return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
+        targetType(link, ptag, sigs) match {
+          case Left(expectedType) =>
+            if (!expectedType.isAssignableFrom(nodeType))
+              return Some(s"Cannot attach $node to $ptag.$link, incompatible types: Expected $expectedType but got $nodeType.")
+          case Right(err) => return Some(err)
+        }
 
-        // parent.link is a stub
-        if (!stubs.contains((parent, NamedLink(name))))
-          return Some(s"Attach of $node to $parent with unfree slot $ptag.$name")
-        roots -= node
-        stubs -= ((parent, NamedLink(name)))
-
-      case Attach(node, tag, OptionalLink(NamedLink(name)), parent, ptag) =>
-        // kid is a root
-        val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
-
-        // kid is attachable to parent.link
-        val expectedType = sigs.getOrElse(ptag, return Some(s"No signature for $ptag found")).kids(name)
-        if (!expectedType.isAssignableFrom(nodeType))
-          return Some(s"Cannot attach $node to $ptag.$name, incompatible types: Expected $expectedType but got $nodeType.")
+        if (trackStub(link, ptag, sigs)) {
+          // parent.link is a stub
+          if (!stubs.contains((parent, link)))
+            return Some(s"Attach of $node to $parent with unfree slot $ptag.$link")
+          stubs -= ((parent, link))
+        }
 
         roots -= node
 
-      case Attach(node, tag, link@ListFirstLink(ty), parent, ptag) =>
-        // kid is a root
-        val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
-
-        // kid is attachable to parent.link
-        val expectedType = ty
-        if (!expectedType.isAssignableFrom(nodeType))
-          return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
-
-        roots -= node
-
-      case Attach(node, tag, link@ListNextLink(ty), parent, ptag) =>
-        // kid is a root
-        val nodeType = roots.getOrElse(node, return Some(s"Attach of unfree node $node"))
-
-        // kid is attachable to parent.link
-        val expectedType = ty
-        if (!expectedType.isAssignableFrom(nodeType))
-          return Some(s"Cannot attach $node to $parent.$link, incompatible types: Expected $expectedType but got $nodeType.")
-
-        roots -= node
 
       case Load(node, tag, kids, lits) =>
         val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
@@ -167,6 +123,27 @@ case class EditScript(edits: Seq[Edit]) {
       return Some(s"Dangling slots $stubs")
 
     None
+  }
+
+  def trackStub(link: Link, ptag: Tag, sigs: Map[Tag, Signature]): Boolean = link match {
+    case NamedLink(name) =>
+      val expectedType = sigs.getOrElse(ptag, return true).kids(name)
+      expectedType match {
+        case _: OptionType => false
+        case _ => true
+      }
+    case ListFirstLink(_) => false
+    case ListNextLink(_) => false
+  }
+
+  def targetType(link: Link, ptag: Tag, sigs: Map[Tag, Signature]): Either[Type, String] = link match {
+    case NamedLink(name) =>
+      sigs.get(ptag) match {
+        case Some(sig) => Left(sig.kids(name))
+        case None => Right(s"No signature for $ptag found")
+      }
+    case ListFirstLink(ty) => Left(ty)
+    case ListNextLink(ty) => Left(ty)
   }
 
   def print(): Unit = edits.foreach(e => println("  " + e))

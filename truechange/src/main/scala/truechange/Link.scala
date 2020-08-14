@@ -14,12 +14,6 @@ case class NamedLink(name: String) extends RawLink {
 }
 object RootLink extends NamedLink("#root")
 
-case class OptionalLink(link: Link) extends Link {
-  override def toString: String = super.toString + "?"
-  override def isOptional: Boolean = true
-  override def getRawLink: RawLink = link.getRawLink
-}
-
 case class ListFirstLink(ty: Type) extends RawLink {
   override def toString: String = "#first"
   override def isOptional: Boolean = true
