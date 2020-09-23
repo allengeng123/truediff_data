@@ -22,38 +22,38 @@ class TestHelloWorld extends AnyFunSuite {
     }
 
   testDiff(
-    "truediff/antlr/java/HelloWorld.java",
-    "truediff/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
     0)
 
   testDiff(
-    "truediff/antlr/java/HelloWorld.java",
-    "truediff/antlr/java/HelloWorld_renameParam.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld_renameParam.java",
     4)
 
   testDiff(
-    "truediff/antlr/java/HelloWorld.java",
-    "truediff/antlr/java/HelloWorld_changeStringLit.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld_changeStringLit.java",
     4)
 
   testDiff(
-    "truediff/antlr/java/HelloWorld_renameParam.java",
-    "truediff/antlr/java/HelloWorld_changeStringLit.java",
+    "truediff/compat/antlr/java/HelloWorld_renameParam.java",
+    "truediff/compat/antlr/java/HelloWorld_changeStringLit.java",
     8)
 
   testDiff(
-    "truediff/antlr/java/HelloWorld.java",
-    "truediff/antlr/java/HelloWorld_changedLayout.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld_changedLayout.java",
     0)
 
   testDiff(
-    "truediff/antlr/java/HelloWorld.java",
-    "truediff/antlr/java/HelloWorld_renameClass.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld_renameClass.java",
     4)
 
   testDiff(
-    "truediff/antlr/java/HelloWorld.java",
-    "truediff/antlr/java/HelloWorld_extractMethod.java",
+    "truediff/compat/antlr/java/HelloWorld.java",
+    "truediff/compat/antlr/java/HelloWorld_extractMethod.java",
     28)
 
 }
