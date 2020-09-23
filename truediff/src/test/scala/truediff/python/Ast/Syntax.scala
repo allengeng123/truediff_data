@@ -1,10 +1,11 @@
 package truediff.python.Ast
 
+import truediff.Diffable
 import truediff.macros.diffable
 
 @diffable case class identifier(name: String)
 
-@diffable trait file
+@diffable trait file extends Diffable
 object file {
   case class File(body: Seq[stmt]) extends file
 }
