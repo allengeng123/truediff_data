@@ -14,7 +14,7 @@ object DiffableOption {
 }
 
 case object DiffableNone extends DiffableOption[Nothing] {
-  override val hash: Array[Byte] = {
+  override val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
     digest.digest()
@@ -66,10 +66,10 @@ case object DiffableNone extends DiffableOption[Nothing] {
 }
 
 final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends DiffableOption[A] {
-  override val hash: Array[Byte] = {
+  override val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(a.hash)
+    digest.update(a.cryptoHash)
     digest.digest()
   }
 

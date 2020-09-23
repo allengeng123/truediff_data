@@ -5,10 +5,10 @@ import truediff.{SubtreeRegistry, _}
 
 case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
-  lazy val hash: Array[Byte] = {
+  lazy val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(a.hash)
+    digest.update(a.cryptoHash)
     digest.digest()
   }
 

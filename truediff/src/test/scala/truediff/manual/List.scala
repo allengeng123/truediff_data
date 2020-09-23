@@ -5,10 +5,10 @@ import truediff.{SubtreeRegistry, _}
 
 case class Many(es: DiffableList[Exp]) extends Exp {
 
-  lazy val hash: Array[Byte] = {
+  lazy val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(es.hash)
+    digest.update(es.cryptoHash)
     digest.digest()
   }
 

@@ -127,11 +127,11 @@ object DiffableMacro {
                 this.getClass.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
-            override lazy val hash: $tArray[$tByte] = {
+            override lazy val cryptoHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               digest.update(this.getClass.getCanonicalName.getBytes)
               ..${Util.mapParams(c)(paramss, tyHashable,
-                p => q"digest.update(this.$p.hash)",
+                p => q"digest.update(this.$p.cryptoHash)",
                 p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()

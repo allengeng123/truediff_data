@@ -23,43 +23,53 @@ lazy val root = (project in file("."))
   )
   .settings(skip in publish := true)
 
-lazy val truechange = project.settings(
-  name := "truechange",
-  libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value
+lazy val truechange = project
+  .settings(
+    name := "truechange",
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value
   )
 )
 
-lazy val truediff = project.dependsOn(truechange).settings(
-  name := "truediff",
-  scalacOptions ++= Seq(
-    "-Ymacro-annotations"
-    , "-J-Xss10m"
-  ),
-  libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-    "org.apache.commons" % "commons-collections4" % "4.4",
+lazy val truediff = project
+  .dependsOn(truechange)
+  .settings(
+    name := "truediff",
+    scalacOptions ++= Seq(
+      "-Ymacro-annotations"
+      , "-J-Xss10m"
+    ),
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      "org.apache.commons" % "commons-collections4" % "4.4",
 
-    "org.scalactic" %% "scalactic" % "3.1.0" % "test",
-    "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-    "com.lihaoyi" %% "fastparse" % "2.1.3" % "test"
+      "org.scalactic" %% "scalactic" % "3.1.0" % "test",
+      "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+      "com.lihaoyi" %% "fastparse" % "2.1.3" % "test"
+    )
+)
+
+lazy val truediff_antlr = (project in file("truediff-antlr"))
+  .dependsOn(truediff)
+  .settings(
+    name := "truediff-antlr",
+    libraryDependencies ++= Seq(
+      "org.antlr" % "antlr4" % "4.8-1",
+
+      "org.scalatest" %% "scalatest" % "3.1.0" % "test"
   )
 )
 
-lazy val truediff_antlr = (project in file("truediff-antlr")).settings(
-  name := "truediff-antlr",
-  scalacOptions ++= Seq(
-    "-Ymacro-annotations"
-    , "-J-Xss10m"
-  ),
-  libraryDependencies ++= Seq(
-    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1",
-    "org.antlr" % "antlr4" % "4.8-1",
+lazy val truediff_gumtree = (project in file("truediff-gumtree"))
+  .dependsOn(truediff)
+  .settings(
+    name := "truediff-gumtree",
+    libraryDependencies ++= Seq(
+      "com.github.gumtreediff" % "core" % "2.1.2",
 
-    "org.scalatest" %% "scalatest" % "3.1.0" % "test"
+      "org.scalatest" %% "scalatest" % "3.1.0" % "test"
   )
 )
-
 
 
 

@@ -1,4 +1,4 @@
-package truediff.antlr.java.parser;
+package truediff.compat.antlr.java;
 
 public class HelloWorldRenamed {
    public static void main(String[] args) { 

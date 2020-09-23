@@ -1,5 +1,5 @@
 // Generated from Java8Parser.g4 by ANTLR 4.7.1
-package truediff.antlr.java.parser;
+package truediff.compat.antlr.java.parser;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.ATN;

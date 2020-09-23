@@ -1,4 +1,4 @@
-package truediff.antlr
+package truediff.compat.antlr
 
 import org.antlr.v4.runtime.tree.{ParseTree, RuleNode, TerminalNode}
 import org.antlr.v4.runtime.{ParserRuleContext, RuleContext}
@@ -35,13 +35,13 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
       case _ => None
     }
 
-  override val hash: Array[Byte] = {
+  override val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     Hashable.hash(ctx.getRuleIndex, digest)
     for (i <- 0 until ctx.getChildCount) {
       ctx.getChild(i) match {
         case node: RuleNode =>
-          digest.update(mapper.diffable(node.getRuleContext).hash)
+          digest.update(mapper.diffable(node.getRuleContext).cryptoHash)
         case node: TerminalNode =>
           Hashable.hash(node.getSymbol.getText, digest)
       }

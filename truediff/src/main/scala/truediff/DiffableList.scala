@@ -251,10 +251,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     }
   }
 
-  override lazy val hash: Array[Byte] = {
+  override lazy val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    this.list.foreach(t => digest.update(t.hash))
+    this.list.foreach(t => digest.update(t.cryptoHash))
     digest.digest()
   }
 }

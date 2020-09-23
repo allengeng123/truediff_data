@@ -58,7 +58,7 @@ object Exp {
         edits += Unload(this.uri, this.tag, Seq(), Seq())
     }
 
-    lazy val hash: Array[Byte] = {
+    lazy val cryptoHash: Array[Byte] = {
       val digest = Hashable.mkDigest
       this.getClass.getCanonicalName.getBytes
       digest.digest()
@@ -69,7 +69,7 @@ object Exp {
 
 case class Num(n: Int) extends Exp {
 
-  lazy val hash: Array[Byte] = {
+  lazy val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
     Hashable.hash(this.n, digest)
@@ -134,11 +134,11 @@ case class Num(n: Int) extends Exp {
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
 
-  override lazy val hash: Array[Byte] = {
+  override lazy val cryptoHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(this.e1.hash)
-    digest.update(this.e2.hash)
+    digest.update(this.e1.cryptoHash)
+    digest.update(this.e2.cryptoHash)
     digest.digest()
   }
 

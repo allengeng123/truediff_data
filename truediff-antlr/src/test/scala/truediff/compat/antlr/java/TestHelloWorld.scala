@@ -1,8 +1,8 @@
-package truediff.antlr.java
+package truediff.compat.antlr.java
 
 import org.scalatest.funsuite.AnyFunSuite
-import truediff.antlr.RuleContextMapper
-import truediff.antlr.java.parser.Java8Parser
+import truediff.compat.antlr.RuleContextMapper
+import truediff.compat.antlr.java.parser.Java8Parser
 
 class TestHelloWorld extends AnyFunSuite {
 

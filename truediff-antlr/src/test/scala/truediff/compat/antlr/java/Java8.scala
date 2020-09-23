@@ -1,7 +1,7 @@
-package truediff.antlr.java
+package truediff.compat.antlr.java
 
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
-import truediff.antlr.java.parser.{Java8Lexer, Java8Parser}
+import truediff.compat.antlr.java.parser.{Java8Lexer, Java8Parser}
 
 object Java8 {
   def parseCompilationUnit(resourcePath: String): Java8Parser.CompilationUnitContext = {

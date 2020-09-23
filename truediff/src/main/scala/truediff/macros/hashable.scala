@@ -33,12 +33,12 @@ object HashableMacro {
           $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents with $tHashable { $self =>
             ..$stats
 
-            override lazy val hash: $tArray[$tByte] = {
+            override lazy val cryptoHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               digest.update(this.getClass.getCanonicalName.getBytes)
               ..${Util.mapParams(c)(paramss, tyHashasble,
                 p => q"digest.update(this.$p.hash)",
-                p => q"$oHashable.hash(this.$p, digest)"
+                p => q"$oHashable.cryptoHash(this.$p, digest)"
               )}
               digest.digest()
             }
@@ -50,7 +50,7 @@ object HashableMacro {
           $mods object $tname extends { ..$earlydefns } with ..$parents with $tHashable  { $self =>
             ..${body.map(b => Util.addAnnotation(c)(b, annoHashable, _ => true))}
 
-            override lazy val hash: $tArray[$tByte] = {
+            override lazy val cryptoHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               digest.update(this.getClass.getCanonicalName.getBytes)
               digest.digest()

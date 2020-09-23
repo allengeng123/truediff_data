@@ -1,4 +1,4 @@
-package truediff.antlr
+package truediff.compat.antlr
 
 import org.antlr.v4.runtime.RuleContext
 import org.antlr.v4.runtime.tree.RuleNode

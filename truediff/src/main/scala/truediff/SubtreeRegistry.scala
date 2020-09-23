@@ -11,10 +11,10 @@ class SubtreeRegistry {
 
     t.assigned = null
 
-    subtrees.get(t.hash) match {
+    subtrees.get(t.cryptoHash) match {
       case null =>
         val newShare = new SubtreeShare()
-        subtrees.put(t.hash, newShare)
+        subtrees.put(t.cryptoHash, newShare)
         t.share = newShare
         newShare
       case existingShare =>

@@ -3,7 +3,7 @@ package truediff
 import java.security.MessageDigest
 
 trait Hashable {
-  val hash: Array[Byte]
+  val cryptoHash: Array[Byte]
 }
 
 object Hashable {
