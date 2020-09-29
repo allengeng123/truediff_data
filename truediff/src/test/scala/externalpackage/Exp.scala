@@ -151,8 +151,9 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("e1" -> SortType(classOf[Exp].getCanonicalName), "e2" -> SortType(classOf[Exp].getCanonicalName)), Map())
 
   override def foreachSubtree(f: Diffable => Unit): Unit = {
-    f(this)
+    f(this.e1)
     this.e1.foreachSubtree(f)
+    f(this.e2)
     this.e2.foreachSubtree(f)
   }
 

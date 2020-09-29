@@ -1,0 +1,9 @@
+identifier
+raw_string_literal
+interpreted_string_literal
+escape_sequence
+int_literal
+float_literal
+imaginary_literal
+rune_literal
+comment

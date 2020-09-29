@@ -47,7 +47,7 @@ lazy val truediff = project
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
       "com.lihaoyi" %% "fastparse" % "2.1.3" % "test"
     )
-)
+  )
 
 lazy val truediff_antlr = (project in file("truediff-antlr"))
   .dependsOn(truediff)
@@ -57,8 +57,8 @@ lazy val truediff_antlr = (project in file("truediff-antlr"))
       "org.antlr" % "antlr4" % "4.8-1",
 
       "org.scalatest" %% "scalatest" % "3.1.0" % "test"
+    )
   )
-)
 
 lazy val truediff_gumtree = (project in file("truediff-gumtree"))
   .dependsOn(truediff)
@@ -68,8 +68,18 @@ lazy val truediff_gumtree = (project in file("truediff-gumtree"))
       "com.github.gumtreediff" % "core" % "2.1.2",
 
       "org.scalatest" %% "scalatest" % "3.1.0" % "test"
+    )
   )
-)
+
+lazy val truediff_treesitter = (project in file("truediff-treesitter"))
+  .dependsOn(truediff)
+  .settings(
+    name := "truediff-treesitter",
+    resolvers += Resolver.mavenLocal,
+    libraryDependencies ++= Seq(
+      "net.java.dev.jna" % "jna" % "5.6.0",
+    ),
+  )
 
 
 

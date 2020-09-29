@@ -337,7 +337,7 @@ object DiffableMacro {
 
     if (annottees.size > 1 || !hasCollectionParam) {
       val res = q"{..$mappedAnnottees}"
-      println(res)
+//      println(res)
       res
     } else {
       val companion =
@@ -347,7 +347,7 @@ object DiffableMacro {
             }
           """
       val extendedRes = q"{${mappedAnnottees.head}; $companion}"
-      println(extendedRes)
+//      println(extendedRes)
       extendedRes
     }
 
