@@ -1,11 +1,12 @@
 package truediff.json
 
+import truediff.Diffable
 import truediff.macros.diffable
 
 // adapted from https://github.com/lihaoyi/fastparse/blob/master/fastparse/test/src/fastparse/JsonTests.scala
 
 @diffable
-sealed trait Js {
+sealed trait Js extends Diffable {
   def value: Any
 }
 object Js {

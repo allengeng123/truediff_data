@@ -8,9 +8,16 @@ import truediff.util.CSVUtil.{CSVRow, csvRowToString}
 import scala.io.Source
 
 object BenchmarkUtils {
-  case class Measurement(name: String, srcSize: Int, srcHeight: Int, destSize: Int, destHeight: Int, vals: Seq[Long], editScript: EditScript, extra: Map[String, Any] = Map()) {
+  type TruediffMeasurement = Measurement[EditScript]
+
+  case class Measurement[ES <: {def size: Int}](name: String, srcSize: Int, srcHeight: Int, destSize: Int, destHeight: Int, vals: Seq[Long], editScript: ES, extra: Map[String, Any] = Map()) {
+    val valsWithoutOutliers: Seq[Long] = {
+      val ordered = vals.sorted
+      ordered.dropRight((vals.size * 0.1).toInt)
+    }
+
     override def toString: String = {
-      val diffTime = avg(vals)
+      val diffTime = avg(valsWithoutOutliers)
       val text = s"""
          |Measurement $name
          |  Src tree size:     $srcSize
@@ -23,20 +30,21 @@ object BenchmarkUtils {
         text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
     }
 
-    def extend(newExtras: Map[String, Any]): Measurement = {
+    def extend(newExtras: Map[String, Any]): Measurement[ES] = {
       Measurement(name, srcSize, srcHeight, destSize, destHeight, vals, editScript, extra ++ newExtras)
     }
 
     val csvHeader: String = s"Filename,Src tree size,Dest tree size,Src tree height,Dest tree height,EditScript size,Average Diffing time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
 
     val csv: CSVRow = {
-      val diffTime = ms(avg(vals))
+
+      val diffTime = ms(avg(valsWithoutOutliers))
 //      s"$name, $srcSize, $destSize, ${editScript.size}, $diffTime${if (extra.isEmpty) ", " else extra.values.mkString(", ", ", ", ", ")}${BenchmarkUtils.toCSVRow(vals)}"
-      IndexedSeq(name, srcSize, destSize, srcHeight, destHeight, editScript.size, diffTime) ++ extra.values ++ vals
+      IndexedSeq(name, srcSize, destSize, srcHeight, destHeight, editScript.size, diffTime) ++ extra.values ++ valsWithoutOutliers
     }
   }
 
-  def measurementsToCSV(measurements: Seq[Measurement]): String =
+  def measurementsToCSV(measurements: Seq[Measurement[_]]): String =
     if (measurements.isEmpty) ""
     else measurements.head.csvHeader + "\n" + measurements.map { m => csvRowToString(m.csv) }.mkString("\n")
 
@@ -121,10 +129,11 @@ object BenchmarkUtils {
     var setuptimes: Seq[Long] = Nil
     var times: Seq[Long] = Nil
     for (_ <- 1 to timing.repeat) {
-      val (input, setuptime) = time(setup())
+      val setupRes = time(setup())
+      input = setupRes._1
       val (res, blocktime) = time(block(input))
       result = res
-      setuptimes = setuptimes :+ setuptime
+      setuptimes = setuptimes :+ setupRes._2
       times = times :+ blocktime
     }
     (input, result, setuptimes, times)

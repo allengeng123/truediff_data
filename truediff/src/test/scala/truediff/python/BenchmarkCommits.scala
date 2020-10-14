@@ -15,7 +15,7 @@ object BenchmarkCommits extends App {
   private def getCommitNumber(f: File): Int =
     f.getName.substring(s"$projectName-".length, f.getName.lastIndexOf('-')).toInt
 
-  private def benchmark()(implicit timing: Timing): Seq[Measurement] = {
+  private def benchmark()(implicit timing: Timing): Seq[TruediffMeasurement] = {
     val rootDir = new File(s"benchmark/python_$projectName")
     // Measure the first 100 commits
     val commits = rootDir.listFiles()
@@ -58,14 +58,15 @@ object BenchmarkCommits extends App {
             val res = Some(Measurement(s"${commit.getName}/${file.getName}", tree._1.treesize, tree._1.treeheight, tree._2.treesize, tree._2.treeheight, diffTimes, editscript))
             println(csvRowToString(res.get.csv))
             res
-          } else Option.empty[Measurement]
-        } else Option.empty[Measurement]
+          } else Option.empty[TruediffMeasurement]
+        } else Option.empty[TruediffMeasurement]
       }
     }
   }
 
   // collect data
-  val measurements = benchmark()(Timing(discard = 10, repeat = 50))
+  benchmark()(Timing(discard = 0, repeat = 1)) // <- this is warmup
+  val measurements = benchmark()(nowarmup(repeat = 20))
   // what data do we want to collect?
 //  val derivedMeasurements = measurements.map { m =>
 //    val extra = Map("Throughput (ms)" -> ms(throughput(m.vals, Seq(m.destSize))))

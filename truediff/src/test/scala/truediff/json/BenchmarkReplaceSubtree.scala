@@ -56,7 +56,7 @@ object BenchmarkReplaceSubtree extends App {
 
   val jsons = files("benchmark/json")
 
-  def measure(jstree: () => Js, fieldtree: () => Field)(implicit timing: Timing): Seq[Measurement] = {
+  def measure(jstree: () => Js, fieldtree: () => Field)(implicit timing: Timing): Seq[TruediffMeasurement] = {
     jsons.flatMap { json =>
       val content = readFile(json.getAbsolutePath)
       val (tree, (editscript, _), parseTimes, diffTimes) = timed(() => Parser.parse(content), (t: Js) => t.compareTo(t))
