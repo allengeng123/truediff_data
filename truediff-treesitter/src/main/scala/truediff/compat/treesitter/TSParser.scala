@@ -12,6 +12,7 @@ class TSParser(lang: TSLanguagePointer, tokenNodes: Set[String]) {
     val cursor = lib.ts_tree_cursor_new(root)
     val cursorRef = cursor.asReference()
     val diffable = DiffableTSNode.importTreeSitter(cursorRef, root, tokenNodes, code)
+    println(lib.ts_node_string(root))
     lib.ts_tree_cursor_delete(cursorRef)
     lib.ts_tree_delete(tree)
     diffable

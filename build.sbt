@@ -61,7 +61,7 @@ lazy val truediff_antlr = (project in file("truediff-antlr"))
   )
 
 lazy val truediff_gumtree = (project in file("truediff-gumtree"))
-  .dependsOn(truediff)
+  .dependsOn(truediff % "compile->compile;test->test")
   .settings(
     name := "truediff-gumtree",
     libraryDependencies ++= Seq(

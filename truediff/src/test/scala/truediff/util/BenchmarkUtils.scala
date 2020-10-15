@@ -10,10 +10,17 @@ import scala.io.Source
 object BenchmarkUtils {
   type TruediffMeasurement = Measurement[EditScript]
 
-  case class Measurement[ES <: {def size: Int}](name: String, srcSize: Int, srcHeight: Int, destSize: Int, destHeight: Int, vals: Seq[Long], editScript: ES, extra: Map[String, Any] = Map()) {
+  object Measurement {
+    def apply[ES <: {def size: Int}](name: String, srcSize: Int, srcHeight: Int, destSize: Int, destHeight: Int, vals: Seq[Long], editScript: ES, extra: Map[String, Any] = Map())(implicit timing: Timing): Measurement[ES] = {
+      val outliers = timing.outliers
+      Measurement(name, srcSize, srcHeight, destSize, destHeight, vals, outliers, editScript, extra)
+    }
+  }
+
+  case class Measurement[ES <: {def size: Int}](name: String, srcSize: Int, srcHeight: Int, destSize: Int, destHeight: Int, vals: Seq[Long], outliers: Int, editScript: ES, extra: Map[String, Any]) {
     val valsWithoutOutliers: Seq[Long] = {
       val ordered = vals.sorted
-      ordered.dropRight((vals.size * 0.1).toInt)
+      ordered.dropRight(outliers)
     }
 
     override def toString: String = {
@@ -31,7 +38,7 @@ object BenchmarkUtils {
     }
 
     def extend(newExtras: Map[String, Any]): Measurement[ES] = {
-      Measurement(name, srcSize, srcHeight, destSize, destHeight, vals, editScript, extra ++ newExtras)
+      Measurement(name, srcSize, srcHeight, destSize, destHeight, vals, outliers, editScript, extra ++ newExtras)
     }
 
     val csvHeader: String = s"Filename,Src tree size,Dest tree size,Src tree height,Dest tree height,EditScript size,Average Diffing time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
@@ -105,7 +112,7 @@ object BenchmarkUtils {
     (result, t1 - t0)
   }
 
-  case class Timing(discard: Int, repeat: Int)
+  case class Timing(discard: Int, repeat: Int, outliers: Int = 0)
   def warmup(discard: Int): Timing = Timing(discard, 0)
   def nowarmup(repeat: Int): Timing = Timing(0, repeat)
 

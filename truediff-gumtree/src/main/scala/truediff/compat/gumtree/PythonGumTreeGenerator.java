@@ -29,12 +29,16 @@ import com.github.gumtreediff.tree.TreeContext;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Register(id = "python-pythonparser", accept = {"\\.py$"}, priority = Registry.Priority.MAXIMUM)
 public class PythonGumTreeGenerator extends ExternalProcessTreeGenerator {
@@ -56,6 +60,10 @@ public class PythonGumTreeGenerator extends ExternalProcessTreeGenerator {
 
     private DiffableGumTreeContext context;
 
+    public String generateXml(String input) throws IOException {
+        return readStandardOutput(new StringReader(input));
+    }
+
     @Override
     public DiffableGumTreeContext generate(Reader r) throws IOException {
         lr = new LineReader(r);
@@ -63,11 +71,22 @@ public class PythonGumTreeGenerator extends ExternalProcessTreeGenerator {
         return getTreeContext(output);
     }
 
-    public DiffableGumTreeContext getTreeContext(String xml) {
+    public DiffableGumTreeContext generateFromXml(String xml, String[] lines) {
+        lr = new LineReader(null) {
+            @Override
+            public int positionFor(int line, int column) {
+                return lines[line - 1].length() + column - 1;
+            }
+        };
+        return getTreeContext(xml);
+    }
+
+    private DiffableGumTreeContext getTreeContext(String xml) {
         XMLInputFactory fact = XMLInputFactory.newInstance();
         context = new DiffableGumTreeContext();
         try {
             ArrayDeque<ITree> trees = new ArrayDeque<>();
+            xml = xml.replace('\u0008', '@').replace('\u001b', '@');
             XMLEventReader r = fact.createXMLEventReader(new StringReader(xml));
             while (r.hasNext()) {
                 XMLEvent ev = r.nextEvent();
@@ -91,10 +110,9 @@ public class PythonGumTreeGenerator extends ExternalProcessTreeGenerator {
             }
             context.validate();
             return context;
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (XMLStreamException e) {
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     private void setPos(ITree t, StartElement e) {

@@ -53,6 +53,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     (thislist, thatlist)
   }
 
+
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableList[A] =>
 
