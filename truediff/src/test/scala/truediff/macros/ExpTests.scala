@@ -74,7 +74,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Add(Num(10), Num(13)),
       Add(Num(13), Num(13)),
-      4
+      1
     )
 
     // should yield editscript:
@@ -82,7 +82,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Add(Num(13), Num(10)),
       Add(Num(13), Num(13)),
-      4
+      1
     )
   }
 
@@ -93,7 +93,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Num(2), Add(Num(2), Num(3))),
-      4 + 4
+      5
     )
 
     // [detach Add(a,b), detach a, unload a,
@@ -101,19 +101,15 @@ class ExpTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Add(Add(Var("a"), Var("b")), Var("c")),
       Add(Var("a"), Add(Var("a"), Var("b"))),
-      6
+      5
     )
 
     // Note that the tree in which `2` occurs is higher than the one of `2+3`.
     // This test requires a piecewise height-first traversal of subtrees, such that `2+3` is visited before `2`.
-    // [detach 1, unload 1,
-    //  detach (3+(2+3)), unload (3+(2+3)), unload 3,
-    //  load 2, load 0, load 0, load (0+0), load (2+(0+0)),
-    //  attach (2+(0+0)), attach (2+3)]
     testEditScript(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Add(Num(2), Add(Num(0), Num(0))), Add(Num(2), Num(3))),
-      12
+      10
     )
   }
 

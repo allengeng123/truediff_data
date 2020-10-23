@@ -44,6 +44,7 @@ object DiffableMacro {
     val oNamedLink = symbolOf[NamedLink].companion
     val oLoadNode = symbolOf[Load].companion
     val oUnloadNode = symbolOf[Unload].companion
+    val oUpdateLiteralsNode = symbolOf[UpdateLiterals].companion
 
     val tEditScriptBuffer = symbolOf[EditScriptBuffer]
 
@@ -101,6 +102,8 @@ object DiffableMacro {
 
         def nondiffableCond(other: Tree) =
           Util.reduceInfix(c)(mapNonDiffableParams(p => q"this.$p == $other.$p"), TermName("$amp$amp"), q"")
+        def nondiffableCondNegated(other: Tree) =
+          Util.reduceInfix(c)(mapNonDiffableParams(p => q"this.$p != $other.$p"), TermName("$bar$bar"), q"")
 
         val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
 
@@ -127,11 +130,11 @@ object DiffableMacro {
                 this.getClass.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
-            override lazy val cryptoHash: $tArray[$tByte] = {
+            override lazy val identityHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               digest.update(this.getClass.getCanonicalName.getBytes)
               ..${Util.mapParams(c)(paramss, tyHashable,
-                p => q"digest.update(this.$p.cryptoHash)",
+                p => q"digest.update(this.$p.identityHash)",
                 p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
@@ -156,10 +159,6 @@ object DiffableMacro {
                 Map(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, ${asType(t)})")}),
                 Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})
             )
-
-            override def foreachSubtree(f: $tDiffable => $tUnit): $tUnit = {
-                ..${mapDiffableParams(p => q"f(this.$p); this.$p.foreachSubtree(f)")}
-              }
 
             override protected def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
               case that: $thisType if ${nondiffableCond(q"that")} =>
@@ -191,10 +190,27 @@ object DiffableMacro {
               case _ => null
             }
 
+            override def updateLiterals(that: $tDiffable, edits: $tEditScriptBuffer): $tDiffable = that match {
+             case that: $thisType =>
+                if (${nondiffableCondNegated(q"that")}) {
+                  edits += $oUpdateLiteralsNode(this.uri, this.tag,
+                    $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")}),
+                    $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, that.$p)")})
+                  )
+                }
+
+                ..${mapDiffableParamsTyped(
+                  (p,t) => q"val $p = this.$p.updateLiterals(that.$p, edits).asInstanceOf[$t]"
+                )}
+                val newtree = $oThis(..${mapAllParams(p => q"$p", p => q"that.$p")})
+                newtree._uri = this.uri
+                newtree
+            }
+
             override def loadUnassigned(edits: $tEditScriptBuffer): $tDiffable = {
               val that = this
               if (that.assigned != null) {
-                return that.assigned
+                return that.assigned.updateLiterals(that, edits)
               }
 
               ..${mapAllParamsTyped(
@@ -337,7 +353,7 @@ object DiffableMacro {
 
     if (annottees.size > 1 || !hasCollectionParam) {
       val res = q"{..$mappedAnnottees}"
-//      println(res)
+      println(res)
       res
     } else {
       val companion =
@@ -347,7 +363,7 @@ object DiffableMacro {
             }
           """
       val extendedRes = q"{${mappedAnnottees.head}; $companion}"
-//      println(extendedRes)
+      println(extendedRes)
       extendedRes
     }
 

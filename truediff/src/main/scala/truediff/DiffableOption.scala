@@ -14,7 +14,7 @@ object DiffableOption {
 }
 
 case object DiffableNone extends DiffableOption[Nothing] {
-  override val cryptoHash: Array[Byte] = {
+  override val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
     digest.digest()
@@ -28,12 +28,7 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val toStringWithURI: String = "None"
 
-  final override def tag: Tag = throw new UnsupportedOperationException
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
-
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    // nothing
-  }
 
   override protected[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case DiffableNone =>
@@ -56,6 +51,11 @@ case object DiffableNone extends DiffableOption[Nothing] {
     this
   }
 
+  override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
+    // nothing to load for None
+    this
+  }
+
   override def loadInitial(edits: EditScriptBuffer): Unit = {
     // nothing to load for None
   }
@@ -66,10 +66,10 @@ case object DiffableNone extends DiffableOption[Nothing] {
 }
 
 final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends DiffableOption[A] {
-  override val cryptoHash: Array[Byte] = {
+  override val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(a.cryptoHash)
+    digest.update(a.identityHash)
     digest.digest()
   }
 
@@ -81,13 +81,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
 
-  override def tag: Tag = throw new UnsupportedOperationException
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
-
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    f(this.a)
-    this.a.foreachSubtree(f)
-  }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableSome[_] =>
@@ -112,6 +106,13 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
   override def loadUnassigned(edits: EditScriptBuffer): DiffableSome[A] = {
     val a = this.a.loadUnassigned(edits).asInstanceOf[A]
     DiffableSome(a, atype)
+  }
+
+  override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
+    val a = this.a.updateLiterals(that.asInstanceOf[DiffableSome[A]].a, edits).asInstanceOf[A]
+    val newtree = DiffableSome(a, atype)
+    newtree._uri = this.uri
+    newtree
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {

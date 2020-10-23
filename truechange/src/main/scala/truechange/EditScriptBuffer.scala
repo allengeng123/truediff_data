@@ -11,26 +11,20 @@ class EditScriptBuffer() {
 
     def += (elem: Edit): this.type = {
       elem match {
-        case detach@Detach(node, tag, next@ListNextLink(_), pred, predTag) =>
-          val nextPair = (pred, node)
-          if (attachListNext.remove(nextPair)) {
-            // detach cancelled out previous attach
-            posBuf -= Attach(node, tag, next, pred, predTag)
-          } else {
-            detachListNext += nextPair
-            negBuf += detach
-          }
-        case attach@Attach(node, tag, next@ListNextLink(_), pred, predTag) =>
-          val nextPair = (pred, node)
-          if (detachListNext.remove(nextPair)) {
-            // attach cancelled out previous detach
-            negBuf -= Detach(node, tag, next, pred, predTag)
-          } else {
-            attachListNext += nextPair
-            posBuf += attach
-          }
+        case Detach(node, tag, link, parent, ptag) => link match {
+          case next: ListNextLink =>
+            val nextPair = parent -> node
+            if (attachListNext.remove(nextPair)) {
+              // detach cancelled out previous attach
+              posBuf -= Attach(node, tag, next, parent, ptag)
+            } else {
+              detachListNext += nextPair
+              negBuf += elem
+            }
+          case _ =>
+            negBuf += elem
+        }
 
-        case _: Detach => negBuf += elem
         case Unload(node, tag, kids, lits) =>
           negBuf.lastOption match {
             case Some(Detach(`node`, _, link, parent, ptag)) =>
@@ -40,16 +34,33 @@ class EditScriptBuffer() {
               negBuf += elem
           }
 
-        case _: Load => posBuf += elem
+        case _: Load =>
+          posBuf += elem
+
         case Attach(node, tag, link, parent, ptag) =>
           posBuf.lastOption match {
             case Some(Load(`node`, _, kids, lits)) =>
               posBuf.remove(posBuf.size - 1)
               posBuf += LoadAttach(node, tag, kids, lits, link, parent, ptag)
-            case _ =>
-              posBuf += elem
+            case _ => link match {
+              case next: ListNextLink =>
+                val nextPair = (parent, node)
+                if (detachListNext.remove(nextPair)) {
+                  // attach cancelled out previous detach
+                  negBuf -= Detach(node, tag, next, parent, ptag)
+                } else {
+                  attachListNext += nextPair
+                  posBuf += elem
+                }
+              case _ =>
+                posBuf += elem
+            }
           }
+
+        case _: UpdateLiterals =>
+          posBuf += elem
       }
+
       this
     }
 

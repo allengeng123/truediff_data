@@ -48,6 +48,9 @@ class MTree {
         mutable.Map() ++ kids.map{case (n, uri) => (n, index(uri))},
         lits.toMap)
       index += (node -> subtree)
+    case UpdateLiterals(node, tag, _, newlits) =>
+      val MNode(_, _, kids, _) = index(node)
+      index(node) = MNode(node, tag, kids, newlits.toMap)
   }
 
   def conformsTo(sigs: Map[Tag, Signature]): Option[String] = root.kids.get(RootLink.name) flatMap { t =>

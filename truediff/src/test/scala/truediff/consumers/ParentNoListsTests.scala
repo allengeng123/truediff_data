@@ -32,10 +32,10 @@ class ParentNoListsTests extends AnyFlatSpec with Matchers  {
     val (editscript2, tree2) = tree1.compareTo(Add(Add(Num(4), Num(2)), Add(Num(3), Num(1))))
     parent.update(editscript2)
     assert(parent.parents.size == tree2.treesize)
-    assert(parent(n4).isDefined)
-    assert(parent(n2) == parent(n4))
+    assert(parent(n1).isDefined)
+    assert(parent(n2) == parent(n1))
     assert(parent(n3).isDefined)
-    assert(parent(n1) == parent(n3))
+    assert(parent(n4) == parent(n3))
     assert(parent(tree2.uri) == Some(null))
 
 
@@ -46,7 +46,7 @@ class ParentNoListsTests extends AnyFlatSpec with Matchers  {
     assert(parent(n4).isDefined)
     assert(parent(n2) != parent(n4))
     assert(parent(n3).isDefined)
-    assert(parent(n1) == parent(n3))
+    assert(parent(n1) == parent(n2))
     assert(parent(tree3.uri) == Some(null))
 
   }

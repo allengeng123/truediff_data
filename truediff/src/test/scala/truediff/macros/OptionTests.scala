@@ -70,7 +70,7 @@ class OptionTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Num(0),
       Maybe(Some(Add(Num(1), Num(2)))),
-      7
+      6
     )
 
     testEditScript(
@@ -82,7 +82,7 @@ class OptionTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Maybe(Some(Add(Num(1), Num(2)))),
       Num(0),
-      7
+      6
     )
 
     testEditScript(

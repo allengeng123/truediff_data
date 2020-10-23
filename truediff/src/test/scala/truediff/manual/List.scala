@@ -5,10 +5,10 @@ import truediff.{SubtreeRegistry, _}
 
 case class Many(es: DiffableList[Exp]) extends Exp {
 
-  lazy val cryptoHash: Array[Byte] = {
+  lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(es.cryptoHash)
+    digest.update(es.identityHash)
     digest.digest()
   }
 
@@ -19,11 +19,6 @@ case class Many(es: DiffableList[Exp]) extends Exp {
   override def toStringWithURI: String = s"Many_$uri(${es.toStringWithURI})"
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("es" -> ListType(SortType(classOf[Exp].getCanonicalName))), Map())
-
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    f(this.es)
-    this.es.foreachSubtree(f)
-  }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Many =>
@@ -75,6 +70,13 @@ case class Many(es: DiffableList[Exp]) extends Exp {
       ), Seq())
       this.es.unloadUnassigned(edits)
     }
+  }
+
+  override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
+    val newlist = this.es.updateLiterals(that.asInstanceOf[Many].es, edits).asInstanceOf[DiffableList[Exp]]
+    val newtree = Many(newlist)
+    newtree._uri = uri
+    newtree
   }
 }
 

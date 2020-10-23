@@ -185,37 +185,37 @@ class ListTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(5) :: Num(6) :: Nil),
-      12
+      3
     )
 
     testEditScript(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(5) :: Num(3) :: Nil),
-      10
+      2
     )
 
     testEditScript(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(5) :: Num(6) :: Num(7) :: Nil),
-      14
+      5
     )
 
     testEditScript(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(3) :: Num(4) :: Num(5) :: Num(6) :: Nil),
-      12
+      5
     )
 
     testEditScript(
       Many(Num(1) :: Num(2) :: Num(3) :: Nil),
       Many(Num(4) :: Num(3) :: Num(2) :: Nil),
-      8
+      3
     )
 
     testEditScript(
       Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil),
       Many(Num(2) :: Num(3) :: Num(5) :: Nil),
-      8
+      5
     )
   }
 
@@ -223,25 +223,25 @@ class ListTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Num(0),
       Many(Num(1) :: Num(2) :: Nil),
-      9
+      8
     )
 
     testEditScript(
       Add(Num(0), Num(3)),
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
-      9
+      8
     )
 
     testEditScript(
       Many(Num(1) :: Num(2) :: Nil),
       Num(0),
-      9
+      8
     )
 
     testEditScript(
       Add(Many(Num(1) :: Num(2) :: Nil), Num(3)),
       Add(Num(0), Num(3)),
-      9
+      8
     )
   }
 

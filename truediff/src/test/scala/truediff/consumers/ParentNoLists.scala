@@ -25,6 +25,8 @@ class ParentNoLists extends Consumer {
       case Load(node, _, kids, _) =>
         for ((_, kid) <- kids)
           parents += ((kid, node))
+      case _: UpdateLiterals =>
+        // nothing
     }
   }
 }

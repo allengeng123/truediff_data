@@ -5,10 +5,10 @@ import truediff.{SubtreeRegistry, _}
 
 case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
-  lazy val cryptoHash: Array[Byte] = {
+  lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(a.cryptoHash)
+    digest.update(a.identityHash)
     digest.digest()
   }
 
@@ -19,11 +19,6 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
   override def toStringWithURI: String = s"Maybe_$uri(${a.toStringWithURI})"
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("a" -> OptionType(SortType(classOf[Exp].getCanonicalName))), Map())
-
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    f(this.a)
-    this.a.foreachSubtree(f)
-  }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Maybe =>
@@ -74,6 +69,13 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
       ), Seq())
       this.a.unloadUnassigned(edits)
     }
+  }
+
+  override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
+    val newlist = this.a.updateLiterals(that.asInstanceOf[Maybe].a, edits).asInstanceOf[DiffableOption[Exp]]
+    val newtree = Maybe(newlist)
+    newtree._uri = uri
+    newtree
   }
 }
 

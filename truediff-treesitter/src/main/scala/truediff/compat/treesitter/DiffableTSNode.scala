@@ -11,11 +11,11 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
 
   override def tag: NamedTag = NamedTag(nodeType)
 
-  override lazy val cryptoHash: Array[Byte] = {
+  override lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     digest.update(nodeType.getBytes)
     literals.foreach(lit => digest.update(lit.getBytes()))
-    directSubtrees.foreach(sub => digest.update(sub.cryptoHash))
+    directSubtrees.foreach(sub => digest.update(sub.identityHash))
     digest.digest()
   }
 
@@ -37,11 +37,6 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
     val childrenStrings = directSubtreesWithName.map(kv => s"${kv._1}=${kv._2.toStringWithURI}")
     val content = (literalsStrings ++ childrenStrings).mkString(", ")
     s"${tag}_$uri($content)"
-  }
-
-  override def foreachSubtree(f: Diffable => Unit): Unit = directSubtrees.foreach { sub =>
-    f(sub)
-    sub.foreachSubtree(f)
   }
 
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
@@ -67,6 +62,28 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
 
     val newtree = new DiffableTSNode(nodeType, literals, newFieldChildren, newOtherChildren)
     edits += Load(newtree.uri, this.tag, newkids.toList, literalsWithName)
+    newtree
+  }
+
+
+  override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Diffable = {
+    val that = thatX.asInstanceOf[DiffableTSNode]
+    if (this.literals != that.literals) {
+      edits += UpdateLiterals(this.uri, this.tag, this.literalsWithName, that.literalsWithName)
+    }
+    val newFieldChildren = fieldChildren.map {
+      case (name, kid) =>
+        val newkid = kid.updateLiterals(that.fieldChildren(name), edits).asInstanceOf[DiffableTSNode]
+        name -> newkid
+    }
+    val newOtherChildren = otherChildrenWithName.zip(that.otherChildren).map {
+      case ((name, thiskid), thatkid) =>
+        val newkid = thiskid.updateLiterals(thatkid, edits).asInstanceOf[DiffableTSNode]
+        newkid
+    }
+
+    val newtree = new DiffableTSNode(nodeType, that.literals, newFieldChildren, newOtherChildren)
+    newtree._uri = this.uri
     newtree
   }
 

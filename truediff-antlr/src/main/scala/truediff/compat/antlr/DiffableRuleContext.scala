@@ -29,19 +29,21 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
       case _ => None
     }
 
-  def lits: Iterable[String] =
-    children.flatMap {
-      case node: TerminalNode => Some(node.getSymbol.getText)
-      case _ => None
-    }
+  lazy val lits: Map[String, String] =
+    children.zipWithIndex.flatMap {
+      case (node, i) if node.isInstanceOf[TerminalNode] =>
+        Some(i.toString -> node.asInstanceOf[TerminalNode].getSymbol.getText)
+      case _ =>
+        None
+    }.toMap
 
-  override val cryptoHash: Array[Byte] = {
+  override val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     Hashable.hash(ctx.getRuleIndex, digest)
     for (i <- 0 until ctx.getChildCount) {
       ctx.getChild(i) match {
         case node: RuleNode =>
-          digest.update(mapper.diffable(node.getRuleContext).cryptoHash)
+          digest.update(mapper.diffable(node.getRuleContext).identityHash)
         case node: TerminalNode =>
           Hashable.hash(node.getSymbol.getText, digest)
       }
@@ -57,12 +59,6 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
 
   override def toStringWithURI: String = ???
 
-  override def foreachSubtree(f: Diffable => Unit): Unit =
-    directSubtrees.foreach { node =>
-      f(node)
-      node.foreachSubtree(f)
-    }
-
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
@@ -70,26 +66,19 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
     }
 
     var newtreeKids: Map[String, URI] = Map()
-    var newtreeLits: Map[String, Any] = Map()
     val newctx = new ParserRuleContext() {
       override def getRuleIndex: Int = ctx.getRuleIndex
     }
 
-    var i = 0
-    children.foreach {
-      case node: RuleNode =>
-        val newkid = mapper.diffable(node).loadUnassigned(edits).asInstanceOf[DiffableRuleContext]
+    directSubtreesIndexed.foreach {
+      case (i, subtree) =>
+        val newkid = subtree.loadUnassigned(edits).asInstanceOf[DiffableRuleContext]
         newctx.addAnyChild(newkid.ctx)
         newtreeKids += i.toString -> newkid.uri
-        i += 1
-      case node: TerminalNode =>
-        newctx.addAnyChild(node)
-        newtreeLits += i.toString -> node.getSymbol.getText
-        i += 1
     }
 
     val newtree = mapper.diffable(newctx)
-    edits += Load(newtree.uri, newtree.tag, newtreeKids, newtreeLits)
+    edits += Load(newtree.uri, newtree.tag, newtreeKids, this.lits)
     newtree
   }
 
@@ -107,7 +96,32 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
         lits += i.toString -> node.getSymbol.getText
         i += 1
     }
-    edits += Load(this.uri, this.tag, kids, lits)
+    edits += Load(this.uri, this.tag, kids, this.lits)
+  }
+
+
+  override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Diffable = {
+    val that = thatX.asInstanceOf[DiffableRuleContext]
+    if (this.lits != that.lits)
+      edits += UpdateLiterals(this.uri, this.tag, this.lits, that.lits)
+
+    val newctx = new ParserRuleContext() {
+      override def getRuleIndex: Int = ctx.getRuleIndex
+    }
+
+    this.children.zip(that.children).foreach {
+      case (thisRuleNode:RuleNode, thatRuleNode:RuleNode) =>
+        val thisnode = mapper.diffable(thisRuleNode)
+        val thatnode = mapper.diffable(thatRuleNode)
+        val newnode = thisnode.updateLiterals(thatnode, edits).asInstanceOf[DiffableRuleContext]
+        newctx.addAnyChild(newnode.ctx)
+      case (_, thatTerminalNode:TerminalNode) =>
+        newctx.addAnyChild(thatTerminalNode)
+    }
+
+    val newtree = mapper.diffable(newctx)
+    newtree._uri = this.uri
+    newtree
   }
 
   override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
@@ -128,7 +142,6 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
         i += 1
       case node: TerminalNode =>
         lits += i.toString -> node.getSymbol.getText
-        i += 1
     }
 
     edits += Unload(this.uri, this.tag, kids, lits)

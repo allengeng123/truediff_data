@@ -28,13 +28,6 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   override def toString: String = s"List(" + list.map(_.toString).mkString(", ") + ")"
   override def toStringWithURI: String = s"List_$uri(" + list.map(_.toStringWithURI).mkString(", ") + ")"
 
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    this.list.foreach { t =>
-      f(t)
-      t.foreachSubtree(f)
-    }
-  }
-
   // trim equal elements off the front of the lists
   private def trimFront[B <: Diffable](l1: Seq[B], l2: Seq[B], subtreeReg: SubtreeRegistry) : (Seq[B], Seq[B]) = {
     var thislist = l1
@@ -199,8 +192,9 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   private[truediff] def tryReuseListElem(thisnode: Diffable, thatnode: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Option[Diffable] = {
     // this == that
     if (thatnode.assigned != null && thatnode.assigned.uri == thisnode.uri) {
+      val newtree = thisnode.updateLiterals(thatnode, edits)
       thisnode.assigned = null
-      return Some(thisnode)
+      return Some(newtree)
     }
 
     if (thisnode.assigned == null && thatnode.assigned == null) {
@@ -229,6 +223,16 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     newtree
   }
 
+  override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
+    val newlist = this.list.zip(that.asInstanceOf[DiffableList[A]].list).map {
+      case (thisnode, thatnode) => thisnode.updateLiterals(thatnode, edits)
+    }
+
+    val newtree = DiffableList(newlist, atype)
+    newtree._uri = this.uri
+    newtree
+  }
+
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
     edits += Load(this.uri, this.tag, Seq(), Seq())
@@ -252,10 +256,10 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     }
   }
 
-  override lazy val cryptoHash: Array[Byte] = {
+  override lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    this.list.foreach(t => digest.update(t.cryptoHash))
+    this.list.foreach(t => digest.update(t.identityHash))
     digest.digest()
   }
 }

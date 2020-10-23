@@ -117,6 +117,18 @@ case class EditScript(edits: Seq[Edit]) {
         }
         roots --= kids.map(_._2)
         roots += node -> sig.sort
+
+
+      case UpdateLiterals(node, tag, oldlits, newlits) =>
+        val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
+        // provided lits match signature
+        if (sig.lits.size != newlits.size)
+          return Some(s"Cannot update $tag, expected ${sig.lits.size} lits but got ${newlits.size} lits")
+        for ((litname, lit) <- newlits) {
+          val expectedLitType = sig.lits.getOrElse(litname, return Some(s"Cannot load $tag, unexpected lit $litname"))
+          if (!expectedLitType.accepts(lit))
+            return Some(s"Cannot update $tag, incompatible literal for $litname: Expected $expectedLitType but got $lit.")
+        }
     }
 
     // no roots left over

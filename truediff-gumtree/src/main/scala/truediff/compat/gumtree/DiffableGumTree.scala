@@ -9,6 +9,13 @@ import scala.jdk.CollectionConverters._
 
 class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLabel.hashCode, _label) with Diffable {
 
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other: DiffableGumTree =>
+      this.typeLabel == other.typeLabel && this.label == other.label && this.dchildren == other.dchildren
+    case _ => false
+  }
+
   override val _tag: Tag = NamedTag(typeLabel)
 
   @inline def label: String = getLabel
@@ -21,11 +28,11 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   def dchildren: Iterable[DiffableGumTree] =
     children.iterator().asScala.to(Iterable).asInstanceOf[Iterable[DiffableGumTree]]
 
-  override lazy val cryptoHash: Array[Byte] = {
+  override lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     Hashable.hash(typeLabel, digest)
     Hashable.hash(label, digest)
-    dchildren.foreach(t => digest.update(t.cryptoHash))
+    dchildren.foreach(t => digest.update(t.identityHash))
     digest.digest()
   }
 
@@ -38,15 +45,10 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   override def toStringWithURI: String = s"${typeLabel}_$uri($label, ${dchildren.map(_.toStringWithURI).mkString(", ")})"
   override def toString: String = s"$typeLabel($label, ${dchildren.map(_.toString).mkString(", ")})"
 
-  override def foreachSubtree(f: Diffable => Unit): Unit = dchildren.foreach { t =>
-    f(t)
-    t.foreachSubtree(f)
-  }
-
   override def loadUnassigned(edits: EditScriptBuffer): DiffableGumTree = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned.asInstanceOf[DiffableGumTree]
+      return that.assigned.updateLiterals(that, edits).asInstanceOf[DiffableGumTree]
     }
 
     val newchildren = dchildren.map(_.loadUnassigned(edits))
@@ -138,7 +140,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
 
     if (this.typeLabel == that.typeLabel && this.label == that.label) {
       val newchildren = computeEditScriptLists(this.dchildren, that.dchildren, this.uri, this.tag, this.uri, this.tag, ListFirstLink(null), edits)
-      val newtree = new DiffableGumTree(typeLabel, label, newchildren)
+      val newtree = new DiffableGumTree(typeLabel, that.label, newchildren)
       newtree._uri = this.uri
       newtree
     } else {
@@ -146,6 +148,23 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
     }
   }
 
+  override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): DiffableGumTree = {
+    val that = thatX.asInstanceOf[DiffableGumTree]
+
+    if (this.label != that.label) {
+      edits += UpdateLiterals(
+        this.uri, this.tag,
+        Seq("label" -> this.label), Seq("label" -> that.label)
+      )
+    }
+    val newchildren = this.dchildren.zip(that.dchildren).map {
+      case (thisnode, thatnode) => thisnode.updateLiterals(thatnode, edits)
+    }
+    val newtree = new DiffableGumTree(typeLabel, that.label, newchildren)
+    newtree._uri = this.uri
+    newtree
+
+  }
 
   private def computeEditScriptLists(thislist: Iterable[DiffableGumTree], thatlist: Iterable[DiffableGumTree], thisparent: URI, thisparentTag: Tag, thatparent: URI, thatparentTag: Tag, link: Link, edits: EditScriptBuffer): Iterable[DiffableGumTree] = {
     var vthislist: Iterable[DiffableGumTree] = thislist
@@ -221,8 +240,9 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   private def tryReuseListElem(thisnode: DiffableGumTree, thatnode: DiffableGumTree, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Option[DiffableGumTree] = {
     // this == that
     if (thatnode.assigned != null && thatnode.assigned.uri == thisnode.uri) {
+      val newtree = thisnode.updateLiterals(thatnode, edits)
       thisnode.assigned = null
-      return Some(thisnode)
+      return Some(newtree)
     }
 
     if (thisnode.assigned == null && thatnode.assigned == null) {

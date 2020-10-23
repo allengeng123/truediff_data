@@ -3,6 +3,7 @@ package truediff
 import truechange._
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 trait Diffable extends Hashable {
 
@@ -11,6 +12,16 @@ trait Diffable extends Hashable {
 
   val _tag: Tag = NamedTag(this.getClass.getCanonicalName)
   def tag: Tag = _tag
+
+  final lazy val structureHash: Array[Byte] = {
+    val digest = Hashable.mkDigest
+    this.tag match {
+      case NamedTag(c) => Hashable.hash(c, digest)
+      case lt: ListTag => Hashable.hash(lt.toString, digest)
+    }
+    this.directSubtrees.foreach(t => digest.update(t.structureHash))
+    digest.digest()
+  }
 
   def sig: Signature
   def collectSignatures: Map[Tag, Signature] = {
@@ -29,13 +40,21 @@ trait Diffable extends Hashable {
   protected[truediff] var assigned: Diffable = _
 
   final def foreachTree(f: Diffable => Unit): Unit = {
-    f(this)
+    if (!this.skipNode)
+      f(this)
     this.foreachSubtree(f)
   }
-  def foreachSubtree(f: Diffable => Unit): Unit
+  final def foreachSubtree(f: Diffable => Unit): Unit =
+    directSubtrees.foreach { t =>
+      if (!t.skipNode)
+        f(t)
+      t.foreachSubtree(f)
+    }
+
   def loadUnassigned(edits: EditScriptBuffer): Diffable
   def unloadUnassigned(edits: EditScriptBuffer): Unit
   def loadInitial(edits: EditScriptBuffer): Unit
+  def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable
 
   protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
   private[truediff] def _assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = this.assignSharesRecurse(that, subtreeReg)
@@ -79,23 +98,53 @@ trait Diffable extends Hashable {
     queue += that
 
     while (queue.nonEmpty) {
-      val next = queue.dequeue()
-      if (next.skipNode) {
-        // skip
-      } else if (next.assigned == null) {
-        next.share.takeAvailableTree(subtreeReg) match {
-          case Some(src) => src.assignTree(next)
-          case None => queue ++= next.directSubtrees
-        }
+      val level = queue.head.treeheight
+      val nextNodes = ListBuffer[Diffable]()
+      while (queue.nonEmpty && queue.head.treeheight == level) {
+        val next = queue.dequeue()
+        if (next.assigned == null)
+          nextNodes += next
       }
+
+      val nonexactlyMatchedNodes = assignExactSubtrees(nextNodes, subtreeReg)
+      val unassignedNodes = assignApproxSubtrees(nonexactlyMatchedNodes, subtreeReg)
+      unassignedNodes.foreach(queue ++= _.directSubtrees)
     }
   }
+
+  private def assignExactSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
+    nodes.filter { node =>
+      if (node.skipNode)
+        true
+      else node.share.takeExactAvailableTree(node, subtreeReg) match {
+        case Some(availableTree) =>
+          availableTree.assignTree(node)
+          false // discard
+        case None =>
+          true // keep
+      }
+    }
+
+  private def assignApproxSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
+    nodes.filter { node =>
+      if (node.skipNode)
+        true
+      else node.share.takeApproxAvailableTree(node, subtreeReg) match {
+        case Some(availableTree) =>
+          availableTree.assignTree(node)
+          false // discard
+        case None =>
+          true // keep
+      }
+    }
+
 
   final def computeEditScript(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = {
     if (this.assigned != null && this.assigned.uri == that.uri) {
       // this == that
+      val newtree = this.updateLiterals(that, edits)
       this.assigned = null
-      return this
+      return newtree
     }
 
     if (this.assigned == null && that.assigned == null) {

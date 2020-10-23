@@ -32,6 +32,14 @@ case class Load(node: URI, tag: Tag, kids: Iterable[(String, URI)], lits: Iterab
   }
 }
 
+case class UpdateLiterals(node: URI, tag: Tag, oldlits: Iterable[(String, Any)], newlits: Iterable[(String, Any)]) extends CoreEdit {
+  override def toString: String = {
+    val oldlitsString = s"${oldlits.map(p => p._1 + "=" + p._2).mkString(", ")}"
+    val newlitsString = s"${newlits.map(p => p._1 + "=" + p._2).mkString(", ")}"
+    s"update ${tag}_$node($oldlitsString -> $newlitsString)"
+  }
+}
+
 case class LoadAttach(node: URI, tag: Tag, kids: Iterable[(String, URI)], lits: Iterable[(String, Any)], link: Link, parent: URI, ptag: Tag) extends Edit {
   override def asCoreEdits: Seq[CoreEdit] = Seq(
     Load(node, tag, kids, lits),

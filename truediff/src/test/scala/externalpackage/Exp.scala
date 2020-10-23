@@ -15,14 +15,10 @@ object Exp {
 
     override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map())
 
-    override def foreachSubtree(f: Diffable => Unit): Unit = {
-      f(this)
-    }
-
     override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
       case that: Hole =>
       case _ =>
-        that.foreachSubtree(t => subtreeReg.assignShare(t))
+        that.foreachSubtree(subtreeReg.assignShare)
     }
 
     override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
@@ -38,7 +34,7 @@ object Exp {
     override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
       val that = this
       if (that.assigned != null) {
-        return that.assigned
+        return that.assigned.updateLiterals(that, edits)
       }
 
       val newtree = Hole()
@@ -46,6 +42,8 @@ object Exp {
       newtree
     }
 
+    override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable =
+      this
 
     override def loadInitial(edits: EditScriptBuffer): Unit = {
       edits += Load(this.uri, this.tag, Seq(), Seq())
@@ -54,11 +52,12 @@ object Exp {
     override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
       if (this.assigned != null) {
         this.assigned = null
-      } else
+      } else {
         edits += Unload(this.uri, this.tag, Seq(), Seq())
+      }
     }
 
-    lazy val cryptoHash: Array[Byte] = {
+    lazy val identityHash: Array[Byte] = {
       val digest = Hashable.mkDigest
       this.getClass.getCanonicalName.getBytes
       digest.digest()
@@ -69,7 +68,7 @@ object Exp {
 
 case class Num(n: Int) extends Exp {
 
-  lazy val cryptoHash: Array[Byte] = {
+  lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
     Hashable.hash(this.n, digest)
@@ -84,14 +83,10 @@ case class Num(n: Int) extends Exp {
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    f(this)
-  }
-
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Num if this.n == that.n =>
     case _ =>
-      that.foreachSubtree(t => subtreeReg.assignShare(t))
+      that.foreachSubtree(subtreeReg.assignShare)
   }
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
@@ -104,10 +99,24 @@ case class Num(n: Int) extends Exp {
     case _ => null
   }
 
+
+  override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Num = {
+    val that = thatX.asInstanceOf[Num]
+    if (this.n != that.n) {
+      edits += UpdateLiterals(this.uri, this.tag,
+        Seq("n" -> this.n), Seq("n" -> that.n)
+      )
+      val newtree = Num(that.n)
+      newtree._uri = this.uri
+      newtree
+    } else
+      this
+  }
+
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned
+      return that.assigned.updateLiterals(that, edits)
     }
 
     val newtree = Num(this.n)
@@ -127,18 +136,21 @@ case class Num(n: Int) extends Exp {
   override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
-    } else
-      edits += Unload(this.uri, this.tag, Seq(), Seq("n" -> this.n))
+    } else {
+      edits += Unload(this.uri, this.tag, Seq(), Seq(
+        "n" -> this.n
+      ))
+    }
   }
 }
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
 
-  override lazy val cryptoHash: Array[Byte] = {
+  override lazy val identityHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     this.getClass.getCanonicalName.getBytes
-    digest.update(this.e1.cryptoHash)
-    digest.update(this.e2.cryptoHash)
+    digest.update(this.e1.identityHash)
+    digest.update(this.e2.identityHash)
     digest.digest()
   }
 
@@ -150,20 +162,12 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("e1" -> SortType(classOf[Exp].getCanonicalName), "e2" -> SortType(classOf[Exp].getCanonicalName)), Map())
 
-  override def foreachSubtree(f: Diffable => Unit): Unit = {
-    f(this.e1)
-    this.e1.foreachSubtree(f)
-    f(this.e2)
-    this.e2.foreachSubtree(f)
-  }
-
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: Add =>
       this.e1.assignShares(that.e1, subtreeReg)
       this.e2.assignShares(that.e2, subtreeReg)
     case _ =>
-      this.e1.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
-      this.e2.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
+      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
       that.foreachSubtree(subtreeReg.assignShare)
   }
 
@@ -179,10 +183,20 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     case _ => null
   }
 
+
+  override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = that match {
+    case that: Add =>
+      val e1 = this.e1.updateLiterals(that.e1, edits).asInstanceOf[Exp]
+      val e2 = this.e2.updateLiterals(that.e2, edits).asInstanceOf[Exp]
+      val newtree = Add(e1, e2)
+      newtree._uri = this.uri
+      newtree
+  }
+
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned
+      return that.assigned.updateLiterals(that, edits)
     }
 
     val e1 = that.e1.loadUnassigned(edits).asInstanceOf[Exp]
@@ -210,11 +224,87 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
       this.assigned = null
     } else {
       edits += Unload(this.uri, this.tag, Seq(
-      "e1" -> this.e1.uri,
-      "e2" -> this.e2.uri
+        "e1" -> this.e1.uri,
+        "e2" -> this.e2.uri
       ), Seq())
       this.e1.unloadUnassigned(edits)
       this.e2.unloadUnassigned(edits)
+    }
+  }
+}
+
+case class Var(name: String) extends Exp {
+
+  override val treeheight: Int = 1
+
+  override def treesize: Int = 1
+
+  override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map("name" -> JavaLitType(classOf[String])))
+
+  override def toStringWithURI: String = s"Var_$uri($name)"
+
+  override lazy val identityHash: Array[Byte] = {
+    val digest = Hashable.mkDigest
+    this.getClass.getCanonicalName.getBytes
+    Hashable.hash(name, digest)
+    digest.digest()
+  }
+
+  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
+    case that: Var if this.name == that.name =>
+    case _ =>
+      that.foreachSubtree(subtreeReg.assignShare)
+  }
+
+  override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
+
+  override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Var = {
+    val that = thatX.asInstanceOf[Var]
+    if (this.name != that.name) {
+      edits += UpdateLiterals(this.uri, this.tag,
+        Seq("n" -> this.name), Seq("n" -> that.name)
+      )
+      val newtree = Var(that.name)
+      newtree._uri = uri
+      newtree
+    } else
+      this
+  }
+  override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
+    case Var(n) if this.name == name =>
+      val newtree = Var(name)
+      newtree._uri = this.uri
+      newtree
+    case _ => null
+  }
+
+  override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
+    val that = this
+    if (that.assigned != null) {
+      return that.assigned.updateLiterals(that, edits)
+    }
+
+    val newtree = Var(this.name)
+    edits += Load(newtree.uri, this.tag, Seq(), Seq(
+      "name" -> this.name
+    ))
+    newtree
+  }
+
+
+  override def loadInitial(edits: EditScriptBuffer): Unit = {
+    edits += Load(this.uri, this.tag, Seq(), Seq(
+      "name" -> this.name
+    ))
+  }
+
+  override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
+    if (this.assigned != null) {
+      this.assigned = null
+    } else {
+      edits += Unload(this.uri, this.tag, Seq(), Seq(
+        "name" -> this.name
+      ))
     }
   }
 }

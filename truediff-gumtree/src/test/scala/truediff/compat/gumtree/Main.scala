@@ -3,37 +3,36 @@ package truediff.compat.gumtree
 import java.io.File
 
 import com.github.gumtreediff.actions.ActionGenerator
+import com.github.gumtreediff.actions.model.{Delete, Update}
 import com.github.gumtreediff.matchers.Matchers
+import truechange.{Attach, Detach, DetachUnload, Unload}
 
 object Main extends App {
 
   val projectName = "keras"
-  val rootDir = new File(s"/Users/seba/tmp")
 
-  val file1 = new File(rootDir, "tensorflow_backend1.py")
-//  val xmlFile1 = new File(file1.getAbsolutePath + ".xml")
-//  val xml1 = readFile(xmlFile1.getAbsolutePath)
-//  val code1 = readFile(file1.getAbsolutePath).split('\n')
+//  val rootDir = new File(s"/Users/seba/tmp")
+//  val file1 = new File(rootDir, "tensorflow_backend1.py")
+//  val file2 = new File(rootDir, "tensorflow_backend2.py")
 
-  val file2 = new File(rootDir, "tensorflow_backend2.py")
-//  val xmlFile2 = new File(file2.getAbsolutePath + ".xml")
-//  val xml2 = readFile(xmlFile2.getAbsolutePath)
-//  val code2 = readFile(file2.getAbsolutePath).split('\n')
+  val rootDir = new File(s"/Users/seba/projects/truediff/benchmark/python_keras")
+  val file1 = new File(rootDir, "keras-284-14625e57/tensorflow_backend.py")
+  val file2 = new File(rootDir, "keras-285-0ca37c98/tensorflow_backend.py")
 
-  {
+  val truediff = {
     val currTree = new PythonGumTreeGenerator().generateFromFile(file2).getRoot.asInstanceOf[DiffableGumTree]
     val prevTree = new PythonGumTreeGenerator().generateFromFile(file1).getRoot.asInstanceOf[DiffableGumTree]
 
     val (truediffEdits, _) = prevTree.compareTo(currTree)
-    println(s"Truediff: ${truediffEdits.size}")
-//    truediffEdits.edits.foreach(println(_))
+    truediffEdits.edits.foreach(println(_))
+    truediffEdits
   }
 
   println()
   println("####################")
   println()
 
-  {
+  val gumtree = {
     val currTree = new PythonGumTreeGenerator().generateFromFile(file2).getRoot.asInstanceOf[DiffableGumTree]
     val prevTree = new PythonGumTreeGenerator().generateFromFile(file1).getRoot.asInstanceOf[DiffableGumTree]
 
@@ -41,8 +40,37 @@ object Main extends App {
     matcher.`match`()
     val actionGenerator = new ActionGenerator(prevTree, currTree, matcher.getMappings)
     val (gumtreeEdits) = actionGenerator.generate
-    println(s"Gumtree: ${gumtreeEdits.size}")
-//    import scala.jdk.CollectionConverters._
-//    gumtreeEdits.asScala.foreach(println(_))
+    import scala.jdk.CollectionConverters._
+    gumtreeEdits.asScala.foreach(println(_))
+    gumtreeEdits.asScala
   }
+
+  println()
+  println("####################")
+  println()
+  println(s"Truediff: ${truediff.size}")
+  println(s"Truediff neg: ${truediff.edits.count{
+    case _:Unload => true
+    case _:Detach => true
+    case _:DetachUnload => true
+    case _ => false
+  }}")
+  println(s"Gumtree: ${gumtree.size}")
+  println(s"Gumtree neg: ${gumtree.count {
+    case _:Delete => true; case _ => false
+  }}")
+  println(s"Gumtree upd: ${gumtree.count {
+    case _:Update => true; case _ => false
+  }}")
+
+  val attachs = truediff.edits.flatMap {
+    case Attach(node, _, _, _, _) => Some(node)
+    case _ => None
+  }.toSet
+  val detachs = truediff.edits.flatMap {
+    case Detach(node, _, _, _, _) => Some(node)
+    case _ => None
+  }
+  val moves = detachs.count(attachs.contains)
+  println(s"Missed moves: $moves")
 }

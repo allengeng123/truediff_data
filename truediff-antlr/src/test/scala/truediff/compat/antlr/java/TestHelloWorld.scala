@@ -18,7 +18,7 @@ class TestHelloWorld extends AnyFunSuite {
       val (editScript, _) = diff1.compareTo(diff2)
 
       editScript.foreach(c => println("  " + c))
-      assert(editScript.edits.size == expectedDiffSize)
+      assert(editScript.coresize == expectedDiffSize)
     }
 
   testDiff(

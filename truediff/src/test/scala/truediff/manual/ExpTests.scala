@@ -73,44 +73,40 @@ class ExpTests extends AnyFlatSpec with Matchers {
     )
   }
 
+
   "diff" should "leave subtrees in place" in {
     // should yield editscript:
-    //   [unload 10 from x, load 13 as y, attach y to x]
+    //   [update 10->13]
     testEditScript(
       Add(Num(10), Num(13)),
       Add(Num(13), Num(13)),
-      4
+      1
     )
 
     // should yield editscript:
-    //   [unload 10 from x, load 13 as y, attach y to x]
+    //   [update 10->13]
     testEditScript(
       Add(Num(13), Num(10)),
       Add(Num(13), Num(13)),
-      4
+      1
     )
   }
 
   "diff" should "leave subtrees intact" in {
     // should yield editscript:
-    //   [detach 1, unload 1 from x, load 2 as y, attach y to x,
-    //    unload z, unload 3, detach (2+3) from z, attach (2+3) to x]
+    //   [detach root, unload root, unload 1, update 3->2, attach new root]
     testEditScript(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Num(2), Add(Num(2), Num(3))),
-      4 + 4
+      5
     )
 
     // Note that the tree in which `2` occurs is higher than the one of `2+3`.
     // This test requires a piecewise height-first traversal of subtrees, such that `2+3` is visited before `2`.
-    // [detach 1, unload 1,
-    //  detach (3+(2+3)), unload (3+(2+3)), unload 3,
-    //  load 2, load 0, load 0, load (0+0), load (2+(0+0)),
-    //  attach (2+(0+0)), attach (2+3)]
     testEditScript(
       Add(Num(1), Add(Num(3), Add(Num(2), Num(3)))),
       Add(Add(Num(2), Add(Num(0), Num(0))), Add(Num(2), Num(3))),
-      12
+      10
     )
   }
 
@@ -157,6 +153,19 @@ class ExpTests extends AnyFlatSpec with Matchers {
       Add(Add(Num(2), Num(3)), Add(Num(2), Num(3))),
       6
     )
+
+  }
+
+
+  "diff" should "swap subtrees" in {
+    // should yield editscript:
+    //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]
+    testEditScript(
+      Add(Num(2), Num(3)),
+      Add(Num(3), Num(2)),
+      2
+    )
+
 
   }
 }

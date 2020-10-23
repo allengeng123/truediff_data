@@ -4,8 +4,11 @@ import java.security.MessageDigest
 import java.util.Base64
 
 trait Hashable {
-  val cryptoHash: Array[Byte]
-  lazy val cryptoString: String = Base64.getEncoder.encodeToString(this.cryptoHash)
+  private[truediff] val structureHash: Array[Byte]
+  private[truediff] lazy val structureHashString: String = Base64.getEncoder.encodeToString(this.structureHash)
+
+  val identityHash: Array[Byte]
+  lazy val identityHashString: String = Base64.getEncoder.encodeToString(this.identityHash)
 }
 
 object Hashable {
