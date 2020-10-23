@@ -34,10 +34,9 @@ object BenchmarkCommits extends App {
     // parse both
     // compare
     def benchmarkFile(commit: File, file: File)(implicit timing: Timing): Option[TruediffMeasurement] = {
-      if (isWarmup && warmpupCount <= 0)
+      if (isWarmup && warmpupCount <= 0) 
         return None
 
-      warmpupCount -= 1
       val prevCommitFile = new File(prevCommit(commit), file.getName)
       if (prevCommitFile.exists()) {
         val currCommitFileContent = readFile(file.getAbsolutePath)
