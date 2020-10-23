@@ -1,30 +1,28 @@
 package truediff
 
 import org.apache.commons.collections4.trie
+import org.apache.commons.collections4.trie.PatriciaTrie
 import truechange.URI
 
 class SubtreeShare() {
   private var availableTrees: Map[URI, Diffable] = Map()
-  private val identityTrees = new trie.PatriciaTrie[Diffable]()
+  private var identityTrees: trie.PatriciaTrie[Diffable] = null
 
   def registerAvailableTree(t: Diffable): Unit = {
-    if (!t.skipNode) {
+    if (!t.skipNode)
       this.availableTrees += ((t.uri, t))
-      this.identityTrees.put(t.identityHashString, t)
-    }
   }
 
   def takeExactAvailableTree(that: Diffable, subtreeReg: SubtreeRegistry): Option[Diffable] = {
+    if (identityTrees == null) {
+      identityTrees = new PatriciaTrie[Diffable]()
+      availableTrees.values.foreach(t => identityTrees.put(t.identityHashString, t))
+    }
+
     identityTrees.get(that.identityHashString) match {
       case null => None
       case tree =>
-        deregisterAvailableTree(tree, subtreeReg)
-        that.foreachSubtree { thatnode =>
-          if (thatnode.assigned != null) {
-            val thisnode = thatnode.assigned
-            subtreeReg.assignShareAndRegisterTree(thisnode)
-          }
-        }
+        takeTree(tree, that, subtreeReg)
         Some(tree)
     }
   }
@@ -33,21 +31,28 @@ class SubtreeShare() {
     val foundTree = availableTrees.headOption
 
     foundTree.map { case (_, tree) =>
-      deregisterAvailableTree(tree, subtreeReg)
-      that.foreachSubtree { thatnode =>
-        if (thatnode.assigned != null) {
-          val thisnode = thatnode.assigned
-          subtreeReg.assignShareAndRegisterTree(thisnode)
-        }
-      }
+      takeTree(tree, that, subtreeReg)
       tree
+    }
+  }
+
+  private def takeTree(tree: Diffable, that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
+    tree.share.availableTrees -= tree.uri
+    tree.share.identityTrees.remove(tree.identityHashString)
+    tree.share = null  // reset to prevent memory leaks
+    tree._directSubtrees.foreach(deregisterAvailableTree(_, subtreeReg))
+
+    that.foreachSubtree { thatnode =>
+      if (thatnode.assigned != null) {
+        val thisnode = thatnode.assigned
+        subtreeReg.assignShareAndRegisterTree(thisnode)
+      }
     }
   }
 
   def deregisterAvailableTree(t: Diffable, subtreeReg: SubtreeRegistry): Unit =
     if (t.share != null) {
       t.share.availableTrees -= t.uri
-      t.share.identityTrees.remove(t.identityHashString)
       t.share = null  // reset to prevent memory leaks
       t._directSubtrees.foreach(deregisterAvailableTree(_, subtreeReg))
     } else if (t.assigned != null) {

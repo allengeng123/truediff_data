@@ -66,7 +66,7 @@ trait Diffable extends Hashable {
   private[truediff] def _computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = this.computeEditScriptRecurse(that, parent, parentTag, link, edits)
 
   @inline
-  final def assignTree(that: Diffable): Unit = {
+  private[truediff] final def assignTree(that: Diffable): Unit = {
     this.assigned = that
     that.assigned = this
     this.share = null // reset to prevent memory leaks
