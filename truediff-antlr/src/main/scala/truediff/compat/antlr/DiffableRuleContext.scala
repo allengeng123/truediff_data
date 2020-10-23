@@ -57,7 +57,8 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
 
   override def treesize: Int = 1 + directSubtrees.map(_.treeheight).sum
 
-  override def toStringWithURI: String = ???
+  override def toString: String = s"${rulename}(${directSubtrees.map(_.toStringWithURI).mkString(", ")}, $lits)"
+  override def toStringWithURI: String = s"${rulename}_$uri(${directSubtrees.map(_.toStringWithURI).mkString(", ")}, $lits)"
 
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this

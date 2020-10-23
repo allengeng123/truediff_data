@@ -17,6 +17,9 @@ class TestHelloWorld extends AnyFunSuite {
       val diff2 = mapper.diffable(tree2)
       val (editScript, _) = diff1.compareTo(diff2)
 
+      println(diff1.toString)
+      println(diff2.toString)
+
       editScript.foreach(c => println("  " + c))
       assert(editScript.coresize == expectedDiffSize)
     }
@@ -29,17 +32,17 @@ class TestHelloWorld extends AnyFunSuite {
   testDiff(
     "truediff/compat/antlr/java/HelloWorld.java",
     "truediff/compat/antlr/java/HelloWorld_renameParam.java",
-    4)
+    1)
 
   testDiff(
     "truediff/compat/antlr/java/HelloWorld.java",
     "truediff/compat/antlr/java/HelloWorld_changeStringLit.java",
-    4)
+    1)
 
   testDiff(
     "truediff/compat/antlr/java/HelloWorld_renameParam.java",
     "truediff/compat/antlr/java/HelloWorld_changeStringLit.java",
-    8)
+    2)
 
   testDiff(
     "truediff/compat/antlr/java/HelloWorld.java",
@@ -49,7 +52,7 @@ class TestHelloWorld extends AnyFunSuite {
   testDiff(
     "truediff/compat/antlr/java/HelloWorld.java",
     "truediff/compat/antlr/java/HelloWorld_renameClass.java",
-    4)
+    1)
 
   testDiff(
     "truediff/compat/antlr/java/HelloWorld.java",
