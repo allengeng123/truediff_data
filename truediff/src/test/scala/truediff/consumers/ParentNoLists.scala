@@ -14,7 +14,7 @@ class ParentNoLists extends Consumer {
 
 
   override def update(editscript: EditScript): Unit = {
-    editscript.foreach {
+    editscript.foreachCoreEdit {
       case Detach(node, _, _, _, _) =>
         parents -= node
       case Unload(_, _, kids, _) =>

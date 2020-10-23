@@ -34,12 +34,12 @@ class MTree {
 
   // applies an editscript to this
   def patch(edits: EditScript): MTree = {
-    edits.foreach(processEdit)
+    edits.foreachCoreEdit(processEdit)
     this
   }
 
   // applies a single change to this
-  def processEdit(edit: Edit): Unit = edit match {
+  def processEdit(edit: CoreEdit): Unit = edit match {
     case Detach(_, _, NamedLink(name), parent, _) => index(parent).kids(name) = null
     case Attach(node, _, NamedLink(name), parent, _) => index(parent).kids(name) = index(node)
     case Unload(node, _, _, _) => index -= node

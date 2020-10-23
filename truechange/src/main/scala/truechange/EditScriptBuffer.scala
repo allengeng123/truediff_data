@@ -30,8 +30,25 @@ class EditScriptBuffer() {
             posBuf += attach
           }
 
-        case _: Detach | _: Unload => negBuf += elem
-        case _: Attach | _: Load => posBuf += elem
+        case _: Detach => negBuf += elem
+        case Unload(node, tag, kids, lits) =>
+          negBuf.lastOption match {
+            case Some(Detach(`node`, _, link, parent, ptag)) =>
+              negBuf.remove(negBuf.size - 1)
+              negBuf += DetachUnload(node, tag, kids, lits, link, parent, ptag)
+            case _ =>
+              negBuf += elem
+          }
+
+        case _: Load => posBuf += elem
+        case Attach(node, tag, link, parent, ptag) =>
+          posBuf.lastOption match {
+            case Some(Load(`node`, _, kids, lits)) =>
+              posBuf.remove(posBuf.size - 1)
+              posBuf += LoadAttach(node, tag, kids, lits, link, parent, ptag)
+            case _ =>
+              posBuf += elem
+          }
       }
       this
     }

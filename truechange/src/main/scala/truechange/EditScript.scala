@@ -5,9 +5,14 @@ import truechange.Type.Subsorts
 import scala.language.implicitConversions
 
 case class EditScript(edits: Seq[Edit]) {
+
+  lazy val coreEdits: Seq[CoreEdit] = edits.flatMap(_.asCoreEdits)
+
   def size: Int = edits.size
+  def coresize: Int = coreEdits.size
 
   def foreach(f: Edit => Unit): Unit = edits.foreach(f)
+  def foreachCoreEdit(f: CoreEdit => Unit): Unit = coreEdits.foreach(f)
 
   /**
    * Checks if this editscript is well-typed.
@@ -25,7 +30,7 @@ case class EditScript(edits: Seq[Edit]) {
 
     implicit val subsorts: Subsorts = Map()
 
-    edits.foreach {
+    coreEdits.foreach {
       case Detach(node, tag, link, parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))

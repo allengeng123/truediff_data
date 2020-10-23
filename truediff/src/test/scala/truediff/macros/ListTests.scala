@@ -22,14 +22,14 @@ class ListTests extends AnyFlatSpec with Matchers {
     val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
     assertResult(None)(editscript.welltyped(sigs))
 
-    assertResult(expectedChanges)(editscript.size)
+    assertResult(expectedChanges)(editscript.coresize)
     newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
     newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
     val reverseEditScript = dest.compareTo(src)._1
     println("Reverse editscript:")
     reverseEditScript.foreach(c => println("  " + c))
-    assertResult(expectedChanges)(reverseEditScript.size)
+    assertResult(expectedChanges)(reverseEditScript.coresize)
 
     val loadEditScript = Diffable.load(src)
     println("Load editscript:")
