@@ -23,6 +23,12 @@ trait Diffable extends Hashable {
     digest.digest()
   }
 
+  override lazy val literalsHash: Array[Byte] = {
+    val digest = Hashable.mkDigest
+    this.directSubtrees.foreach(t => digest.update(t.literalsHash))
+    digest.digest()
+  }
+
   def sig: Signature
   def collectSignatures: Map[Tag, Signature] = {
     var sigs: Map[Tag, Signature] = Map(RootTag -> RootSig)

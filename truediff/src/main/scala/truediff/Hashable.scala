@@ -7,12 +7,18 @@ trait Hashable {
   private[truediff] val structureHash: Array[Byte]
   private[truediff] lazy val structureHashString: String = Base64.getEncoder.encodeToString(this.structureHash)
 
-  val identityHash: Array[Byte]
-  lazy val identityHashString: String = Base64.getEncoder.encodeToString(this.identityHash)
+  val literalsHash: Array[Byte]
+  lazy val literalsHashString: String = Base64.getEncoder.encodeToString(this.literalsHash)
 }
 
 object Hashable {
   def mkDigest: MessageDigest = MessageDigest.getInstance("SHA-256")
+
+  def hash(vs: Any*): Array[Byte] = {
+    val digest = mkDigest
+    vs.foreach(hash(_, digest))
+    digest.digest()
+  }
 
   def hash(v: Any, d: MessageDigest): Unit = {
     d.update(v.getClass.getCanonicalName.getBytes)

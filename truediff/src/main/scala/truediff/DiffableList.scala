@@ -255,11 +255,4 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       }
     }
   }
-
-  override lazy val identityHash: Array[Byte] = {
-    val digest = Hashable.mkDigest
-    this.getClass.getCanonicalName.getBytes
-    this.list.foreach(t => digest.update(t.identityHash))
-    digest.digest()
-  }
 }

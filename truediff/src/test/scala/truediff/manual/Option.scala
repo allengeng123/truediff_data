@@ -5,13 +5,6 @@ import truediff.{SubtreeRegistry, _}
 
 case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
-  lazy val identityHash: Array[Byte] = {
-    val digest = Hashable.mkDigest
-    this.getClass.getCanonicalName.getBytes
-    digest.update(a.identityHash)
-    digest.digest()
-  }
-
   override val treeheight: Int = 1 + a.treeheight
 
   override def treesize: Int = 1 + a.treesize

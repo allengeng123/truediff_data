@@ -18,7 +18,7 @@ object HashableMacro {
 
     val tHashable = symbolOf[Hashable]
     val oHashable = tHashable.companion
-    val tyHashasble = typeOf[Hashable]
+    val tyHashable = typeOf[Hashable]
     val tArray = symbolOf[Array[_]]
     val tByte = symbolOf[Byte]
     val oBigInt = symbolOf[BigInt.type].asClass.module
@@ -33,12 +33,11 @@ object HashableMacro {
           $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents with $tHashable { $self =>
             ..$stats
 
-            override lazy val cryptoHash: $tArray[$tByte] = {
+            override lazy val literalsHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
-              digest.update(this.getClass.getCanonicalName.getBytes)
-              ..${Util.mapParams(c)(paramss, tyHashasble,
-                p => q"digest.update(this.$p.hash)",
-                p => q"$oHashable.cryptoHash(this.$p, digest)"
+              ..${Util.mapParams(c)(paramss, tyHashable,
+                p => q"digest.update(this.$p.literalsHash)",
+                p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
             }
@@ -49,12 +48,6 @@ object HashableMacro {
         q"""
           $mods object $tname extends { ..$earlydefns } with ..$parents with $tHashable  { $self =>
             ..${body.map(b => Util.addAnnotation(c)(b, annoHashable, _ => true))}
-
-            override lazy val cryptoHash: $tArray[$tByte] = {
-              val digest = $oHashable.mkDigest
-              digest.update(this.getClass.getCanonicalName.getBytes)
-              digest.digest()
-            }
           }
          """
     }

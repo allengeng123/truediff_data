@@ -16,10 +16,10 @@ class SubtreeShare() {
   def takeExactAvailableTree(that: Diffable, subtreeReg: SubtreeRegistry): Option[Diffable] = {
     if (identityTrees == null) {
       identityTrees = new PatriciaTrie[Diffable]()
-      availableTrees.values.foreach(t => identityTrees.put(t.identityHashString, t))
+      availableTrees.values.foreach(t => identityTrees.put(t.literalsHashString, t))
     }
 
-    identityTrees.get(that.identityHashString) match {
+    identityTrees.get(that.literalsHashString) match {
       case null => None
       case tree =>
         takeTree(tree, that, subtreeReg)
@@ -38,7 +38,7 @@ class SubtreeShare() {
 
   private def takeTree(tree: Diffable, that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     tree.share.availableTrees -= tree.uri
-    tree.share.identityTrees.remove(tree.identityHashString)
+    tree.share.identityTrees.remove(tree.literalsHashString)
     tree.share = null  // reset to prevent memory leaks
     tree._directSubtrees.foreach(deregisterAvailableTree(_, subtreeReg))
 

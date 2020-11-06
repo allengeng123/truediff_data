@@ -68,7 +68,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  "diff" should "leave subtrees in place" in {
+  it should "leave subtrees in place" in {
     // should yield editscript:
     //   [detach 10, unload 10, load 13, attach 13]
     testEditScript(
@@ -86,7 +86,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  "diff" should "leave subtrees intact" in {
+  it should "leave subtrees intact" in {
     // should yield editscript:
     //   [detach 1, unload 1 from x, load 2 as y, attach y to x,
     //    unload z, unload 3, detach (2+3) from z, attach (2+3) to x]
@@ -113,7 +113,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  "diff" should "reuse all subtrees" in {
+  it should "reuse all subtrees" in {
     // should yield editscript:
     //   [detach 2, unload 3, unload 2+3 from x, attach 2 to x]
     testEditScript(
@@ -140,7 +140,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  "diff" should "wrap subtrees" in {
+  it should "wrap subtrees" in {
     // should yield editscript:
     //   [detach 2+3, load 1, load 1 + (2+3), attach 1 + (2+3)]
     testEditScript(
@@ -159,7 +159,7 @@ class ExpTests extends AnyFlatSpec with Matchers {
   }
 
 
-  "diff" should "support example from paper" in {
+  it should "support example from paper" in {
     testEditScript(
       Add(Sub(Var("a"), Num(1)), Mul(Var("b"), Var("c"))),
       Add(Var("c"), Mul(Var("b"), Sub(Var("a"), Num(1)))),

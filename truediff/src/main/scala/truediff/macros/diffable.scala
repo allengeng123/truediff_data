@@ -130,11 +130,10 @@ object DiffableMacro {
                 this.getClass.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
-            override lazy val identityHash: $tArray[$tByte] = {
+            override lazy val literalsHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
-              digest.update(this.getClass.getCanonicalName.getBytes)
               ..${Util.mapParams(c)(paramss, tyHashable,
-                p => q"digest.update(this.$p.identityHash)",
+                p => q"digest.update(this.$p.literalsHash)",
                 p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
@@ -353,7 +352,7 @@ object DiffableMacro {
 
     if (annottees.size > 1 || !hasCollectionParam) {
       val res = q"{..$mappedAnnottees}"
-      println(res)
+//      println(res)
       res
     } else {
       val companion =
@@ -363,7 +362,7 @@ object DiffableMacro {
             }
           """
       val extendedRes = q"{${mappedAnnottees.head}; $companion}"
-      println(extendedRes)
+//      println(extendedRes)
       extendedRes
     }
 

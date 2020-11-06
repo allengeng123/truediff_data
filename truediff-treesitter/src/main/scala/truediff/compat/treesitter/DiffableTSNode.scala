@@ -11,11 +11,10 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
 
   override def tag: NamedTag = NamedTag(nodeType)
 
-  override lazy val identityHash: Array[Byte] = {
+  override lazy val literalsHash: Array[Byte] = {
     val digest = Hashable.mkDigest
-    digest.update(nodeType.getBytes)
     literals.foreach(lit => digest.update(lit.getBytes()))
-    directSubtrees.foreach(sub => digest.update(sub.identityHash))
+    directSubtrees.foreach(sub => digest.update(sub.literalsHash))
     digest.digest()
   }
 

@@ -28,11 +28,10 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   def dchildren: Iterable[DiffableGumTree] =
     children.iterator().asScala.to(Iterable).asInstanceOf[Iterable[DiffableGumTree]]
 
-  override lazy val identityHash: Array[Byte] = {
+  override lazy val literalsHash: Array[Byte] = {
     val digest = Hashable.mkDigest
-    Hashable.hash(typeLabel, digest)
     Hashable.hash(label, digest)
-    dchildren.foreach(t => digest.update(t.identityHash))
+    dchildren.foreach(t => digest.update(t.literalsHash))
     digest.digest()
   }
 

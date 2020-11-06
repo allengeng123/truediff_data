@@ -56,24 +56,13 @@ object Exp {
         edits += Unload(this.uri, this.tag, Seq(), Seq())
       }
     }
-
-    lazy val identityHash: Array[Byte] = {
-      val digest = Hashable.mkDigest
-      digest.update(this.getClass.getCanonicalName.getBytes)
-      digest.digest()
-    }
   }
 }
 
 
 case class Num(n: Int) extends Exp {
 
-  lazy val identityHash: Array[Byte] = {
-    val digest = Hashable.mkDigest
-    digest.update(this.getClass.getCanonicalName.getBytes)
-    Hashable.hash(this.n, digest)
-    digest.digest()
-  }
+  override lazy val literalsHash: Array[Byte] = Hashable.hash(this.n)
 
   override val treeheight: Int = 1
 
@@ -144,14 +133,6 @@ case class Num(n: Int) extends Exp {
 }
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
-
-  override lazy val identityHash: Array[Byte] = {
-    val digest = Hashable.mkDigest
-    digest.update(this.getClass.getCanonicalName.getBytes)
-    digest.update(this.e1.identityHash)
-    digest.update(this.e2.identityHash)
-    digest.digest()
-  }
 
   override val treeheight: Int = 1 + Math.max(e1.treeheight, e2.treeheight)
 
@@ -233,12 +214,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 }
 
 case class Var(name: String) extends Exp {
-  override lazy val identityHash: Array[Byte] = {
-    val digest = Hashable.mkDigest
-    digest.update(this.getClass.getCanonicalName.getBytes)
-    Hashable.hash(this.name, digest)
-    digest.digest()
-  }
+  override lazy val literalsHash: Array[Byte] = Hashable.hash(this.name)
 
   override val treeheight: Int = 1
 

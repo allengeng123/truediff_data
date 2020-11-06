@@ -37,13 +37,12 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
         None
     }.toMap
 
-  override val identityHash: Array[Byte] = {
+  override lazy val literalsHash: Array[Byte] = {
     val digest = Hashable.mkDigest
-    Hashable.hash(ctx.getRuleIndex, digest)
     for (i <- 0 until ctx.getChildCount) {
       ctx.getChild(i) match {
         case node: RuleNode =>
-          digest.update(mapper.diffable(node.getRuleContext).identityHash)
+          digest.update(mapper.diffable(node.getRuleContext).literalsHash)
         case node: TerminalNode =>
           Hashable.hash(node.getSymbol.getText, digest)
       }
