@@ -6,39 +6,38 @@ import truechange.URI
 
 class SubtreeShare() {
   private var availableTrees: Map[URI, Diffable] = Map()
-  private var preferredTrees: trie.PatriciaTrie[Diffable] = null
+  private var _preferredTrees: trie.PatriciaTrie[Diffable] = null
 
   def registerAvailableTree(t: Diffable): Unit = {
-    if (!t.skipNode)
+    if (!t.skipNode) {
       this.availableTrees += ((t.uri, t))
-  }
-
-  def takePreferredAvailableTree(that: Diffable, subtreeReg: SubtreeRegistry): Option[Diffable] = {
-    if (preferredTrees == null) {
-      preferredTrees = new PatriciaTrie[Diffable]()
-      availableTrees.values.foreach(t => preferredTrees.put(t.literalHashString, t))
-    }
-
-    preferredTrees.get(that.literalHashString) match {
-      case null => None
-      case tree =>
-        takeTree(tree, that, subtreeReg)
-        Some(tree)
+      if (_preferredTrees != null) {
+        _preferredTrees.put(t.literalHashString, t)
+      }
     }
   }
 
-  def takeApproxAvailableTree(that: Diffable, subtreeReg: SubtreeRegistry): Option[Diffable] = {
-    val foundTree = availableTrees.headOption
-
-    foundTree.map { case (_, tree) =>
-      takeTree(tree, that, subtreeReg)
-      tree
+  private def preferredTrees: PatriciaTrie[Diffable] = {
+    if (_preferredTrees == null) {
+      _preferredTrees = new PatriciaTrie[Diffable]()
+      availableTrees.values.foreach(t => _preferredTrees.put(t.literalHashString, t))
     }
+    _preferredTrees
   }
 
-  private def takeTree(tree: Diffable, that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
+  def takeAvailableTree(that: Diffable, preferred: Boolean, subtreeReg: SubtreeRegistry): Option[Diffable] = {
+    val found: Option[Diffable] =
+      if (preferred)
+        Option(preferredTrees.get(that.literalHashString))
+      else
+        availableTrees.values.headOption
+    found.map(takeTree(_, that, subtreeReg))
+  }
+
+  private def takeTree(tree: Diffable, that: Diffable, subtreeReg: SubtreeRegistry): Diffable = {
     tree.share.availableTrees -= tree.uri
-    tree.share.preferredTrees.remove(tree.literalHashString)
+    if (tree.share._preferredTrees != null)
+      tree.share._preferredTrees.remove(tree.literalHashString)
     tree.share = null  // reset to prevent memory leaks
     tree._directSubtrees.foreach(deregisterAvailableTree(_, subtreeReg))
 
@@ -48,6 +47,7 @@ class SubtreeShare() {
         subtreeReg.assignShareAndRegisterTree(thisnode)
       }
     }
+    tree
   }
 
   def deregisterAvailableTree(t: Diffable, subtreeReg: SubtreeRegistry): Unit =

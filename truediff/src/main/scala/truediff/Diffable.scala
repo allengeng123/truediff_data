@@ -115,6 +115,7 @@ trait Diffable extends Hashable {
 
     while (queue.nonEmpty) {
       val level = queue.head.treeheight
+
       val nextNodes = ListBuffer[Diffable]()
       while (queue.nonEmpty && queue.head.treeheight == level) {
         val next = queue.dequeue()
@@ -122,35 +123,26 @@ trait Diffable extends Hashable {
           nextNodes += next
       }
 
-      val remainingMatchedNodes = assignPreferredSubtrees(nextNodes, subtreeReg)
-      val unassignedNodes = assignSubtrees(remainingMatchedNodes, subtreeReg)
+      val remainingMatchedNodes = selectAvailableTree(nextNodes, preferred = true, subtreeReg)
+      val unassignedNodes = selectAvailableTree(remainingMatchedNodes, preferred = false, subtreeReg)
       unassignedNodes.foreach(queue ++= _.directSubtrees)
     }
   }
 
-  private def assignPreferredSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
+  private def selectAvailableTree(nodes: Iterable[Diffable], preferred: Boolean, subtreeReg: SubtreeRegistry): Iterable[Diffable] =
     nodes.filter { node =>
       if (node.skipNode)
         true
-      else node.share.takePreferredAvailableTree(node, subtreeReg) match {
-        case Some(availableTree) =>
-          availableTree.assignTree(node)
-          false // discard
-        case None =>
-          true // keep
-      }
-    }
-
-  private def assignSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
-    nodes.filter { node =>
-      if (node.skipNode)
-        true
-      else node.share.takeApproxAvailableTree(node, subtreeReg) match {
-        case Some(availableTree) =>
-          availableTree.assignTree(node)
-          false // discard
-        case None =>
-          true // keep
+      else if (node.assigned != null)
+        false // discard
+      else {
+        node.share.takeAvailableTree(node, preferred, subtreeReg) match {
+          case Some(availableTree) =>
+            availableTree.assignTree(node)
+            false // discard
+          case None =>
+            true // keep
+        }
       }
     }
 
