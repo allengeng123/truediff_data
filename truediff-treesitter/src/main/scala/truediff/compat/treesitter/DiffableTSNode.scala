@@ -11,10 +11,10 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
 
   override def tag: NamedTag = NamedTag(nodeType)
 
-  override lazy val literalsHash: Array[Byte] = {
+  override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     literals.foreach(lit => digest.update(lit.getBytes()))
-    directSubtrees.foreach(sub => digest.update(sub.literalsHash))
+    directSubtrees.foreach(sub => digest.update(sub.literalHash))
     digest.digest()
   }
 
@@ -68,7 +68,7 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
   override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Diffable = {
     val that = thatX.asInstanceOf[DiffableTSNode]
     if (this.literals != that.literals) {
-      edits += UpdateLiterals(this.uri, this.tag, this.literalsWithName, that.literalsWithName)
+      edits += Update(this.uri, this.tag, this.literalsWithName, that.literalsWithName)
     }
     val newFieldChildren = fieldChildren.map {
       case (name, kid) =>
@@ -81,9 +81,7 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
         newkid
     }
 
-    val newtree = new DiffableTSNode(nodeType, that.literals, newFieldChildren, newOtherChildren)
-    newtree._uri = this.uri
-    newtree
+    new DiffableTSNode(nodeType, that.literals, newFieldChildren, newOtherChildren).withURI(this.uri)
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
@@ -103,7 +101,7 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
   override protected def assignSharesRecurse(_that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     val that = _that.asInstanceOf[DiffableTSNode]
 
-    if (this.nodeType == that.nodeType && this.literals == that.literals && this.fieldChildren.keys == that.fieldChildren.keys && this.otherChildren.size == that.otherChildren.size) {
+    if (this.nodeType == that.nodeType && this.fieldChildren.keys == that.fieldChildren.keys && this.otherChildren.size == that.otherChildren.size) {
       this.fieldChildren.keys.foreach(field => this.fieldChildren(field).assignShares(that.fieldChildren(field), subtreeReg))
       this.otherChildren.zip(that.otherChildren).foreach(kk => kk._1.assignShares(kk._2, subtreeReg))
     } else {
@@ -136,9 +134,7 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
           newkid
       }
 
-      val newtree = new DiffableTSNode(nodeType, literals, newFieldChildren, newOtherChildren)
-      newtree._uri = thisuri
-      newtree
+      new DiffableTSNode(nodeType, literals, newFieldChildren, newOtherChildren).withURI(thisuri)
     } else {
       null
     }

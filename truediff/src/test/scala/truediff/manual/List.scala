@@ -1,7 +1,7 @@
 package truediff.manual
 
 import truechange._
-import truediff.{SubtreeRegistry, _}
+import truediff._
 
 case class Many(es: DiffableList[Exp]) extends Exp {
 
@@ -13,22 +13,12 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("es" -> ListType(SortType(classOf[Exp].getCanonicalName))), Map())
 
-  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
-    case that: Many =>
-      this.es.assignShares(that.es, subtreeReg)
-    case _ =>
-      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
-      that.foreachSubtree(subtreeReg.assignShare)
-  }
-
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(es)
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case that: Many =>
       val es = this.es.computeEditScript(that.es, this.uri, this.tag, NamedLink("es"), edits).asInstanceOf[DiffableList[Exp]]
-      val newtree = Many(es)
-      newtree._uri = this.uri
-      newtree
+      Many(es).withURI(this.uri)
     case _ => null
   }
 
@@ -67,9 +57,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
     val newlist = this.es.updateLiterals(that.asInstanceOf[Many].es, edits).asInstanceOf[DiffableList[Exp]]
-    val newtree = Many(newlist)
-    newtree._uri = uri
-    newtree
+    Many(newlist).withURI(this.uri)
   }
 }
 

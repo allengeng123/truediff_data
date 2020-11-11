@@ -7,7 +7,7 @@ import scala.util.{Failure, Success, Try}
  * The standard semantics of EditScript reproduces the original tree from the EditScript alone.
  */
 
-case class MNode(uri: URI, tag: Tag, kids: mutable.Map[String, MNode], lits: Map[String, Any]) {
+case class MNode(uri: URI, tag: Tag, kids: mutable.Map[String, MNode], lits: mutable.Map[String, Any]) {
   def conformsTo(sigs: Map[Tag, Signature], expectedSort: Type): Unit = {
     val sig = sigs.getOrElse(tag, throw new Exception(s"Cannot find signature of $tag"))
     if (!expectedSort.isAssignableFrom(sig.sort)(Map())) throw new Exception(s"Wrong sort, expected $expectedSort for ${tag}_$uri ~ $sig")
@@ -28,7 +28,7 @@ case class MNode(uri: URI, tag: Tag, kids: mutable.Map[String, MNode], lits: Map
 
 class MTree {
   // the root of this tree
-  val root: MNode = MNode(null, RootTag, mutable.Map((RootLink.name, null)), Map())
+  val root: MNode = MNode(null, RootTag, mutable.Map(RootLink.name -> null), mutable.Map())
   // index of all loaded nodes
   private val index: mutable.Map[URI, MNode] = mutable.Map((null, root))
 
@@ -44,13 +44,12 @@ class MTree {
     case Attach(node, _, NamedLink(name), parent, _) => index(parent).kids(name) = index(node)
     case Unload(node, _, _, _) => index -= node
     case Load(node, tag, kids, lits) =>
-      val subtree = MNode(node, tag,
-        mutable.Map() ++ kids.map{case (n, uri) => (n, index(uri))},
-        lits.toMap)
-      index += (node -> subtree)
-    case UpdateLiterals(node, tag, _, newlits) =>
-      val MNode(_, _, kids, _) = index(node)
-      index(node) = MNode(node, tag, kids, newlits.toMap)
+      val kidNodes = mutable.Map() ++ kids.map { case (n, uri) => (n, index(uri)) }
+      val newtree = MNode(node, tag, kidNodes, mutable.Map() ++ lits)
+      index += (node -> newtree)
+    case Update(node, _, _, newlits) =>
+      val MNode(_, _, _, lits) = index(node)
+      newlits.foreach { case (k,v) => lits.update(k, v) }
   }
 
   def conformsTo(sigs: Map[Tag, Signature]): Option[String] = root.kids.get(RootLink.name) flatMap { t =>

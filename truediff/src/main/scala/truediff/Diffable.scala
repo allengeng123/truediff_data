@@ -7,8 +7,13 @@ import scala.collection.mutable.ListBuffer
 
 trait Diffable extends Hashable {
 
-  protected var _uri: URI = new JVMURI
+  private var _uri: URI = new JVMURI
+
   def uri: URI = _uri
+  protected def withURI(uri: URI): this.type = {
+    _uri = uri
+    this
+  }
 
   val _tag: Tag = NamedTag(this.getClass.getCanonicalName)
   def tag: Tag = _tag
@@ -23,9 +28,9 @@ trait Diffable extends Hashable {
     digest.digest()
   }
 
-  override lazy val literalsHash: Array[Byte] = {
+  override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
-    this.directSubtrees.foreach(t => digest.update(t.literalsHash))
+    this.directSubtrees.foreach(t => digest.update(t.literalHash))
     digest.digest()
   }
 
@@ -62,7 +67,15 @@ trait Diffable extends Hashable {
   def loadInitial(edits: EditScriptBuffer): Unit
   def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable
 
-  protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit
+  protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit =
+    if (this.tag == that.tag) {
+      this.share.registerAvailableTree(this)
+      val subs = this.directSubtrees.zip(that.directSubtrees)
+      subs.foreach {case (l,r) => l.assignShares(r, subtreeReg)}
+    } else {
+      this.foreachTree(subtreeReg.assignShareAndRegisterTree)
+      that.foreachSubtree(subtreeReg.assignShare)
+    }
   private[truediff] def _assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = this.assignSharesRecurse(that, subtreeReg)
 
   protected def directSubtrees: Iterable[Diffable]
@@ -90,13 +103,10 @@ trait Diffable extends Hashable {
 
     val thisShare = subtreeReg.assignShare(this)
     val thatShare = subtreeReg.assignShare(that)
-    if (thisShare == thatShare) {
-      // equal trees => preemptive assign
+    if (thisShare == thatShare) // equal trees => preemptive assign
       this.assignTree(that)
-    } else {
-      thisShare.registerAvailableTree(this)
+    else
       assignSharesRecurse(that, subtreeReg)
-    }
   }
 
   protected final def assignSubtrees(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
@@ -112,17 +122,17 @@ trait Diffable extends Hashable {
           nextNodes += next
       }
 
-      val nonexactlyMatchedNodes = assignExactSubtrees(nextNodes, subtreeReg)
-      val unassignedNodes = assignApproxSubtrees(nonexactlyMatchedNodes, subtreeReg)
+      val remainingMatchedNodes = assignPreferredSubtrees(nextNodes, subtreeReg)
+      val unassignedNodes = assignSubtrees(remainingMatchedNodes, subtreeReg)
       unassignedNodes.foreach(queue ++= _.directSubtrees)
     }
   }
 
-  private def assignExactSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
+  private def assignPreferredSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
     nodes.filter { node =>
       if (node.skipNode)
         true
-      else node.share.takeExactAvailableTree(node, subtreeReg) match {
+      else node.share.takePreferredAvailableTree(node, subtreeReg) match {
         case Some(availableTree) =>
           availableTree.assignTree(node)
           false // discard
@@ -131,7 +141,7 @@ trait Diffable extends Hashable {
       }
     }
 
-  private def assignApproxSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
+  private def assignSubtrees(nodes: Iterable[Diffable], subtreeReg: SubtreeRegistry): Iterable[Diffable] =
     nodes.filter { node =>
       if (node.skipNode)
         true

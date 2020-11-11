@@ -44,7 +44,7 @@ object DiffableMacro {
     val oNamedLink = symbolOf[NamedLink].companion
     val oLoadNode = symbolOf[Load].companion
     val oUnloadNode = symbolOf[Unload].companion
-    val oUpdateLiteralsNode = symbolOf[UpdateLiterals].companion
+    val oUpdateLiteralsNode = symbolOf[Update].companion
 
     val tEditScriptBuffer = symbolOf[EditScriptBuffer]
 
@@ -130,10 +130,10 @@ object DiffableMacro {
                 this.getClass.getSimpleName + "_" + this.uri.toString + paramStrings.mkString("(", ",", ")")
               }
 
-            override lazy val literalsHash: $tArray[$tByte] = {
+            override lazy val literalHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               ..${Util.mapParams(c)(paramss, tyHashable,
-                p => q"digest.update(this.$p.literalsHash)",
+                p => q"digest.update(this.$p.literalHash)",
                 p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()
@@ -159,14 +159,6 @@ object DiffableMacro {
                 Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})
             )
 
-            override protected def assignSharesRecurse(that: $tDiffable, subtreeReg: $tSubtreeRegistry): $tUnit = that match {
-              case that: $thisType if ${nondiffableCond(q"that")} =>
-                ..${mapDiffableParams(p => q"this.$p.assignShares(that.$p, subtreeReg)")}
-              case _ =>
-                this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
-                that.foreachSubtree(subtreeReg.assignShare)
-            }
-
             override protected def directSubtrees: $tIterable[$tDiffable] =
               ${diffableParams match {
                 case Seq() =>
@@ -183,9 +175,7 @@ object DiffableMacro {
                   (p,t) => q"val $p = this.$p.computeEditScript(that.$p, this.uri, this.tag, ${link(p, t)}, edits).asInstanceOf[$t]",
                   (p,t) => q"val $p = this.$p"
                 )}
-                val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
-                $$newtree._uri = this.uri
-                $$newtree
+                $oThis(..${mapAllParams(p => q"$p", p => q"$p")}).withURI(this.uri)
               case _ => null
             }
 
@@ -201,9 +191,7 @@ object DiffableMacro {
                 ..${mapDiffableParamsTyped(
                   (p,t) => q"val $p = this.$p.updateLiterals(that.$p, edits).asInstanceOf[$t]"
                 )}
-                val newtree = $oThis(..${mapAllParams(p => q"$p", p => q"that.$p")})
-                newtree._uri = this.uri
-                newtree
+                $oThis(..${mapAllParams(p => q"$p", p => q"that.$p")}).withURI(this.uri)
             }
 
             override def loadUnassigned(edits: $tEditScriptBuffer): $tDiffable = {

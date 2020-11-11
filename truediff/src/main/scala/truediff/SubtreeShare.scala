@@ -6,20 +6,20 @@ import truechange.URI
 
 class SubtreeShare() {
   private var availableTrees: Map[URI, Diffable] = Map()
-  private var identityTrees: trie.PatriciaTrie[Diffable] = null
+  private var preferredTrees: trie.PatriciaTrie[Diffable] = null
 
   def registerAvailableTree(t: Diffable): Unit = {
     if (!t.skipNode)
       this.availableTrees += ((t.uri, t))
   }
 
-  def takeExactAvailableTree(that: Diffable, subtreeReg: SubtreeRegistry): Option[Diffable] = {
-    if (identityTrees == null) {
-      identityTrees = new PatriciaTrie[Diffable]()
-      availableTrees.values.foreach(t => identityTrees.put(t.literalsHashString, t))
+  def takePreferredAvailableTree(that: Diffable, subtreeReg: SubtreeRegistry): Option[Diffable] = {
+    if (preferredTrees == null) {
+      preferredTrees = new PatriciaTrie[Diffable]()
+      availableTrees.values.foreach(t => preferredTrees.put(t.literalHashString, t))
     }
 
-    identityTrees.get(that.literalsHashString) match {
+    preferredTrees.get(that.literalHashString) match {
       case null => None
       case tree =>
         takeTree(tree, that, subtreeReg)
@@ -38,7 +38,7 @@ class SubtreeShare() {
 
   private def takeTree(tree: Diffable, that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     tree.share.availableTrees -= tree.uri
-    tree.share.identityTrees.remove(tree.literalsHashString)
+    tree.share.preferredTrees.remove(tree.literalHashString)
     tree.share = null  // reset to prevent memory leaks
     tree._directSubtrees.foreach(deregisterAvailableTree(_, subtreeReg))
 

@@ -97,9 +97,7 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
 
   override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
     val a = this.a.updateLiterals(that.asInstanceOf[DiffableSome[A]].a, edits).asInstanceOf[A]
-    val newtree = DiffableSome(a, atype)
-    newtree._uri = this.uri
-    newtree
+    DiffableSome(a, atype).withURI(this.uri)
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {

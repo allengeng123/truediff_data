@@ -165,5 +165,11 @@ class ExpTests extends AnyFlatSpec with Matchers {
       Add(Var("c"), Mul(Var("b"), Sub(Var("a"), Num(1)))),
       4
     )
+
+    testEditScript(
+      Add(Var("a"), Var("b")),
+      Add(Var("b"), Var("b")),
+      1
+    )
   }
 }

@@ -1,7 +1,7 @@
 package externalpackage
 
 import truechange._
-import truediff.{SubtreeRegistry, _}
+import truediff._
 
 trait Exp extends Diffable
 
@@ -15,19 +15,11 @@ object Exp {
 
     override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map())
 
-    override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
-      case that: Hole =>
-      case _ =>
-        that.foreachSubtree(subtreeReg.assignShare)
-    }
-
     override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
     override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
       case Hole() =>
-        val newtree = Hole()
-        newtree._uri = this.uri
-        newtree
+        Hole().withURI(this.uri)
       case _ => null
     }
 
@@ -62,7 +54,7 @@ object Exp {
 
 case class Num(n: Int) extends Exp {
 
-  override lazy val literalsHash: Array[Byte] = Hashable.hash(this.n)
+  override lazy val literalHash: Array[Byte] = Hashable.hash(this.n)
 
   override val treeheight: Int = 1
 
@@ -72,19 +64,11 @@ case class Num(n: Int) extends Exp {
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
-  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
-    case that: Num if this.n == that.n =>
-    case _ =>
-      that.foreachSubtree(subtreeReg.assignShare)
-  }
-
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case Num(n) if this.n == n =>
-      val newtree = Num(n)
-      newtree._uri = this.uri
-      newtree
+      Num(n).withURI(this.uri)
     case _ => null
   }
 
@@ -92,12 +76,10 @@ case class Num(n: Int) extends Exp {
   override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Num = {
     val that = thatX.asInstanceOf[Num]
     if (this.n != that.n) {
-      edits += UpdateLiterals(this.uri, this.tag,
+      edits += Update(this.uri, this.tag,
         Seq("n" -> this.n), Seq("n" -> that.n)
       )
-      val newtree = Num(that.n)
-      newtree._uri = this.uri
-      newtree
+      Num(that.n).withURI(this.uri)
     } else
       this
   }
@@ -143,24 +125,13 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("e1" -> SortType(classOf[Exp].getCanonicalName), "e2" -> SortType(classOf[Exp].getCanonicalName)), Map())
 
-  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
-    case that: Add =>
-      this.e1.assignShares(that.e1, subtreeReg)
-      this.e2.assignShares(that.e2, subtreeReg)
-    case _ =>
-      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
-      that.foreachSubtree(subtreeReg.assignShare)
-  }
-
   override protected def directSubtrees: Iterable[Diffable] = Iterable(e1, e2)
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case that: Add =>
       val e1 = this.e1.computeEditScript(that.e1, this.uri, this.tag, NamedLink("e1"), edits).asInstanceOf[Exp]
       val e2 = this.e2.computeEditScript(that.e2, this.uri, this.tag, NamedLink("e2"), edits).asInstanceOf[Exp]
-      val newtree = Add(e1, e2)
-      newtree._uri = this.uri
-      newtree
+      Add(e1, e2).withURI(this.uri)
     case _ => null
   }
 
@@ -169,9 +140,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     case that: Add =>
       val e1 = this.e1.updateLiterals(that.e1, edits).asInstanceOf[Exp]
       val e2 = this.e2.updateLiterals(that.e2, edits).asInstanceOf[Exp]
-      val newtree = Add(e1, e2)
-      newtree._uri = this.uri
-      newtree
+      Add(e1, e2).withURI(this.uri)
   }
 
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
@@ -224,33 +193,23 @@ case class Var(name: String) extends Exp {
 
   override def toStringWithURI: String = s"Var_$uri($name)"
 
-  override lazy val literalsHash: Array[Byte] = Hashable.hash(name)
-
-  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
-    case that: Var if this.name == that.name =>
-    case _ =>
-      that.foreachSubtree(subtreeReg.assignShare)
-  }
+  override lazy val literalHash: Array[Byte] = Hashable.hash(name)
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
   override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Var = {
     val that = thatX.asInstanceOf[Var]
     if (this.name != that.name) {
-      edits += UpdateLiterals(this.uri, this.tag,
+      edits += Update(this.uri, this.tag,
         Seq("n" -> this.name), Seq("n" -> that.name)
       )
-      val newtree = Var(that.name)
-      newtree._uri = uri
-      newtree
+      Var(that.name).withURI(this.uri)
     } else
       this
   }
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case Var(n) if this.name == name =>
-      val newtree = Var(name)
-      newtree._uri = this.uri
-      newtree
+      Var(name).withURI(this.uri)
     case _ => null
   }
 

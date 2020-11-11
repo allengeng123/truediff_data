@@ -28,10 +28,10 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   def dchildren: Iterable[DiffableGumTree] =
     children.iterator().asScala.to(Iterable).asInstanceOf[Iterable[DiffableGumTree]]
 
-  override lazy val literalsHash: Array[Byte] = {
+  override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     Hashable.hash(label, digest)
-    dchildren.foreach(t => digest.update(t.literalsHash))
+    dchildren.foreach(t => digest.update(t.literalHash))
     digest.digest()
   }
 
@@ -109,7 +109,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   override protected def assignSharesRecurse(thatX: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     val that = thatX.asInstanceOf[DiffableGumTree]
 
-    if (this.typeLabel == that.typeLabel && this.label == that.label) {
+    if (this.typeLabel == that.typeLabel) {
       val (thislist1, thatlist1) = trimFront(this.dchildren, that.dchildren, subtreeReg)
       val (thislist2, thatlist2) = trimFront(thislist1.toSeq.reverse, thatlist1.toSeq.reverse, subtreeReg)
 
@@ -139,9 +139,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
 
     if (this.typeLabel == that.typeLabel && this.label == that.label) {
       val newchildren = computeEditScriptLists(this.dchildren, that.dchildren, this.uri, this.tag, this.uri, this.tag, ListFirstLink(null), edits)
-      val newtree = new DiffableGumTree(typeLabel, that.label, newchildren)
-      newtree._uri = this.uri
-      newtree
+      new DiffableGumTree(typeLabel, that.label, newchildren).withURI(this.uri)
     } else {
       null
     }
@@ -151,7 +149,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
     val that = thatX.asInstanceOf[DiffableGumTree]
 
     if (this.label != that.label) {
-      edits += UpdateLiterals(
+      edits += Update(
         this.uri, this.tag,
         Seq("label" -> this.label), Seq("label" -> that.label)
       )
@@ -159,10 +157,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
     val newchildren = this.dchildren.zip(that.dchildren).map {
       case (thisnode, thatnode) => thisnode.updateLiterals(thatnode, edits)
     }
-    val newtree = new DiffableGumTree(typeLabel, that.label, newchildren)
-    newtree._uri = this.uri
-    newtree
-
+    new DiffableGumTree(typeLabel, that.label, newchildren).withURI(this.uri)
   }
 
   private def computeEditScriptLists(thislist: Iterable[DiffableGumTree], thatlist: Iterable[DiffableGumTree], thisparent: URI, thisparentTag: Tag, thatparent: URI, thatparentTag: Tag, link: Link, edits: EditScriptBuffer): Iterable[DiffableGumTree] = {

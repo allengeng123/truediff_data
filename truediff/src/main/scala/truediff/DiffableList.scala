@@ -111,9 +111,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): DiffableList[Diffable] = that match {
     case that: DiffableList[A] =>
       val newlist = computeEditScriptLists(this.list, that.list, this.uri, this.tag, this.uri, this.tag, ListFirstLink(atype), edits)
-      val newtree = DiffableList(newlist, atype)
-      newtree._uri = this.uri
-      newtree
+      DiffableList(newlist, atype).withURI(this.uri)
     case _ =>
       null
   }
@@ -228,9 +226,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       case (thisnode, thatnode) => thisnode.updateLiterals(thatnode, edits)
     }
 
-    val newtree = DiffableList(newlist, atype)
-    newtree._uri = this.uri
-    newtree
+    DiffableList(newlist, atype).withURI(this.uri)
   }
 
 

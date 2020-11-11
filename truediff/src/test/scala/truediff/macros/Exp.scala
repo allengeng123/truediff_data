@@ -23,3 +23,6 @@ case class Mul(e1: Exp, e2: Exp) extends Exp
 
 @diffable
 case class Var(name: String) extends Exp
+
+@diffable
+case class Let(x: String, e: Exp, body: Exp) extends Exp

@@ -1,7 +1,7 @@
 package truediff.manual
 
 import truechange._
-import truediff.{SubtreeRegistry, _}
+import truediff._
 
 case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
@@ -13,22 +13,12 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("a" -> OptionType(SortType(classOf[Exp].getCanonicalName))), Map())
 
-  override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
-    case that: Maybe =>
-      this.a.assignShares(that.a, subtreeReg)
-    case _ =>
-      this.foreachSubtree(subtreeReg.assignShareAndRegisterTree)
-      that.foreachSubtree(subtreeReg.assignShare)
-  }
-
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
     case that: Maybe =>
       val a = this.a.computeEditScript(that.a, this.uri, this.tag, NamedLink("a"), edits).asInstanceOf[DiffableOption[Exp]]
-      val newtree = Maybe(a)
-      newtree._uri = this.uri
-      newtree
+      Maybe(a).withURI(this.uri)
     case _ => null
   }
 
@@ -66,9 +56,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = {
     val newlist = this.a.updateLiterals(that.asInstanceOf[Maybe].a, edits).asInstanceOf[DiffableOption[Exp]]
-    val newtree = Maybe(newlist)
-    newtree._uri = uri
-    newtree
+    Maybe(newlist).withURI(this.uri)
   }
 }
 

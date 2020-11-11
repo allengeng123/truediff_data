@@ -37,12 +37,12 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
         None
     }.toMap
 
-  override lazy val literalsHash: Array[Byte] = {
+  override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     for (i <- 0 until ctx.getChildCount) {
       ctx.getChild(i) match {
         case node: RuleNode =>
-          digest.update(mapper.diffable(node.getRuleContext).literalsHash)
+          digest.update(mapper.diffable(node.getRuleContext).literalHash)
         case node: TerminalNode =>
           Hashable.hash(node.getSymbol.getText, digest)
       }
@@ -103,7 +103,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
   override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Diffable = {
     val that = thatX.asInstanceOf[DiffableRuleContext]
     if (this.lits != that.lits)
-      edits += UpdateLiterals(this.uri, this.tag, this.lits, that.lits)
+      edits += Update(this.uri, this.tag, this.lits, that.lits)
 
     val newctx = new ParserRuleContext() {
       override def getRuleIndex: Int = ctx.getRuleIndex
@@ -119,9 +119,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
         newctx.addAnyChild(thatTerminalNode)
     }
 
-    val newtree = mapper.diffable(newctx)
-    newtree._uri = this.uri
-    newtree
+    mapper.diffable(newctx).withURI(this.uri)
   }
 
   override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
@@ -151,8 +149,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
     case that: DiffableRuleContext
       if this.ctx.getRuleIndex == that.ctx.getRuleIndex
-        && this.directSubtrees.size == that.directSubtrees.size
-        && this.lits == that.lits =>
+        && this.directSubtrees.size == that.directSubtrees.size =>
       this.directSubtrees.zip(that.directSubtrees).foreach { case (thisnode, thatnode) =>
         thisnode.assignShares(thatnode, subtreeReg)
       }
@@ -185,9 +182,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
           i += 1
       }
 
-      val newtree = mapper.diffable(newctx)
-      newtree._uri = this.uri
-      newtree
+      mapper.diffable(newctx).withURI(this.uri)
     case _ => null
   }
 }

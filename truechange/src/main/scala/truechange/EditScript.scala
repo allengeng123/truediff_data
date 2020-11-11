@@ -119,7 +119,7 @@ case class EditScript(edits: Seq[Edit]) {
         roots += node -> sig.sort
 
 
-      case UpdateLiterals(node, tag, oldlits, newlits) =>
+      case Update(node, tag, oldlits, newlits) =>
         val sig = sigs.getOrElse(tag, return Some(s"No signature for $tag found"))
         // provided lits match signature
         if (sig.lits.size != newlits.size)

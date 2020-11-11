@@ -33,10 +33,10 @@ object HashableMacro {
           $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents with $tHashable { $self =>
             ..$stats
 
-            override lazy val literalsHash: $tArray[$tByte] = {
+            override lazy val literalHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
               ..${Util.mapParams(c)(paramss, tyHashable,
-                p => q"digest.update(this.$p.literalsHash)",
+                p => q"digest.update(this.$p.literalHash)",
                 p => q"$oHashable.hash(this.$p, digest)"
               )}
               digest.digest()

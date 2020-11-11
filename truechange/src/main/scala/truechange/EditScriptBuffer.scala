@@ -57,7 +57,7 @@ class EditScriptBuffer() {
             }
           }
 
-        case _: UpdateLiterals =>
+        case _: Update =>
           posBuf += elem
       }
 
