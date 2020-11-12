@@ -15,10 +15,6 @@ import scala.jdk.CollectionConverters._
 object BenchmarkPythonCommitsGumtree extends App {
   val projectName = "keras"
 
-  type Doc = (String, Array[String])
-  val emptyXml = "<Module lineno=\"1\" col=\"0\" end_line_no=\"1\" end_col=\"0\"></Module>"
-  val emptyDoc: Doc = (emptyXml, Array[String](""))
-
   private def getCommitNumber(f: File): Int =
     f.getName.substring(s"$projectName-".length, f.getName.lastIndexOf('-')).toInt
 
@@ -38,7 +34,6 @@ object BenchmarkPythonCommitsGumtree extends App {
 
 
     val parsedFiles:mutable.Map[File, String] = mutable.Map()
-    val previousDocs: mutable.Map[String, Doc] = mutable.Map()
 
     def benchmarkFile(commit: File, file: File)(implicit timing: Timing): Option[Measurement[Edits]] = {
       if (isWarmup && warmpupCount <= 0)
@@ -61,11 +56,13 @@ object BenchmarkPythonCommitsGumtree extends App {
             warmpupCount -= 1
           }
 
-          val (previousXml, previousCode) = previousDocs.getOrElse(file.getName, emptyDoc)
+          val previousCode = readFile(prevCommitFile.getAbsolutePath).split('\n')
+          val previousXmlFile = new File(prevCommitFile.getAbsolutePath + ".xml")
+          val previousXml = readFile(previousXmlFile.getAbsolutePath)
+
           val code = readFile(file.getAbsolutePath).split('\n')
           val xmlFile = new File(file.getAbsolutePath + ".xml")
           val xml = readFile(xmlFile.getAbsolutePath)
-          previousDocs(file.getName) = (xml, code)
 
           val (treePair, editscript, _, diffTimes) = timed[(ITree, ITree), Edits](
             () => {
@@ -93,15 +90,6 @@ object BenchmarkPythonCommitsGumtree extends App {
     }
 
     val commitList = commits.toList
-    commitList.headOption.foreach { commit =>
-      val commitFiles = files(commit.getAbsolutePath, pattern = ".*py")
-      commitFiles.foreach { file =>
-        val code = readFile(file.getAbsolutePath).split('\n')
-        val xmlFile = new File(file.getAbsolutePath + ".xml")
-        val xml = readFile(xmlFile.getAbsolutePath)
-        previousDocs(file.getName) = (xml, code)
-      }
-    }
 
     // iterate over commits
     // iterate over all files of commit and check if previous has this file

@@ -47,7 +47,7 @@ object PrepareBenchmarkPythonCommits extends App {
     commitList.tail.foreach { commit =>
       val commitFiles = files(commit.getAbsolutePath, pattern = ".*py")
       commitFiles.foreach { file =>
-        val prevCommitFile = new File(prevCommit(commit), file.getName)
+        val prevCommitFile = new File(prevCommit(commit), file.getName).getAbsoluteFile
         if (prevCommitFile.exists()) {
           val currCommitFileContent = readFile(file.getAbsolutePath)
           parsedFiles(file) = currCommitFileContent
@@ -59,16 +59,24 @@ object PrepareBenchmarkPythonCommits extends App {
           }
 
           if (parsedFiles(file) != parsedFiles(prevCommitFile)) {
-            val xmlFile = new File(file.getAbsolutePath + ".xml")
-            if (!xmlFile.exists()) {
-              println(s"Parse $file")
-              val xml = new PythonGumTreeGenerator().generateXml(parsedFiles(file))
-              new PrintWriter(xmlFile) { write(xml); close() }
-              println(s"Wrote $xmlFile")
-            }
+            ensureXmlFile(prevCommitFile, parsedFiles(prevCommitFile))
+            ensureXmlFile(file, parsedFiles(file))
           } else Option.empty[Measurement[Edits]]
         } else Option.empty[Measurement[Edits]]
       }
+    }
+  }
+
+  private def ensureXmlFile(file: File, sourcecode: String): Unit = {
+    val xmlFile = new File(file.getAbsolutePath + ".xml")
+    if (!xmlFile.exists()) {
+      println(s"Parse $file")
+      val xml = new PythonGumTreeGenerator().generateXml(sourcecode)
+      new PrintWriter(xmlFile) {
+        write(xml);
+        close()
+      }
+      println(s"Wrote $xmlFile")
     }
   }
 

@@ -16,8 +16,8 @@ object Main extends App {
 //  val file2 = new File(rootDir, "tensorflow_backend2.py")
 
   val rootDir = new File(s"/Users/seba/projects/truediff/benchmark/python_keras")
-  val file1 = new File(rootDir, "keras-284-14625e57/tensorflow_backend.py")
-  val file2 = new File(rootDir, "keras-285-0ca37c98/tensorflow_backend.py")
+  val file1 = new File(rootDir, "keras-83-479fc3a9/cntk_backend.py")
+  val file2 = new File(rootDir, "keras-84-3b853b93/cntk_backend.py")
 
   val truediff = {
     val currTree = new PythonGumTreeGenerator().generateFromFile(file2).getRoot.asInstanceOf[DiffableGumTree]
