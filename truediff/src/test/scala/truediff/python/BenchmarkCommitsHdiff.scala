@@ -115,5 +115,4 @@ object BenchmarkCommitsHdiff extends App {
 
   // write data
   writeFile("benchmark/measurements/python_keras_500_measurements-hdiff.csv", measurementsToCSV(measurements))
-  writeFile("benchmark/measurements/python_keras_500_changing_measurements-hdiff.csv", measurementsToCSV(changingMeasurements))
 }

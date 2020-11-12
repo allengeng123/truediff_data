@@ -16,12 +16,16 @@ object Main extends App {
 //  val file2 = new File(rootDir, "tensorflow_backend2.py")
 
   val rootDir = new File(s"/Users/seba/projects/truediff/benchmark/python_keras")
-  val file1 = new File(rootDir, "keras-83-479fc3a9/cntk_backend.py")
-  val file2 = new File(rootDir, "keras-84-3b853b93/cntk_backend.py")
+  val file1 = new File(rootDir, "keras-7-7a39b6c6/recurrent.py")
+  val file2 = new File(rootDir, "keras-6-b5cb82c6/recurrent.py")
 
   val truediff = {
     val currTree = new PythonGumTreeGenerator().generateFromFile(file2).getRoot.asInstanceOf[DiffableGumTree]
     val prevTree = new PythonGumTreeGenerator().generateFromFile(file1).getRoot.asInstanceOf[DiffableGumTree]
+//    val xml2 = BenchmarkUtils.readFile(file2.getAbsolutePath + ".xml")
+//    val xml1 = BenchmarkUtils.readFile(file1.getAbsolutePath + ".xml")
+//    val currTree = new PythonGumTreeGenerator().generateFromXml(xml2, null).getRoot.asInstanceOf[DiffableGumTree]
+//    val prevTree = new PythonGumTreeGenerator().generateFromXml(xml1, null).getRoot.asInstanceOf[DiffableGumTree]
 
     val (truediffEdits, _) = prevTree.compareTo(currTree)
     truediffEdits.edits.foreach(println(_))
@@ -35,6 +39,10 @@ object Main extends App {
   val gumtree = {
     val currTree = new PythonGumTreeGenerator().generateFromFile(file2).getRoot.asInstanceOf[DiffableGumTree]
     val prevTree = new PythonGumTreeGenerator().generateFromFile(file1).getRoot.asInstanceOf[DiffableGumTree]
+//    val xml2 = BenchmarkUtils.readFile(file2.getAbsolutePath + ".xml")
+//    val xml1 = BenchmarkUtils.readFile(file1.getAbsolutePath + ".xml")
+//    val currTree = new PythonGumTreeGenerator().generateFromXml(xml2, null).getRoot.asInstanceOf[DiffableGumTree]
+//    val prevTree = new PythonGumTreeGenerator().generateFromXml(xml1, null).getRoot.asInstanceOf[DiffableGumTree]
 
     val matcher = Matchers.getInstance.getMatcher(prevTree, currTree)
     matcher.`match`()

@@ -89,5 +89,4 @@ object BenchmarkCommits extends App {
 
   // write data
   writeFile("benchmark/measurements/python_keras_500_measurements-truediff.csv", measurementsToCSV(measurements))
-  writeFile("benchmark/measurements/python_keras_500_changing_measurements-truediff.csv", measurementsToCSV(changingMeasurements))
 }

@@ -6,8 +6,6 @@ import truechange.EditScript
 import truediff.util.BenchmarkUtils._
 import truediff.util.CSVUtil.csvRowToString
 
-import scala.collection.mutable
-
 object BenchmarkPythonCommitsTruediffGumtree extends App {
   val projectName = "keras"
 
@@ -28,38 +26,28 @@ object BenchmarkPythonCommitsTruediffGumtree extends App {
       commit -> commits(i)
     }.toMap
 
-    val parsedFiles:mutable.Map[File, String] = mutable.Map()
-
     def benchmarkFile(commit: File, file: File)(implicit timing: Timing): Option[Measurement[Edits]] = {
       val prevCommitFile = new File(prevCommit(commit), file.getName).getAbsoluteFile
       if (prevCommitFile.exists()) {
-        val currCommitFileContent = readFile(file.getAbsolutePath)
-        parsedFiles(file) = currCommitFileContent
-        parsedFiles.get(prevCommitFile) match {
-          case Some(_) => // do nothing
-          case None =>
-            val content = readFile(prevCommitFile.getAbsolutePath)
-            parsedFiles(prevCommitFile) = content
-        }
+        val content = readFile(file.getAbsolutePath)
+        val previousContent = readFile(prevCommitFile.getAbsolutePath)
 
-        if (parsedFiles(file) != parsedFiles(prevCommitFile)) {
+        if (content != previousContent) {
           if (isWarmup) {
             println(s"Warmup remaining $warmpupCount")
             warmpupCount -= 1
           }
 
-          val previousCode = readFile(prevCommitFile.getAbsolutePath).split('\n')
           val previousXmlFile = new File(prevCommitFile.getAbsolutePath + ".xml")
           val previousXml = readFile(previousXmlFile.getAbsolutePath)
 
-          val code = readFile(file.getAbsolutePath).split('\n')
           val xmlFile = new File(file.getAbsolutePath + ".xml")
           val xml = readFile(xmlFile.getAbsolutePath)
 
           val (treePair, editscript, _, diffTimes) = timed[(DiffableGumTree, DiffableGumTree), Edits](
             () => {
-              val currTree = new PythonGumTreeGenerator().generateFromXml(xml,code).getRoot
-              val prevTree = new PythonGumTreeGenerator().generateFromXml(previousXml, previousCode).getRoot
+              val currTree = new PythonGumTreeGenerator().generateFromXml(xml, null).getRoot
+              val prevTree = new PythonGumTreeGenerator().generateFromXml(previousXml, null).getRoot
               (prevTree.asInstanceOf[DiffableGumTree], currTree.asInstanceOf[DiffableGumTree])
             },
             (treePair: (DiffableGumTree, DiffableGumTree)) => {
@@ -109,5 +97,4 @@ object BenchmarkPythonCommitsTruediffGumtree extends App {
 
   // write data
   writeFile("benchmark/measurements/python_keras_500_measurements-truediffGumtree.csv", measurementsToCSV(measurements))
-  writeFile("benchmark/measurements/python_keras_500_changing_measurements-truediffGumtree.csv", measurementsToCSV(changingMeasurements))
 }

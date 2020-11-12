@@ -75,7 +75,7 @@ public class PythonGumTreeGenerator extends ExternalProcessTreeGenerator {
         lr = new LineReader(null) {
             @Override
             public int positionFor(int line, int column) {
-                return lines[line - 1].length() + column - 1;
+                return lines == null ? -1 : lines[line - 1].length() + column - 1;
             }
         };
         return getTreeContext(xml);

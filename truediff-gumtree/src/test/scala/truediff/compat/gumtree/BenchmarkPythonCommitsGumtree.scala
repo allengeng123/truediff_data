@@ -33,41 +33,28 @@ object BenchmarkPythonCommitsGumtree extends App {
     }.toMap
 
 
-    val parsedFiles:mutable.Map[File, String] = mutable.Map()
-
     def benchmarkFile(commit: File, file: File)(implicit timing: Timing): Option[Measurement[Edits]] = {
-      if (isWarmup && warmpupCount <= 0)
-        return None
-
       val prevCommitFile = new File(prevCommit(commit), file.getName)
       if (prevCommitFile.exists()) {
-        val currCommitFileContent = readFile(file.getAbsolutePath)
-        parsedFiles(file) = currCommitFileContent
-        parsedFiles.get(prevCommitFile) match {
-          case Some(_) => // do nothing
-          case None =>
-            val content = readFile(prevCommitFile.getAbsolutePath)
-            parsedFiles(prevCommitFile) = content
-        }
+        val content = readFile(file.getAbsolutePath)
+        val previousContent = readFile(prevCommitFile.getAbsolutePath)
 
-        if (parsedFiles(file) != parsedFiles(prevCommitFile)) {
+        if (content != previousContent) {
           if (isWarmup) {
             println(s"Warmup remaining $warmpupCount")
             warmpupCount -= 1
           }
 
-          val previousCode = readFile(prevCommitFile.getAbsolutePath).split('\n')
           val previousXmlFile = new File(prevCommitFile.getAbsolutePath + ".xml")
           val previousXml = readFile(previousXmlFile.getAbsolutePath)
 
-          val code = readFile(file.getAbsolutePath).split('\n')
           val xmlFile = new File(file.getAbsolutePath + ".xml")
           val xml = readFile(xmlFile.getAbsolutePath)
 
           val (treePair, editscript, _, diffTimes) = timed[(ITree, ITree), Edits](
             () => {
-              val currTree = new PythonGumTreeGenerator().generateFromXml(xml, code).getRoot
-              val prevTree = new PythonGumTreeGenerator().generateFromXml(previousXml, previousCode).getRoot
+              val currTree = new PythonGumTreeGenerator().generateFromXml(xml, null).getRoot
+              val prevTree = new PythonGumTreeGenerator().generateFromXml(previousXml, null).getRoot
               (prevTree, currTree)
             },
             (treePair: (ITree, ITree)) => {
@@ -98,6 +85,9 @@ object BenchmarkPythonCommitsGumtree extends App {
     commitList.tail.flatMap { commit =>
       val commitFiles = files(commit.getAbsolutePath, pattern = ".*py")
       commitFiles.flatMap { file =>
+        if (isWarmup && warmpupCount <= 0)
+          return Seq()
+
         benchmarkFile(commit, file)
       }
     }
@@ -117,5 +107,4 @@ object BenchmarkPythonCommitsGumtree extends App {
 
   // write data
   writeFile("benchmark/measurements/python_keras_500_measurements-gumtree.csv", measurementsToCSV(measurements))
-  writeFile("benchmark/measurements/python_keras_500_changing_measurements-gumtree.csv", measurementsToCSV(changingMeasurements))
 }
