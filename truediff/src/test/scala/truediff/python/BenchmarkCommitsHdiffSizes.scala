@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 
-object BenchmarkCommitsHdiff extends App {
+object BenchmarkCommitsHdiffSizes extends App {
   val projectName = "keras"
 
   case class HPatch(size: Int)
@@ -17,11 +17,11 @@ object BenchmarkCommitsHdiff extends App {
   private def getCommitNumber(f: File): Int =
     f.getName.substring(s"$projectName-".length, f.getName.lastIndexOf('-')).toInt
 
-  val hdiffExec = "/Users/seba/projects/external/hdiff/.stack-work/install/x86_64-osx/89b7149c65e53285e1d10adb106ef5059788e899c2b47f997ba18dd074af2613/8.6.5/bin/hdiff"
+  val hdiffExec = "/Volumes/home/projects/external/hdiff/.stack-work/install/x86_64-osx/158835463d84d35a50cb189d9160ce6e437299496abd59a51dfdcf659b1f6c07/8.6.5/bin/hdiff"
 
   private def benchmarkHdiff(file1: File, file2: File)(implicit timing: Timing): (Int, Int, HPatch, Seq[Long]) = {
     import scala.sys.process._
-    val args = s"${file1.getAbsoluteFile} ${file2.getAbsoluteFile} --with-stats --repeat ${timing.repeat}"
+    val args = s"size ${file1.getAbsoluteFile} ${file2.getAbsoluteFile} --with-stats"
     val cmd = s"$hdiffExec $args"
     println(s"calling $cmd")
 
@@ -34,11 +34,6 @@ object BenchmarkCommitsHdiff extends App {
     val times = ListBuffer[Long]()
 
     for (_ <- 1 to timing.repeat) {
-      line += 1 // skip "Iteration i of R"
-
-      assert(output(line).startsWith("time(picoseconds):"))
-      val picoTime = output(line).substring("time(picoseconds):".length).trim.toLong
-      times += picoTime / 1000
       line += 1
 
       assert(output(line).startsWith("tree1 size:"))
@@ -48,13 +43,6 @@ object BenchmarkCommitsHdiff extends App {
       assert(output(line).startsWith("tree2 size:"))
       tree2Size = output(line).substring("tree2 size:".length).trim.toInt
       line += 1
-
-      assert(output(line).startsWith("patch size:"))
-      patchSize = output(line).substring("patch size:".length).trim.toInt
-      line += 1
-
-      line += 1 // skip patch cost
-      line += 1 // skip empty line
     }
 
     (tree1Size, tree2Size, HPatch(patchSize), times.toSeq)
@@ -108,12 +96,11 @@ object BenchmarkCommitsHdiff extends App {
 
   // collect data
 
-  val measurements = benchmark()(Timing(discard = 0, repeat = 3, outliers = 2)) // best of 3
+  val measurements = benchmark()(Timing(discard = 0, repeat = 1)) // best of 3
 
   val changingMeasurements = measurements.filter { m => m.editScript.size > 0 }
   val measurementsPerFile = measurements.map ( m => m.name -> m).toMap
 
   // write data
-  writeFile("benchmark/measurements/python_keras_500_measurements-hdiff.csv", measurementsToCSV(measurements))
+  writeFile("benchmark/measurements/python_keras_500_measurements-hdiff-sizes.csv", measurementsToCSV(measurements))
 }
-
