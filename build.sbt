@@ -2,7 +2,7 @@ name := "truechange-truediff"
 
 
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
-ThisBuild / version := "0.1.3-SNAPSHOT"
+ThisBuild / version := "0.1.3"
 ThisBuild / scalaVersion := "2.13.1"
 ThisBuild / homepage := Some(url("https://gitlab.rlp.net/plmz/truediff"))
 ThisBuild / scmInfo := Some(ScmInfo(url("https://gitlab.rlp.net/plmz/truediff"), "git@gitlab.rlp.net:plmz/truediff.git"))
