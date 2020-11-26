@@ -2,7 +2,7 @@ name := "truechange-truediff"
 
 
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
-ThisBuild / version := "0.1.3"
+ThisBuild / version := "0.1.4-SNAPSHOT"
 ThisBuild / scalaVersion := "2.13.1"
 ThisBuild / homepage := Some(url("https://gitlab.rlp.net/plmz/truediff"))
 ThisBuild / scmInfo := Some(ScmInfo(url("https://gitlab.rlp.net/plmz/truediff"), "git@gitlab.rlp.net:plmz/truediff.git"))
@@ -18,8 +18,7 @@ ThisBuild / scalacOptions += "-target:11"
 lazy val root = (project in file("."))
   .aggregate(
     truechange,
-    truediff,
-    truediff_antlr
+    truediff
   )
   .settings(skip in publish := true)
 
