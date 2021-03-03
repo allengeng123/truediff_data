@@ -42,7 +42,11 @@ object BenchmarkUtils {
       val diffTime = ms(avg(valsWithoutOutliers))
       val nodesPerMs = combinedTreeSize / diffTime
       val editsPerNod = editScript.size.toDouble / combinedTreeSize
-      val newExtras = Map("Nodes/ms" -> nodesPerMs, "Edits/Nodes" -> editsPerNod, "Tree size" -> combinedTreeSize)
+      val newExtras = Map(
+        "Nodes/ms" -> f"$nodesPerMs%.32f",
+        "Edits/Nodes" -> f"$editsPerNod%.32f",
+        "Tree size" -> combinedTreeSize
+      )
       extend(newExtras)
     }
 

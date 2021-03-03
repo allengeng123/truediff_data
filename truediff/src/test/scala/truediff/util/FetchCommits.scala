@@ -17,7 +17,7 @@ object FetchCommits extends App {
     Process("git clone git@github.com:keras-team/keras.git", benchmarkDir).!!
   }
 
-  // prepare python_kreas if dir does not exist in benchmark
+  // prepare python_keras if dir does not exist in benchmark
   if(!target.exists()) {
     val originalCommit = Process("git rev-parse 1a3ee84", repo).!!
 

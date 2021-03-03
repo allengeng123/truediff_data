@@ -43,8 +43,7 @@ import java.util.Map;
 @Register(id = "python-pythonparser", accept = {"\\.py$"}, priority = Registry.Priority.MAXIMUM)
 public class PythonGumTreeGenerator extends ExternalProcessTreeGenerator {
 
-    private static final String PYTHONPARSER_CMD = System.getProperty("gt.pp.path",
-            "/Users/seba/projects/external/pythonparser/src/main/python/pythonparser/pythonparser_3.py");
+    private static final String PYTHONPARSER_CMD = System.getProperty("gt.pp.path");
 
     private static final QName VALUE = new QName("value");
 
