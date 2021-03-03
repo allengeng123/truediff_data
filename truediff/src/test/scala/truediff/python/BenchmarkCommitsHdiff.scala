@@ -91,7 +91,7 @@ object BenchmarkCommitsHdiff extends App {
 
         if (parsedFiles(file) != parsedFiles(prevCommitFile)) {
           val (tree1Size, tree2Size, patchSize, diffTimes) = benchmarkHdiff(file, prevCommitFile)
-          val res = Some(Measurement(s"${commit.getName}/${file.getName}", tree1Size, -1, tree2Size, -1, diffTimes, patchSize))
+          val res = Some(Measurement(s"${commit.getName}/${file.getName}", tree1Size, -1, tree2Size, -1, diffTimes, patchSize).extendWithAggregated)
           println(csvRowToString(res.get.csv))
           res
         } else None

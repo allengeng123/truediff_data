@@ -37,6 +37,15 @@ object BenchmarkUtils {
         text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
     }
 
+    def extendWithAggregated: Measurement[ES] = {
+      val combinedTreeSize = srcSize + destSize
+      val diffTime = ms(avg(valsWithoutOutliers))
+      val nodesPerMs = combinedTreeSize / diffTime
+      val editsPerNod = editScript.size.toDouble / combinedTreeSize
+      val newExtras = Map("Nodes/ms" -> nodesPerMs, "Edits/Nodes" -> editsPerNod, "Tree size" -> combinedTreeSize)
+      extend(newExtras)
+    }
+
     def extend(newExtras: Map[String, Any]): Measurement[ES] = {
       Measurement(name, srcSize, srcHeight, destSize, destHeight, vals, outliers, editScript, extra ++ newExtras)
     }

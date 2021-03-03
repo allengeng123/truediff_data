@@ -11,7 +11,7 @@ object FetchCommits extends App {
   val filesuffix = args(2)
   val numcommits = args(3).toInt
 
-  val originalCommit = Process("git rev-parse HEAD", repo).!!
+  val originalCommit = Process("git rev-parse 1a3ee84", repo).!!
   val gitlog = Process("git log --oneline", repo).!!
 
   val commits = gitlog.linesIterator.take(numcommits).map(s => s.substring(0, s.indexOf(' '))).toList

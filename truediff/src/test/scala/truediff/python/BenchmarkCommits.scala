@@ -61,7 +61,7 @@ object BenchmarkCommits extends App {
             },
             (in: (file, file)) => in._1.compareTo(in._2)
           )
-          val res = Some(Measurement(s"${commit.getName}/${file.getName}", tree._1.treesize, tree._1.treeheight, tree._2.treesize, tree._2.treeheight, diffTimes, editscript))
+          val res = Some(Measurement(s"${commit.getName}/${file.getName}", tree._1.treesize, tree._1.treeheight, tree._2.treesize, tree._2.treeheight, diffTimes, editscript).extendWithAggregated)
           println(csvRowToString(res.get.csv))
           res
         } else Option.empty[TruediffMeasurement]

@@ -69,7 +69,7 @@ object BenchmarkPythonCommitsGumtree extends App {
 
           val prevTree = treePair._1
           val currTree = treePair._2
-          val res = Some(Measurement(s"${commit.getName}/${file.getName}", prevTree.getSize, prevTree.getHeight, currTree.getSize, currTree.getHeight, diffTimes, editscript))
+          val res = Some(Measurement(s"${commit.getName}/${file.getName}", prevTree.getSize, prevTree.getHeight, currTree.getSize, currTree.getHeight, diffTimes, editscript).extendWithAggregated)
           println(csvRowToString(res.get.csv))
           res
         } else None
