@@ -25,7 +25,7 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned
+      return that.assigned.updateLiterals(that, edits)
     }
 
     val a = this.a.loadUnassigned(edits).asInstanceOf[DiffableOption[Exp]]

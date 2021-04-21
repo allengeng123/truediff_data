@@ -43,6 +43,15 @@ case class OptionType(ty: Type) extends Type {
   }
 }
 
+case class RefType(ty: Type) extends Type {
+  override def toString: String = s"Ref[$ty]"
+  override def isAssignableFrom(other: Type)(implicit subsorts: Subsorts): Boolean = other match {
+    case NothingType => true
+    case RefType(otherTy) => ty.isAssignableFrom(otherTy)
+    case _ => false
+  }
+}
+
 trait LitType {
   def accepts(value: Any): Boolean
 }

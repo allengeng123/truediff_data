@@ -62,7 +62,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned
+      return that.assigned.updateLiterals(that, edits)
     }
 
     var newtreeKids: Map[String, URI] = Map()

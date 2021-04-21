@@ -25,7 +25,7 @@ case class Many(es: DiffableList[Exp]) extends Exp {
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned
+      return that.assigned.updateLiterals(that, edits)
     }
 
     val es = this.es.loadUnassigned(edits).asInstanceOf[DiffableList[Exp]]

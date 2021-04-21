@@ -207,7 +207,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
     val that = this
     if (that.assigned != null) {
-      return that.assigned
+      return that.assigned.updateLiterals(that, edits)
     }
 
     val newlist = that.list.map(_.loadUnassigned(edits))
