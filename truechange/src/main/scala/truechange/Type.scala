@@ -61,3 +61,10 @@ case class JavaLitType(cl: Class[_]) extends LitType {
 
 case class Signature(sort: Type, constr: Tag, kids: Map[String, Type], lits: Map[String, LitType])
 object RootSig extends Signature(AnyType, RootTag, Map(RootLink.name -> AnyType), Map())
+
+trait NodeMetaInfo {
+  def sort: SortType
+  def superSorts: Set[SortType]
+  def links: Map[NamedLink, Type]
+  def litLinks: Map[NamedLink, LitType]
+}

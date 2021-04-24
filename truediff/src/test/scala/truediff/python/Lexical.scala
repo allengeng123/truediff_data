@@ -17,7 +17,7 @@ object Lexical {
   def nonewlinewscomment[_: P] = P( (CharsWhileIn(" ") | Lexical.comment | "\\\n").rep )
 
   def identifier[_: P]: P[Ast.identifier] =
-    P( (letter|"_") ~ (letter | digit | "_").rep ).!.filter(!keywordList.contains(_)).map(Ast.identifier)
+    P( (letter|"_") ~ (letter | digit | "_").rep ).!.filter(!keywordList.contains(_)).map(Ast.identifier.apply)
   def letter[_: P]     = P( lowercase | uppercase )
   def lowercase[_: P]  = P( CharIn("a-z") )
   def uppercase[_: P]  = P( CharIn("A-Z") )

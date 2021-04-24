@@ -106,7 +106,7 @@ class Statements(indent: Int){
   def continue_stmt[_: P] = P( kw("continue") ).map(_ => Ast.stmt.Continue())
   def return_stmt[_: P] = P( kw("return") ~~ " ".rep ~~ testlist.map(tuplize).? ).map(x => Ast.stmt.Return(x))
 
-  def yield_stmt[_: P] = P( yield_expr ).map(Ast.stmt.Expr)
+  def yield_stmt[_: P] = P( yield_expr ).map(Ast.stmt.Expr.apply)
   def raise_stmt[_: P]: P[Ast.stmt.Raise] = P( kw("raise") ~~ " ".rep ~~test.? ~ ("," ~ test).? ~ ("," ~ test).? ).map(x => Ast.stmt.Raise(x._1, x._2, x._3))
   def import_stmt[_: P]: P[Ast.stmt] = P( import_name | import_from )
   def import_name[_: P]: P[Ast.stmt.Import] = P( kw("import") ~ dotted_as_names ).map(x => Ast.stmt.Import(x))
@@ -115,7 +115,7 @@ class Statements(indent: Int){
     def unNamed = P( ".".rep(1).!.map(x => (Some(x), None)) )
     def star = P( "*".!.map(_ => Seq(Ast.alias(Ast.identifier("*"), None))) )
     P( kw("from") ~ (named | unNamed) ~ kw("import") ~ (star | "(" ~ import_as_names ~ ")" | import_as_names) ).map{
-      case (dots, module, names) => Ast.stmt.ImportFrom(module.map(Ast.identifier), names, dots.map(x => x.length))
+      case (dots, module, names) => Ast.stmt.ImportFrom(module.map(Ast.identifier.apply), names, dots.map(x => x.length))
     }
   }
   def import_as_name[_: P]: P[Ast.alias] = P( NAME ~ (kw("as") ~ NAME).? ).map(x => Ast.alias(x._1, x._2))

@@ -29,6 +29,10 @@ object DiffableMacro {
     val tByte = symbolOf[Byte]
     val oBigInt = symbolOf[BigInt.type].asClass.module
     val oSeq = symbolOf[Seq.type].asClass.module
+    val tSet = symbolOf[Set[_]]
+    val oSet = symbolOf[Set.type].asClass.module
+    val tMap = symbolOf[Map[_,_]]
+    val oMap = symbolOf[Map.type].asClass.module
     val oMath = symbolOf[Math].companion
     val tURI = symbolOf[URI]
     val tSubtreeRegistry = symbolOf[SubtreeRegistry]
@@ -41,10 +45,15 @@ object DiffableMacro {
     val oJavaLitType = symbolOf[JavaLitType].companion
 
     val tLink = symbolOf[Link]
-    val oNamedLink = symbolOf[NamedLink].companion
+    val tNamedLink = symbolOf[NamedLink]
+    val oNamedLink = tNamedLink.companion
     val oLoadNode = symbolOf[Load].companion
     val oUnloadNode = symbolOf[Unload].companion
     val oUpdateLiteralsNode = symbolOf[Update].companion
+    val tNodeMetaInfo = symbolOf[NodeMetaInfo]
+    val tType = symbolOf[truechange.Type]
+    val tSortType = symbolOf[SortType]
+    val tLitType = symbolOf[LitType]
 
     val tEditScriptBuffer = symbolOf[EditScriptBuffer]
 
@@ -62,6 +71,11 @@ object DiffableMacro {
     var classTp: Tree = null
     var oThis: TermName = null
 
+    var sort: Tree = null
+    var superSorts: Tree = null
+    var links: Tree = null
+    var litlinks: Tree = null
+
     def rewrite(t: Tree): Tree = t match {
       case q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
         val newparents =
@@ -69,6 +83,17 @@ object DiffableMacro {
             parents
           else
             parents :+ tq"$tDiffable"
+
+        oThis = TermName(tpname.toString)
+        val thisType = tq"$tpname[..${tparams.map(_ => WildcardType)}]"
+        sort = q"$oSortType(classOf[$thisType].getCanonicalName)"
+        superSorts = q"$oSet(..${newparents.flatMap {
+          case par if Util.isProperSubtypeOf(c)(par, tyDiffable) => Some(q"$oSortType(classOf[$par].getCanonicalName)")
+          case _ => None
+        }})"
+        links = q"$oMap()"
+        litlinks = q"$oMap()"
+
         q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$newparents { $self => ..$stats }"
 
 
@@ -110,13 +135,25 @@ object DiffableMacro {
         def link(p: TermName, tp: Tree) = q"$oNamedLink(${p.toString})"
 
         val superDiffable = parents.find(tp => Util.isSubtypeOf(c)(tp, tyDiffable))
-        val sort = if (superDiffable.isDefined) asType(superDiffable.get) else q"$oSortType(classOf[$thisType].getCanonicalName)"
-        val newparents =
-          if (superDiffable.isDefined)
-            parents
-          else
-            parents :+ tq"$tDiffable"
 
+        val (newparents, parSort) =
+          if (superDiffable.isDefined) {
+            val s = if (Util.isProperSubtypeOf(c)(superDiffable.get, tyDiffable))
+              asType(superDiffable.get)
+            else
+              q"$oSortType(classOf[$thisType].getCanonicalName)"
+            (parents, s)
+          } else {
+            (parents :+ tq"$tDiffable", q"$oSortType(classOf[$thisType].getCanonicalName)")
+          }
+
+        sort = q"$oSortType(classOf[$thisType].getCanonicalName)"
+        superSorts = q"$oSet(..${newparents.flatMap {
+          case par if Util.isProperSubtypeOf(c)(par, tyDiffable) => Some(q"$oSortType(classOf[$par].getCanonicalName)")
+          case _ => None
+        }})"
+        links = q"$oMap(..${mapDiffableParamsTyped((p,t) => q"(${link(p, null)}, ${asType(t)})")})"
+        litlinks = q"$oMap(..${mapNonDiffableParamsTyped((p,t) => q"(${link(p, null)}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})"
 
         q"""
           $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$newparents { $self =>
@@ -154,9 +191,9 @@ object DiffableMacro {
                     q"0")
                 }
 
-            override def sig: $tSignature = $oSignature($sort, this.tag,
-                Map(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, ${asType(t)})")}),
-                Map(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})
+            override def sig: $tSignature = $oSignature($parSort, this.tag,
+                $oMap(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, ${asType(t)})")}),
+                $oMap(..${mapNonDiffableParamsTyped((p,t) => q"(${p.toString}, $oJavaLitType(${Util.boxedClassOf(c)(t)}))")})
             )
 
             override protected def directSubtrees: $tIterable[$tDiffable] =
@@ -241,11 +278,17 @@ object DiffableMacro {
       case q"$mods object $tname extends { ..$earlydefns } with ..$parents { $self => ..$body }" =>
         if (parents.exists(tp => Util.isSubtypeOf(c)(tp, tyDiffable)))
           throw new IllegalArgumentException(s"Cannot generate diffable code for objects. Consider making ${tname.toString} a class instead.")
+        val newparents = parents :+ tq"$tNodeMetaInfo"
         q"""
-          $mods object $tname extends { ..$earlydefns } with ..$parents  { $self =>
+          $mods object $tname extends { ..$earlydefns } with ..$newparents  { $self =>
             ..${body.map(b => Util.addAnnotation(c)(b, annoDiffable, _ => true))}
 
             ..${if(hasCollectionParam) Seq(convertFunction) else Seq()}
+
+              val sort: $tSortType = $sort
+              def superSorts: $tSet[$tSortType] = $superSorts
+              def links: $tMap[$tNamedLink, $tType] = $links
+              def litLinks: $tMap[$tNamedLink, $tLitType] = $litlinks
           }
          """
     }
@@ -338,15 +381,20 @@ object DiffableMacro {
 
     val mappedAnnottees = annottees.map(a => rewrite(a))
 
-    if (annottees.size > 1 || !hasCollectionParam) {
+    if (annottees.size > 1) {
       val res = q"{..$mappedAnnottees}"
 //      println(res)
       res
     } else {
       val companion =
         q"""
-            object $oThis {
-              $convertFunction
+            object $oThis extends $tNodeMetaInfo {
+              ..${if(hasCollectionParam) Seq(convertFunction) else Seq()}
+
+              val sort: $tSortType = $sort
+              def superSorts: $tSet[$tSortType] = $superSorts
+              def links: $tMap[$tNamedLink, $tType] = $links
+              def litLinks: $tMap[$tNamedLink, $tLitType] = $litlinks
             }
           """
       val extendedRes = q"{${mappedAnnottees.head}; $companion}"

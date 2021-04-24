@@ -1,8 +1,7 @@
 package truediff.python
 
 import fastparse._
-
-import Lexical.kw
+import truediff.python.Lexical.kw
 /**
  * Python's expression grammar. This is stuff that can be used within a larger
  * expression. Everything here ignores whitespace and does not care about
@@ -18,7 +17,7 @@ object Expressions {
   }
 
   def NAME[_: P]: P[Ast.identifier] = Lexical.identifier
-  def NUMBER[_: P]: P[Ast.expr.Num] = P( Lexical.floatnumber | Lexical.longinteger | Lexical.integer | Lexical.imagnumber ).map(Ast.expr.Num)
+  def NUMBER[_: P]: P[Ast.expr.Num] = P( Lexical.floatnumber | Lexical.longinteger | Lexical.integer | Lexical.imagnumber ).map(Ast.expr.Num.apply)
   def STRING[_: P]: P[Ast.string] = Lexical.stringliteral
 
   def test[_: P]: P[Ast.expr] = {
@@ -114,7 +113,7 @@ object Expressions {
       "[" ~ (list_comp | list) ~ "]" |
       "{" ~ dictorsetmaker ~ "}" |
       "`" ~ testlist1.map(x => Ast.expr.Repr(Ast.expr.Tuple(x, Ast.expr_context.Load()))) ~ "`" |
-      STRING.rep(1).map(_.mkString).map(Ast.expr.Str) |
+      STRING.rep(1).map(_.mkString).map(Ast.expr.Str.apply) |
       NAME.map(Ast.expr.Name(_, Ast.expr_context.Load())) |
       NUMBER
     )
@@ -127,7 +126,7 @@ object Expressions {
   def list_comp[_: P] = P( list_comp_contents ).map(x => Ast.expr.ListComp(x._1, x._2))
   def generator[_: P] = P( list_comp_contents ).map( x => Ast.expr.GeneratorExp(x._1, x._2))
 
-  def lambdef[_: P]: P[Ast.expr.Lambda] = P( kw("lambda") ~ varargslist ~ ":" ~ test ).map(Ast.expr.Lambda.tupled)
+  def lambdef[_: P]: P[Ast.expr.Lambda] = P( kw("lambda") ~ varargslist ~ ":" ~ test ).map((Ast.expr.Lambda.apply _).tupled)
   def trailer[_: P]: P[Ast.expr => Ast.expr] = {
     def call = P("(" ~ arglist ~ ")").map{ case (args, (keywords, starargs, kwargs)) => (lhs: Ast.expr) => Ast.expr.Call(lhs, args, keywords, starargs, kwargs)}
     def slice = P("[" ~ subscriptlist ~ "]").map(args => (lhs: Ast.expr) => Ast.expr.Subscript(lhs, args, Ast.expr_context.Load()))
@@ -140,7 +139,7 @@ object Expressions {
   }
   def subscript[_: P]: P[Ast.slice] = {
     def ellipses = P( ("." ~ "." ~ ".").map(_ => Ast.slice.Ellipsis()) )
-    def single = P( test.map(Ast.slice.Index) )
+    def single = P( test.map(Ast.slice.Index.apply) )
     def multi = P(test.? ~ ":" ~ test.? ~ sliceop.?).map { case (lower, upper, step) =>
       Ast.slice.Slice(
         lower,
@@ -182,7 +181,7 @@ object Expressions {
     case (x, Nil) => x
     case (x, gens) => Ast.expr.GeneratorExp(x, gens)
   }
-  def named_argument[_: P] = P( NAME ~ "=" ~ test  ).map(Ast.keyword.tupled)
+  def named_argument[_: P] = P( NAME ~ "=" ~ test  ).map((Ast.keyword.apply _).tupled)
 
   def comp_for[_: P]: P[Ast.comprehension] = P( kw("for") ~ exprlist ~ kw("in") ~ or_test ~ comp_if.rep ).map{
     case (targets, test, ifs) => Ast.comprehension(tuplize(targets), test, ifs)

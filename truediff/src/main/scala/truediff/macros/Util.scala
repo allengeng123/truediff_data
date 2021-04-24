@@ -58,6 +58,28 @@ object Util {
     }
   }
 
+  def isProperSubtypeOf(c: whitebox.Context)(tp: c.Tree, ty: c.Type): Boolean = {
+    import c.universe._
+    tp match {
+      case q"${tq"$name[..$targs]"}(...$_)" =>
+        val tpTy = treeType(c)(tq"$name[..$targs]")
+        tpTy <:< ty && !(tpTy =:= ty)
+      case tq"$name[..$targs]" =>
+        val tpTy = treeType(c)(tq"$name[..$targs]")
+        tpTy <:< ty && !(tpTy =:= ty)
+      case _ => false
+    }
+  }
+
+  def isSupertypeOf(c: whitebox.Context)(tp: c.Tree, ty: c.Type): Boolean = {
+    import c.universe._
+    tp match {
+      case q"${tq"$name[..$targs]"}(...$_)" => ty <:< treeType(c)(tq"$name[..$targs]")
+      case tq"$name[..$targs]" => ty <:< treeType(c)(tq"$name[..$targs]")
+      case _ => false
+    }
+  }
+
   def addAnnotation(c: whitebox.Context)(t: c.Tree, anno: c.Tree, parentsCond: Seq[c.Tree] => Boolean): c.Tree = {
     import c.universe._
     t match {

@@ -30,7 +30,7 @@ object Parser {
 
   def strChars[_: P] = P( CharsWhile(stringChars) )
   def string[_: P] =
-    P( space ~ "\"" ~/ (strChars | escape).rep.! ~ "\"").map(Js.Str)
+    P( space ~ "\"" ~/ (strChars | escape).rep.! ~ "\"").map(Js.Str.apply)
 
   def array[_: P] =
     P( "[" ~/ jsonExpr.rep(sep=","./) ~ space ~ "]").map(Js.Arr.apply)
