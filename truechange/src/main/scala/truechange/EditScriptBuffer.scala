@@ -34,6 +34,9 @@ class EditScriptBuffer() {
               negBuf += elem
           }
 
+        case du: DetachUnload =>
+          du.asCoreEdits.foreach(this.+=)
+
         case _: Load =>
           posBuf += elem
 
@@ -56,6 +59,9 @@ class EditScriptBuffer() {
                 posBuf += elem
             }
           }
+
+        case la: LoadAttach =>
+          la.asCoreEdits.foreach(this.+=)
 
         case _: Update =>
           posBuf += elem

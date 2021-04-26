@@ -9,8 +9,7 @@ ThisBuild / scmInfo := Some(ScmInfo(url("https://gitlab.rlp.net/plmz/truediff"),
 ThisBuild / developers := List(Developer("PLMZ", "Programming Languages research group of the Johannes Gutenberg University Mainz", "", url("https://www.pl.informatik.uni-mainz.de/")))
 ThisBuild / licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
 
-ThisBuild / publishMavenStyle := true
-ThisBuild / publishTo := sonatypePublishToBundle.value
+publishMavenStyle := true
 Global / useGpgPinentry := true
 
 ThisBuild / scalacOptions += "-target:11"
@@ -20,7 +19,7 @@ lazy val root = (project in file("."))
     truechange,
     truediff
   )
-  .settings(skip in publish := true)
+//  .settings(skip / publish := true)
 
 lazy val truechange = project
   .settings(
