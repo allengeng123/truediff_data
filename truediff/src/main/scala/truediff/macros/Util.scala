@@ -136,7 +136,9 @@ object Util {
   def boxedClassOf(c: whitebox.Context)(t: c.Tree): c.Tree = {
     import c.universe._
     val ty = treeType(c)(t)
-    if (ty <:< typeOf[Byte])
+    if (ty <:< typeOf[Boolean])
+      q"classOf[java.lang.Boolean]"
+    else if (ty <:< typeOf[Byte])
       q"classOf[java.lang.Byte]"
     else if (ty <:< typeOf[Short])
       q"classOf[java.lang.Short]"
@@ -150,6 +152,8 @@ object Util {
       q"classOf[java.lang.Double]"
     else if (ty <:< typeOf[Char])
       q"classOf[java.lang.Character]"
+    else if (ty <:< typeOf[String])
+      q"classOf[java.lang.String]"
     else
       q"classOf[$t]"
   }
