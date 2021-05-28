@@ -72,7 +72,7 @@ trait GenericDiffable extends Diffable {
     diffable(children).map(_._2)
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
-    case that: GenericDiffable if children.size == that.children.size =>
+    case that: GenericDiffable if tag == that.tag && children.size == that.children.size =>
       val newchildren = this.children.zip(that.children).map {
         case ((k, v:Diffable), (_, w: Diffable)) =>
           v.computeEditScript(w, this.uri, this.tag, NamedLink(k), edits)
