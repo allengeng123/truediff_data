@@ -1,11 +1,11 @@
 package truediff.compat.gumtree
 
-import java.io.File
-
 import com.github.gumtreediff.actions.ActionGenerator
 import com.github.gumtreediff.actions.model.{Delete, Update}
 import com.github.gumtreediff.matchers.Matchers
-import truechange.{Attach, Detach, DetachUnload, Unload}
+import truechange.{Attach, Detach, Remove, Unload}
+
+import java.io.File
 
 object Main extends App {
 
@@ -60,7 +60,7 @@ object Main extends App {
   println(s"Truediff neg: ${truediff.edits.count{
     case _:Unload => true
     case _:Detach => true
-    case _:DetachUnload => true
+    case _:Remove => true
     case _ => false
   }}")
   println(s"Gumtree: ${gumtree.size}")

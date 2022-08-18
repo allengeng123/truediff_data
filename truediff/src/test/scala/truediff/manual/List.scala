@@ -3,6 +3,8 @@ package truediff.manual
 import truechange._
 import truediff._
 
+import scala.collection.immutable.SortedMap
+
 case class Many(es: DiffableList[Exp]) extends Exp {
 
   override val treeheight: Int = 1 + es.treeheight
@@ -29,9 +31,10 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     }
 
     val es = this.es.loadUnassigned(edits).asInstanceOf[DiffableList[Exp]]
+    val esInsert = edits.mergeKidInsert(es.uri)
     val newtree = Many(es)
-    edits += Load(newtree.uri, this.tag, Seq(
-      "es" -> es.uri
+    edits += Insert(newtree.uri, this.tag, Seq(
+      "es" -> esInsert
     ), Seq())
     newtree
   }
@@ -39,8 +42,9 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
     this.es.loadInitial(edits)
-    edits += Load(this.uri, this.tag, Seq(
-      "es" -> es.uri
+    val esInsert = edits.mergeKidInsert(this.es.uri)
+    edits += Insert(this.uri, this.tag, Seq(
+      "es" -> esInsert
     ), Seq())
   }
 
@@ -48,10 +52,9 @@ case class Many(es: DiffableList[Exp]) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(
-        "es" -> es.uri
-      ), Seq())
+      edits += Remove(this.uri, this.tag, SortedMap("es" -> Right(es.uri)), Seq())
       this.es.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.es.uri, "es")
     }
   }
 

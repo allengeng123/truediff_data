@@ -3,6 +3,8 @@ package truediff.manual
 import truechange._
 import truediff._
 
+import scala.collection.immutable.SortedMap
+
 trait Exp extends Diffable
 
 object Exp {
@@ -30,7 +32,7 @@ object Exp {
       }
 
       val newtree = Hole()
-      edits += Load(newtree.uri, this.tag, Seq(), Seq())
+      edits += Insert(newtree.uri, this.tag, Seq(), Seq())
       newtree
     }
 
@@ -45,7 +47,7 @@ object Exp {
       if (this.assigned != null) {
 //        this.assigned = null
       } else {
-        edits += Unload(this.uri, this.tag, Seq(), Seq())
+        edits += Remove(this.uri, this.tag, SortedMap(), Seq())
       }
     }
   }
@@ -90,7 +92,7 @@ case class Num(n: Int) extends Exp {
     }
 
     val newtree = Num(this.n)
-    edits += Load(newtree.uri, this.tag, Seq(), Seq(
+    edits += Insert(newtree.uri, this.tag, Seq(), Seq(
       "n" -> this.n
     ))
     newtree
@@ -107,7 +109,7 @@ case class Num(n: Int) extends Exp {
     if (this.assigned != null) {
 //      this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(), Seq(
+      edits += Remove(this.uri, this.tag, SortedMap(), Seq(
         "n" -> this.n
       ))
     }
@@ -149,11 +151,13 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     }
 
     val e1 = that.e1.loadUnassigned(edits).asInstanceOf[Exp]
+    val e1Insert = edits.mergeKidInsert(e1.uri)
     val e2 = that.e2.loadUnassigned(edits).asInstanceOf[Exp]
+    val e2Insert = edits.mergeKidInsert(e2.uri)
     val newtree = Add(e1, e2)
-    edits += Load(newtree.uri, this.tag, Seq(
-      "e1" -> e1.uri,
-      "e2" -> e2.uri
+    edits += Insert(newtree.uri, this.tag, Seq(
+      "e1" -> e1Insert,
+      "e2" -> e2Insert
     ), Seq())
     newtree
   }
@@ -161,10 +165,12 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
     this.e1.loadInitial(edits)
+    val e1Insert = edits.mergeKidInsert(this.e1.uri)
     this.e2.loadInitial(edits)
-    edits += Load(this.uri, this.tag, Seq(
-      "e1" -> this.e1.uri,
-      "e2" -> this.e2.uri
+    val e2Insert = edits.mergeKidInsert(this.e2.uri)
+    edits += Insert(this.uri, this.tag, Seq(
+      "e1" -> e1Insert,
+      "e2" -> e2Insert
     ), Seq())
   }
 
@@ -172,12 +178,14 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     if (this.assigned != null) {
 //      this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(
-        "e1" -> this.e1.uri,
-        "e2" -> this.e2.uri
+      edits += Remove(this.uri, this.tag, SortedMap(
+        "e1" -> Right(this.e1.uri),
+        "e2" -> Right(this.e2.uri)
       ), Seq())
       this.e1.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.e1.uri, "e1")
       this.e2.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.e2.uri, "e2")
     }
   }
 }
@@ -217,7 +225,7 @@ case class Var(name: String) extends Exp {
     }
 
     val newtree = Var(this.name)
-    edits += Load(newtree.uri, this.tag, Seq(), Seq(
+    edits += Insert(newtree.uri, this.tag, Seq(), Seq(
       "name" -> this.name
     ))
     newtree
@@ -225,7 +233,7 @@ case class Var(name: String) extends Exp {
 
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    edits += Load(this.uri, this.tag, Seq(), Seq(
+    edits += Insert(this.uri, this.tag, Seq(), Seq(
       "name" -> this.name
     ))
   }
@@ -234,7 +242,7 @@ case class Var(name: String) extends Exp {
     if (this.assigned != null) {
 //      this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(), Seq(
+      edits += Remove(this.uri, this.tag, SortedMap(), Seq(
         "name" -> this.name
       ))
     }
@@ -259,20 +267,25 @@ case class Call(f: String, a: Exp) extends Exp {
       this.assigned.updateLiterals(this, edits)
     else {
       val a = this.a.loadUnassigned(edits).asInstanceOf[Exp]
+      val aInsert = edits.mergeKidInsert(a.uri)
       val newtree = Call(f, a)
-      edits += Load(newtree.uri, tag, Seq("a" -> a.uri), Seq("f" -> f))
+      edits += Insert(newtree.uri, tag, Seq("a" -> aInsert), Seq("f" -> f))
       newtree
     }
 
   override def unloadUnassigned(edits: EditScriptBuffer): Unit =
     if (this.assigned == null) {
-      edits += Unload(this.uri, this.tag, Seq("a" -> a.uri), Seq("f" -> f))
-      a.unloadUnassigned(edits)
+      edits += Remove(this.uri, this.tag, SortedMap(
+        "a" -> Right(this.a.uri)
+      ), Seq())
+      this.a.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.a.uri, "a")
     }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    a.loadInitial(edits)
-    edits += Load(uri, tag, Seq("a" -> a.uri), Seq("f" -> f))
+    this.a.loadInitial(edits)
+    val aInsert = edits.mergeKidInsert(this.a.uri)
+    edits += Insert(uri, tag, Seq("a" -> aInsert), Seq("f" -> f))
   }
 
   override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = that match {

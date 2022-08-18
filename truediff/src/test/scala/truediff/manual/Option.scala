@@ -3,6 +3,8 @@ package truediff.manual
 import truechange._
 import truediff._
 
+import scala.collection.immutable.SortedMap
+
 case class Maybe(a: DiffableOption[Exp]) extends Exp {
 
   override val treeheight: Int = 1 + a.treeheight
@@ -29,17 +31,19 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     }
 
     val a = this.a.loadUnassigned(edits).asInstanceOf[DiffableOption[Exp]]
+    val aInsert = edits.mergeKidInsert(a.uri)
     val newtree = Maybe(a)
-    edits += Load(newtree.uri, this.tag, Seq(
-      "a" -> a.uri
+    edits += Insert(newtree.uri, this.tag, Seq(
+      "a" -> aInsert
     ), Seq())
     newtree
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
     this.a.loadInitial(edits)
-    edits += Load(this.uri, this.tag, Seq(
-      "a" -> a.uri
+    val aInsert = edits.mergeKidInsert(this.a.uri)
+    edits += Insert(this.uri, this.tag, Seq(
+      "a" -> aInsert
     ), Seq())
   }
 
@@ -47,10 +51,9 @@ case class Maybe(a: DiffableOption[Exp]) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(
-        "a" -> a.uri
-      ), Seq())
+      edits += Remove(this.uri, this.tag, SortedMap("a" -> Right(a.uri)), Seq())
       this.a.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.a.uri,"a")
     }
   }
 

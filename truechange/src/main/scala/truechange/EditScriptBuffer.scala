@@ -3,11 +3,16 @@ package truechange
 import scala.collection.mutable
 
 class EditScriptBuffer() {
-    private val negBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
-    private val posBuf: mutable.Buffer[Edit] = mutable.ArrayBuffer()
+    private val negBuf: mutable.ArrayBuffer[Edit] = mutable.ArrayBuffer()
+    private val posBuf: mutable.ArrayBuffer[Edit] = mutable.ArrayBuffer()
 
     private val detachListNext: mutable.Set[(URI, URI)] = mutable.Set()
     private val attachListNext: mutable.Set[(URI, URI)] = mutable.Set()
+
+    def lastNegOption: Option[Edit] = negBuf.lastOption
+    def dropLastNeg(): Unit = negBuf.dropRightInPlace(1)
+    def lastPosOption: Option[Edit] = posBuf.lastOption
+    def dropLastPos(): Unit = posBuf.dropRightInPlace(1)
 
     def += (elem: Edit): this.type = {
       elem match {
@@ -25,55 +30,58 @@ class EditScriptBuffer() {
             negBuf += elem
         }
 
-        case Unload(node, tag, kids, lits) =>
-          negBuf.lastOption match {
-            case Some(Detach(`node`, _, link, parent, ptag)) =>
-              negBuf.remove(negBuf.size - 1)
-              negBuf += DetachUnload(node, tag, kids, lits, link, parent, ptag)
-            case _ =>
-              negBuf += elem
-          }
+        case _: Unload | _: Remove =>
+          negBuf += elem
 
-        case du: DetachUnload =>
-          du.asCoreEdits.foreach(this.+=)
-
-        case _: Load =>
+        case _: Load | _: Update | _: Insert =>
           posBuf += elem
 
-        case Attach(node, tag, link, parent, ptag) =>
-          posBuf.lastOption match {
-            case Some(Load(`node`, _, kids, lits)) =>
-              posBuf.remove(posBuf.size - 1)
-              posBuf += LoadAttach(node, tag, kids, lits, link, parent, ptag)
-            case _ => link match {
-              case next: ListNextLink =>
-                val nextPair = (parent, node)
-                if (detachListNext.remove(nextPair)) {
-                  // attach cancelled out previous detach
-                  negBuf -= Detach(node, tag, next, parent, ptag)
-                } else {
-                  attachListNext += nextPair
-                  posBuf += elem
-                }
-              case _ =>
+        case Attach(node, tag, link, parent, ptag) => link match {
+            case next: ListNextLink =>
+              val nextPair = (parent, node)
+              if (detachListNext.remove(nextPair)) {
+                // attach cancelled out previous detach
+                negBuf -= Detach(node, tag, next, parent, ptag)
+              } else {
+                attachListNext += nextPair
                 posBuf += elem
-            }
-          }
-
-        case la: LoadAttach =>
-          la.asCoreEdits.foreach(this.+=)
-
-        case _: Update =>
-          posBuf += elem
+              }
+            case _ =>
+              posBuf += elem
+        }
       }
 
       this
     }
 
-    def ++= (elem: IterableOnce[Edit]): this.type = {
-      elem.iterator.foreach(this += _)
+    def ++= (es: IterableOnce[Edit]): this.type = {
+      for (e <- es)
+        this += e
       this
     }
 
-    def toEditScript: EditScript = new EditScript(negBuf.toSeq ++ posBuf.toSeq)
+    def mergeKidInsert(node: URI): Either[Insert, URI] = {
+      lastPosOption match {
+        case Some(i: Insert) if i.node == node =>
+          dropLastPos()
+          Left(i)
+        case _ =>
+          Right(node)
+      }
+    }
+
+    def mergeKidRemove(node: URI, link: String): Unit = {
+      lastNegOption match {
+        case Some(r: Remove) if r.node == node =>
+          dropLastNeg()
+          val remove: Remove = this.lastNegOption.get.asInstanceOf[Remove]
+          this.dropLastNeg()
+          val kidRemoves = remove.kids + (link -> Left(r))
+          this += remove.copy(kids = kidRemoves)
+        case _ =>
+          // nothing
+      }
+    }
+
+    def toEditScript: EditScript = EditScript(negBuf.toSeq ++ posBuf.toSeq)
   }
