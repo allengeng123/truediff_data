@@ -65,7 +65,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
       return that.assigned.updateLiterals(that, edits)
     }
 
-    var newtreeKids: Map[String, URI] = Map()
+    var newtreeKids: Map[String, Either[Insert, URI]] = Map()
     val newctx = new ParserRuleContext() {
       override def getRuleIndex: Int = ctx.getRuleIndex
     }
@@ -74,29 +74,30 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
       case (i, subtree) =>
         val newkid = subtree.loadUnassigned(edits).asInstanceOf[DiffableRuleContext]
         newctx.addAnyChild(newkid.ctx)
-        newtreeKids += i.toString -> newkid.uri
+        val newInsert = edits.mergeKidInsert(newkid.uri)
+        newtreeKids += i.toString -> newInsert
     }
 
     val newtree = mapper.diffable(newctx)
-    edits += Load(newtree.uri, newtree.tag, newtreeKids, this.lits)
+    edits += InsertNode(newtree.uri, newtree.tag, newtreeKids, this.lits)
     newtree
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    var kids: Map[String, URI] = Map()
+    var kids: Map[String, Either[Insert, URI]] = Map()
     var lits: Map[String, Any] = Map()
     var i = 0
     children.foreach {
       case node: RuleNode =>
         val diffNode = mapper.diffable(node)
         diffNode.loadInitial(edits)
-        kids += i.toString -> diffNode.uri
+        kids += i.toString -> edits.mergeKidInsert(diffNode.uri)
         i += 1
       case node: TerminalNode =>
         lits += i.toString -> node.getSymbol.getText
         i += 1
     }
-    edits += Load(this.uri, this.tag, kids, this.lits)
+    edits += InsertNode(this.uri, this.tag, kids, this.lits)
   }
 
 
@@ -128,22 +129,24 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
       return
     }
 
-    var kids: Map[String, URI] = Map()
-    val kidsSeq: ListBuffer[DiffableRuleContext] = ListBuffer()
+    val kidsSeq: ListBuffer[(String, DiffableRuleContext)] = ListBuffer()
     var lits: Map[String, Any] = Map()
     var i = 0
     children.foreach {
       case node: RuleNode =>
         val diffNode = mapper.diffable(node).asInstanceOf[DiffableRuleContext]
-        kids += i.toString -> diffNode.uri
-        kidsSeq += diffNode
+        kidsSeq += i.toString -> diffNode
         i += 1
       case node: TerminalNode =>
         lits += i.toString -> node.getSymbol.getText
     }
+    val kids = kidsSeq.toList
 
-    edits += Unload(this.uri, this.tag, kids, lits)
-    kidsSeq.foreach(_.unloadUnassigned(edits))
+    edits += Remove(this.uri, this.tag, kids.view.map(kv => kv._1 -> kv._2.uri), lits)
+    kids.foreach { case (k, v) =>
+      v.unloadUnassigned(edits)
+      edits.mergeKidRemove(v.uri, k)
+    }
   }
 
   override protected def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {

@@ -251,7 +251,7 @@ class ListTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Add(Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil), Many(Nil)),
       Add(Many(Nil), Many(Num(2) :: Num(3) :: Nil)),
-      16
+      14
     )
   }
 

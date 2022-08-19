@@ -44,23 +44,25 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
       return that.assigned.updateLiterals(that, edits)
     }
 
-    val newkids = ListBuffer[(String, URI)]()
+    val newkids = ListBuffer[(String, Either[Insert, URI])]()
 
     val newFieldChildren = fieldChildren.map {
       case (name, kid) =>
         val newkid = kid.loadUnassigned(edits).asInstanceOf[DiffableTSNode]
-        newkids += name -> newkid.uri
+        val newkidInsert = edits.mergeKidInsert(newkid.uri)
+        newkids += name -> newkidInsert
         name -> newkid
     }
     val newOtherChildren = otherChildrenWithName.map {
       case (name, kid) =>
         val newkid = kid.loadUnassigned(edits).asInstanceOf[DiffableTSNode]
-        newkids += name -> newkid.uri
+        val newkidInsert = edits.mergeKidInsert(newkid.uri)
+        newkids += name -> newkidInsert
         newkid
     }
 
     val newtree = new DiffableTSNode(nodeType, literals, newFieldChildren, newOtherChildren)
-    edits += Load(newtree.uri, this.tag, newkids.toList, literalsWithName)
+    edits += InsertNode(newtree.uri, this.tag, newkids.toList, literalsWithName)
     newtree
   }
 
@@ -85,16 +87,22 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    directSubtrees.foreach(_.loadInitial(edits))
-    edits += Load(this.uri, this.tag, directSubtreeURIsWithName, literalsWithName)
+    val subtreeInserts = directSubtreesWithName.map { case (name, t) =>
+      t.loadInitial(edits)
+      name -> edits.mergeKidInsert(t.uri)
+    }
+    edits += InsertNode(this.uri, this.tag, subtreeInserts, literalsWithName)
   }
 
   override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, directSubtreeURIsWithName, literalsWithName)
-      directSubtrees.foreach(_.unloadUnassigned(edits))
+      edits += Remove(this.uri, this.tag, directSubtreeURIsWithName, literalsWithName)
+      directSubtreesWithName.foreach { case (name, t) =>
+        t.unloadUnassigned(edits)
+        edits.mergeKidRemove(t.uri, name)
+      }
     }
   }
 

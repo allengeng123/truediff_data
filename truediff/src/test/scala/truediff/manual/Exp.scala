@@ -38,7 +38,7 @@ object Exp {
       this
 
     override def loadInitial(edits: EditScriptBuffer): Unit = {
-      edits += Load(this.uri, this.tag, Seq(), Seq())
+      edits += InsertNode(this.uri, this.tag, Seq(), Seq())
     }
 
     override def unloadUnassigned(edits: EditScriptBuffer): Unit = {

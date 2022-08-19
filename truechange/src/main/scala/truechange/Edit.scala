@@ -1,20 +1,17 @@
 package truechange
 
 import scala.collection.SortedMap
-import scala.collection.mutable.ListBuffer
 
-sealed trait Edit {
-  def asCoreEdits: Seq[CoreEdit]
-}
 
-sealed trait CoreEdit extends Edit {
-  override def asCoreEdits: Seq[CoreEdit] = Seq(this)
-}
+/** Core edits: detach, attach, unload, load, update */
+sealed trait CoreEdit
 
-case class Detach(node: URI, tag: Tag, link: Link, parent: URI, ptag: Tag) extends CoreEdit {
+case class Detach(node: URI, tag: Tag, link: Link, parent: URI, ptag: Tag) extends CoreEdit with Edit {
+  override def asCoreEdits(buf: CoreEditScriptBuffer): Unit = buf += this
   override def toString: String = s"detach ${tag}_$node from ${ptag}_$parent.$link"
 }
-case class Attach(node: URI, tag: Tag, link: Link, parent: URI, ptag: Tag) extends CoreEdit {
+case class Attach(node: URI, tag: Tag, link: Link, parent: URI, ptag: Tag) extends CoreEdit with Edit {
+  override def asCoreEdits(buf: CoreEditScriptBuffer): Unit = buf += this
   override def toString: String = s"attach ${tag}_$node to ${ptag}_$parent.$link"
 }
 
@@ -35,7 +32,8 @@ case class Load(node: URI, tag: Tag, kids: Iterable[(String, URI)], lits: Iterab
   }
 }
 
-case class Update(node: URI, tag: Tag, oldlits: Iterable[(String, Any)], newlits: Iterable[(String, Any)]) extends CoreEdit {
+case class Update(node: URI, tag: Tag, oldlits: Iterable[(String, Any)], newlits: Iterable[(String, Any)]) extends CoreEdit with Edit {
+  override def asCoreEdits(buf: CoreEditScriptBuffer): Unit = buf += this
   override def toString: String = {
     val oldlitsString = s"${oldlits.map(p => p._1 + "=" + p._2).mkString(", ")}"
     val newlitsString = s"${newlits.map(p => p._1 + "=" + p._2).mkString(", ")}"
@@ -43,16 +41,17 @@ case class Update(node: URI, tag: Tag, oldlits: Iterable[(String, Any)], newlits
   }
 }
 
+
+/** Edits: detach, attach, update, insert, remove */
+sealed trait Edit {
+  def asCoreEdits(buf: CoreEditScriptBuffer): Unit
+}
+
+
 trait Insert extends Edit {
   def node: URI
   def tag: Tag
-  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit
   def makeString(buf: StringBuffer): Unit
-  override def asCoreEdits: Seq[CoreEdit] = {
-    val buf = ListBuffer[CoreEdit]()
-    asCoreEdits(buf)
-    buf.toSeq
-  }
   override def toString: String = {
     val buf = new StringBuffer()
     makeString(buf)
@@ -62,7 +61,7 @@ trait Insert extends Edit {
 
 /** Inserts all children marked for loading, then inserts this node */
 case class InsertNode(node: URI, tag: Tag, kids: Iterable[(String, Either[Insert, URI])], lits: Iterable[(String, Any)]) extends Insert {
-  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+  def asCoreEdits(buf: CoreEditScriptBuffer): Unit = {
     kids.foreach {
       case (_, Left(ins)) => ins.asCoreEdits(buf)
       case (_, Right(_)) => // keep detached child
@@ -93,7 +92,7 @@ case class InsertNode(node: URI, tag: Tag, kids: Iterable[(String, Either[Insert
 }
 
 case class InsertList(node: URI, tag: Tag, list: Iterable[Either[Insert, (URI, Tag)]], atype: Type) extends Insert {
-  override def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+  override def asCoreEdits(buf: CoreEditScriptBuffer): Unit = {
     buf += Load(node, tag, Seq(), Seq())
     this.list.foldLeft[(URI,Tag,Link)]((node, tag, ListFirstLink(atype))) {
       case (pred, Left(ins)) =>
@@ -124,14 +123,7 @@ case class InsertList(node: URI, tag: Tag, list: Iterable[Either[Insert, (URI, T
 trait Remove extends Edit {
   def node: URI
   def tag: Tag
-  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit
   def makeString(buf: StringBuffer): Unit
-
-  override def asCoreEdits: Seq[CoreEdit] = {
-    val buf = ListBuffer[CoreEdit]()
-    asCoreEdits(buf)
-    buf.toSeq
-  }
 
   override def toString: String = {
     val buf = new StringBuffer()
@@ -142,7 +134,7 @@ trait Remove extends Edit {
 
 /** Removes node, then removes all children marked for unloading */
 case class RemoveNode(node: URI, tag: Tag, kids: SortedMap[String, Either[Remove, URI]], lits: Iterable[(String, Any)]) extends Remove {
-  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+  def asCoreEdits(buf: CoreEditScriptBuffer): Unit = {
     buf += Unload(node, tag, kids.map {
       case (k, Left(r)) => (k, r.node)
       case (k, Right(n)) => (k, n)
@@ -177,7 +169,7 @@ object Remove {
 }
 
 case class RemoveList(node: URI, tag: Tag, list: Iterable[Either[Remove, (URI, Tag)]], atype: Type) extends Remove {
-  override def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+  override def asCoreEdits(buf: CoreEditScriptBuffer): Unit = {
     this.list.foldLeft[(URI,Tag,Link)]((node, tag, ListFirstLink(atype))) {
       case (pred, Left(rem)) =>
         buf += Detach(rem.node, rem.tag, pred._3, pred._1, pred._2)

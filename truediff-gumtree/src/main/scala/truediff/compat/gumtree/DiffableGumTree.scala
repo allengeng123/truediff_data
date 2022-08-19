@@ -50,13 +50,15 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
       return that.assigned.updateLiterals(that, edits).asInstanceOf[DiffableGumTree]
     }
 
-    val newchildren = dchildren.map(_.loadUnassigned(edits))
+    val (newchildren, newchildrenInserts) = dchildren.zipWithIndex.map { case (v, ix) =>
+      val loaded = v.loadUnassigned(edits)
+      val insert = edits.mergeKidInsert(loaded.uri)
+      (loaded, ix.toString -> insert)
+    }.unzip
     val newtree = new DiffableGumTree(typeLabel, label, newchildren)
 
-    edits += Load(newtree.uri, this.tag,
-      newchildren.zipWithIndex.map {
-        case (t, ix) => ix.toString -> t.uri
-      }.to(Iterable),
+    edits += InsertNode(newtree.uri, this.tag,
+      newchildrenInserts,
       Seq("label" -> label)
     )
 
@@ -64,27 +66,28 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
   }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    dchildren.foreach(_.loadInitial(edits))
+    val childrenInserts = dchildren.zipWithIndex.map { case (v, ix) =>
+      v.loadInitial(edits)
+      ix.toString -> edits.mergeKidInsert(v.uri)
+    }
 
-    edits += Load(this.uri, this.tag,
-      dchildren.zipWithIndex.map {
-        case (t, ix) => ix.toString -> t.uri
-      },
-      Seq("label" -> label)
-    )
+    edits += InsertNode(this.uri, this.tag, childrenInserts, Seq("label" -> label))
   }
 
   override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag,
-        dchildren.zipWithIndex.map {
-          case (t, ix) => ix.toString -> t.uri
+      edits += Remove(this.uri, this.tag,
+        dchildren.zipWithIndex.map { case (t, ix) =>
+          ix.toString -> t.uri
         },
         Seq("label" -> label)
       )
-      dchildren.foreach(_.unloadUnassigned(edits))
+      dchildren.zipWithIndex.foreach { case (t, ix) =>
+        t.unloadUnassigned(edits)
+        edits.mergeKidRemove(t.uri, ix.toString)
+      }
     }
   }
 

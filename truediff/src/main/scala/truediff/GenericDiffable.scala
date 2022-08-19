@@ -2,6 +2,8 @@ package truediff
 
 import truechange._
 
+import scala.collection.mutable.ListBuffer
+
 trait GenericDiffable extends Diffable {
   def name: String
   def children: Seq[(String, Any)]
@@ -34,24 +36,36 @@ trait GenericDiffable extends Diffable {
     if (this.assigned != null)
       this.assigned.updateLiterals(this, edits)
     else {
-      val newchildren = children.map {
-        case (k, v:Diffable) => k -> v.loadUnassigned(edits)
-        case kv => kv
-      }
-      val newtree = make(newchildren.map(_._2))
-      edits += Load(newtree.uri, tag, diffable(newchildren).map(kv => kv._1 -> kv._2.uri), literal(newchildren))
+      val newChildren = ListBuffer[Any]()
+      val (newchildrenInserts, newlits) = children.map {
+        case (k, v:Diffable) =>
+          val loaded = v.loadUnassigned(edits)
+          newChildren += loaded
+          Left(k -> edits.mergeKidInsert(loaded.uri))
+        case (k, v) =>
+          newChildren += v
+          Right(k -> v)
+      }.partitionMap(identity)
+      val newtree = make(newChildren.toSeq)
+      edits += InsertNode(newtree.uri, tag, newchildrenInserts, newlits)
       newtree
     }
 
   override def unloadUnassigned(edits: EditScriptBuffer): Unit =
     if (this.assigned == null) {
-      edits += Unload(this.uri, this.tag, diffable(children).map(kv => kv._1 -> kv._2.uri), literal(children))
-      diffable(children).foreach(_._2.unloadUnassigned(edits))
+      edits += Remove(this.uri, this.tag, diffable(children).map(kv => kv._1 -> kv._2.uri), literal(children))
+      diffable(children).foreach { case (k, v) =>
+        v.unloadUnassigned(edits)
+        edits.mergeKidRemove(v.uri, k)
+      }
     }
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    diffable(children).foreach(_._2.loadInitial(edits))
-    edits += Load(uri, tag, diffable(children).map(kv => kv._1 -> kv._2.uri), literal(children))
+    val childrenInserts = diffable(children).map { case (k, v) =>
+      v.loadInitial(edits)
+      k -> edits.mergeKidInsert(v.uri)
+    }
+    edits += InsertNode(uri, tag, childrenInserts, literal(children))
   }
 
   override def updateLiterals(that: Diffable, edits: EditScriptBuffer): Diffable = that match {

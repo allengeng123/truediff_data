@@ -30,7 +30,7 @@ object Exp {
       }
 
       val newtree = Hole()
-      edits += Load(newtree.uri, this.tag, Seq(), Seq())
+      edits += InsertNode(newtree.uri, this.tag, Seq(), Seq())
       newtree
     }
 
@@ -38,14 +38,14 @@ object Exp {
       this
 
     override def loadInitial(edits: EditScriptBuffer): Unit = {
-      edits += Load(this.uri, this.tag, Seq(), Seq())
+      edits += InsertNode(this.uri, this.tag, Seq(), Seq())
     }
 
     override def unloadUnassigned(edits: EditScriptBuffer): Unit = {
       if (this.assigned != null) {
         this.assigned = null
       } else {
-        edits += Unload(this.uri, this.tag, Seq(), Seq())
+        edits += Remove(this.uri, this.tag, Seq(), Seq())
       }
     }
   }
@@ -91,7 +91,7 @@ case class Num(n: Int) extends Exp {
     }
 
     val newtree = Num(this.n)
-    edits += Load(newtree.uri, this.tag, Seq(), Seq(
+    edits += InsertNode(newtree.uri, this.tag, Seq(), Seq(
       "n" -> this.n
     ))
     newtree
@@ -99,7 +99,7 @@ case class Num(n: Int) extends Exp {
 
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    edits += Load(this.uri, this.tag, Seq(), Seq(
+    edits += InsertNode(this.uri, this.tag, Seq(), Seq(
       "n" -> this.n
     ))
   }
@@ -108,7 +108,7 @@ case class Num(n: Int) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(), Seq(
+      edits += Remove(this.uri, this.tag, Seq(), Seq(
         "n" -> this.n
       ))
     }
@@ -150,11 +150,13 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     }
 
     val e1 = that.e1.loadUnassigned(edits).asInstanceOf[Exp]
+    val e1Insert = edits.mergeKidInsert(e1.uri)
     val e2 = that.e2.loadUnassigned(edits).asInstanceOf[Exp]
+    val e2Insert = edits.mergeKidInsert(e2.uri)
     val newtree = Add(e1, e2)
-    edits += Load(newtree.uri, this.tag, Seq(
-      "e1" -> e1.uri,
-      "e2" -> e2.uri
+    edits += InsertNode(newtree.uri, this.tag, Seq(
+      "e1" -> e1Insert,
+      "e2" -> e2Insert
     ), Seq())
     newtree
   }
@@ -162,10 +164,12 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
     this.e1.loadInitial(edits)
+    val e1Insert = edits.mergeKidInsert(this.e1.uri)
     this.e2.loadInitial(edits)
-    edits += Load(this.uri, this.tag, Seq(
-      "e1" -> this.e1.uri,
-      "e2" -> this.e2.uri
+    val e2Insert = edits.mergeKidInsert(this.e2.uri)
+    edits += InsertNode(this.uri, this.tag, Seq(
+      "e1" -> e1Insert,
+      "e2" -> e2Insert
     ), Seq())
   }
 
@@ -173,12 +177,14 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(
+      edits += Remove(this.uri, this.tag, Seq(
         "e1" -> this.e1.uri,
         "e2" -> this.e2.uri
       ), Seq())
       this.e1.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.e1.uri, "e1")
       this.e2.unloadUnassigned(edits)
+      edits.mergeKidRemove(this.e2.uri, "e2")
     }
   }
 }
@@ -220,7 +226,7 @@ case class Var(name: String) extends Exp {
     }
 
     val newtree = Var(this.name)
-    edits += Load(newtree.uri, this.tag, Seq(), Seq(
+    edits += InsertNode(newtree.uri, this.tag, Seq(), Seq(
       "name" -> this.name
     ))
     newtree
@@ -228,7 +234,7 @@ case class Var(name: String) extends Exp {
 
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    edits += Load(this.uri, this.tag, Seq(), Seq(
+    edits += InsertNode(this.uri, this.tag, Seq(), Seq(
       "name" -> this.name
     ))
   }
@@ -237,7 +243,7 @@ case class Var(name: String) extends Exp {
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(), Seq(
+      edits += Remove(this.uri, this.tag, Seq(), Seq(
         "name" -> this.name
       ))
     }

@@ -23,7 +23,7 @@ final case class Ref[T <: Diffable](target: T) extends Diffable {
   override def toStringWithURI: String = s"Ref(${target.uri})"
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    edits += Load(this.uri, this.tag, Seq(), Seq("target" -> target.uri))
+    edits += InsertNode(this.uri, this.tag, Seq(), Seq("target" -> target.uri))
   }
 
   override def loadUnassigned(edits: EditScriptBuffer): Diffable = {
@@ -33,7 +33,7 @@ final case class Ref[T <: Diffable](target: T) extends Diffable {
     }
 
     val newtree = Ref(target)
-    edits += Load(newtree.uri, this.tag, Seq(), Seq("target" -> target.uri))
+    edits += InsertNode(newtree.uri, this.tag, Seq(), Seq("target" -> target.uri))
     newtree
   }
 
@@ -41,7 +41,7 @@ final case class Ref[T <: Diffable](target: T) extends Diffable {
     if (this.assigned != null) {
       //      this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq("target" -> target.uri), Seq())
+      edits += Remove(this.uri, this.tag, Seq(), Seq("target" -> target.uri))
     }
   }
 

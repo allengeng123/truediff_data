@@ -4,15 +4,10 @@ import truechange.Type.Subsorts
 
 import scala.language.implicitConversions
 
-case class EditScript(edits: Seq[Edit]) {
-
-  lazy val coreEdits: Seq[CoreEdit] = edits.flatMap(_.asCoreEdits)
-
+case class CoreEditScript(edits: Seq[CoreEdit]) {
   def size: Int = edits.size
-  def coresize: Int = coreEdits.size
 
-  def foreach(f: Edit => Unit): Unit = edits.foreach(f)
-  def foreachCoreEdit(f: CoreEdit => Unit): Unit = coreEdits.foreach(f)
+  def foreach(f: CoreEdit => Unit): Unit = edits.foreach(f)
 
   /**
    * Checks if this editscript is well-typed.
@@ -30,7 +25,7 @@ case class EditScript(edits: Seq[Edit]) {
 
     implicit val subsorts: Subsorts = Map()
 
-    coreEdits.foreach {
+    edits.foreach {
       case Detach(node, tag, link, parent, ptag) =>
         // kid is not a root yet
         if (roots.contains(node))
@@ -162,6 +157,32 @@ case class EditScript(edits: Seq[Edit]) {
     case ListFirstLink(ty) => Left(ty)
     case ListNextLink(ty) => Left(ty)
   }
+}
+
+case class EditScript(edits: Seq[Edit]) {
+  lazy val coreEdits: CoreEditScript = {
+    val buf = new CoreEditScriptBuffer
+    edits.foreach(_.asCoreEdits(buf))
+    buf.toEditScript
+  }
+
+  def size: Int = edits.size
+  def coresize: Int = coreEdits.size
+
+  def foreach(f: Edit => Unit): Unit = edits.foreach(f)
+  def foreachCoreEdit(f: CoreEdit => Unit): Unit = coreEdits.foreach(f)
+
+  /**
+   * Checks if this editscript is well-typed.
+   *
+   * A editscript is well-typed if ...
+   *
+   * Assumption: If the editscript contains `Detach/Unload(parent, link, node, nodeTag)`, then
+   *   1. `parent` exists in the base tree and has a link `link` that points to `node`
+   *   2. the tag of `node` is `nodeTag`
+   */
+  def welltyped(sigs: Map[Tag, Signature], initRoots: Map[URI, Type] = Map(), initStubs: Map[(URI, Link), Type] = Map()): Option[String] =
+    coreEdits.welltyped(sigs, initRoots, initStubs)
 
   def print(): Unit = edits.foreach(e => println("  " + e))
 }
