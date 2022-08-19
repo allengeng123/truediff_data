@@ -4,6 +4,7 @@ import truechange._
 import truediff._
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
+import scala.collection.immutable.SortedMap
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
@@ -29,6 +30,7 @@ object DiffableMacro {
     val tByte = symbolOf[Byte]
     val oBigInt = symbolOf[BigInt.type].asClass.module
     val oSeq = symbolOf[Seq.type].asClass.module
+    val oSortedMap = symbolOf[SortedMap.type].asClass.module
     val tSet = symbolOf[Set[_]]
     val oSet = symbolOf[Set.type].asClass.module
     val tMap = symbolOf[Map[_,_]]
@@ -47,8 +49,8 @@ object DiffableMacro {
     val tLink = symbolOf[Link]
     val tNamedLink = symbolOf[NamedLink]
     val oNamedLink = tNamedLink.companion
-    val oLoadNode = symbolOf[Load].companion
-    val oUnloadNode = symbolOf[Unload].companion
+    val oInsertNode = symbolOf[InsertNode].companion
+    val oRemoveNode = symbolOf[Remove].companion
     val oUpdateLiteralsNode = symbolOf[Update].companion
     val tNodeMetaInfo = symbolOf[NodeMetaInfo]
     val tType = symbolOf[truechange.Type]
@@ -238,21 +240,27 @@ object DiffableMacro {
               }
 
               ..${mapAllParamsTyped(
-                (p,t) => q"val $p = that.$p.loadUnassigned(edits).asInstanceOf[$t]",
-                (p,t) => q"val $p = that.$p"
-              )}
+                (p,t) => List(
+                  q"val $p = that.$p.loadUnassigned(edits).asInstanceOf[$t]",
+                  q"val ${TermName(p + "_$insert")} = edits.mergeKidInsert($p.uri)"
+                ),
+                (p,t) => List(q"val $p = that.$p")
+              ).flatten}
               val $$newtree = $oThis(..${mapAllParams(p => q"$p", p => q"$p")})
-              edits += $oLoadNode($$newtree.uri, this.tag,
-                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, $p.uri)")}),
+              edits += $oInsertNode($$newtree.uri, this.tag,
+                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, ${TermName(p + "_$insert")})")}),
                 $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, $p)")}),
               )
               $$newtree
             }
 
             override def loadInitial(edits: $tEditScriptBuffer): $tUnit = {
-              ..${mapDiffableParams(p => q"this.$p.loadInitial(edits)")}
-              edits += $oLoadNode(this.uri, this.tag,
-                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
+              ..${mapDiffableParams(p => List(
+                q"this.$p.loadInitial(edits)",
+                q"val $p = edits.mergeKidInsert(this.$p.uri)"
+              )).flatten}
+              edits += $oInsertNode(this.uri, this.tag,
+                $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, $p)")}),
                 $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")})
               )
             }
@@ -262,13 +270,16 @@ object DiffableMacro {
               if (this.assigned != null) {
                 this.assigned = null
               } else {
-                edits += $oUnloadNode(this.uri, this.tag,
+                edits += $oRemoveNode(this.uri, this.tag,
                   $oSeq(..${mapDiffableParamsTyped((p,t) => q"(${p.toString}, this.$p.uri)")}),
                   $oSeq(..${mapNonDiffableParams(p => q"(${p.toString}, this.$p)")})
                 )
                 ..${mapDiffableParamsTyped(
-                  (p,t) => q"this.$p.unloadUnassigned(edits)"
-                )}
+                  (p,t) => List(
+                    q"this.$p.unloadUnassigned(edits)",
+                    q"edits.mergeKidRemove(this.$p.uri, ${p.toString})"
+                  )
+                ).flatten}
               }
             }
 

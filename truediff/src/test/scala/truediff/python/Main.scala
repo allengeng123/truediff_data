@@ -27,4 +27,7 @@ object Main extends App {
   println("throughput(nodes/ms):" + (size.toDouble / runningTime.toDouble))
   println("patch size:" + es.size)
   es.foreach(e => println(s"  $e"))
+  println("core edits:")
+  es.coreEdits.foreach(e => println(s"  $e"))
+  es.welltyped(trees._1.collectSignatures).foreach(m => throw new IllegalStateException(s"Ill-typed edit script: $m"))
 }

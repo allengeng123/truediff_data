@@ -43,9 +43,26 @@ case class Update(node: URI, tag: Tag, oldlits: Iterable[(String, Any)], newlits
   }
 }
 
+trait Insert extends Edit {
+  def node: URI
+  def tag: Tag
+  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit
+  def makeString(buf: StringBuffer): Unit
+  override def asCoreEdits: Seq[CoreEdit] = {
+    val buf = ListBuffer[CoreEdit]()
+    asCoreEdits(buf)
+    buf.toSeq
+  }
+  override def toString: String = {
+    val buf = new StringBuffer()
+    makeString(buf)
+    s"insert $buf"
+  }
+}
+
 /** Inserts all children marked for loading, then inserts this node */
-case class Insert(node: URI, tag: Tag, kids: Iterable[(String, Either[Insert, URI])], lits: Iterable[(String, Any)]) extends Edit {
-  private def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+case class InsertNode(node: URI, tag: Tag, kids: Iterable[(String, Either[Insert, URI])], lits: Iterable[(String, Any)]) extends Insert {
+  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
     kids.foreach {
       case (_, Left(ins)) => ins.asCoreEdits(buf)
       case (_, Right(_)) => // keep detached child
@@ -55,13 +72,8 @@ case class Insert(node: URI, tag: Tag, kids: Iterable[(String, Either[Insert, UR
       case (k, Right(n)) => (k, n)
     }, lits)
   }
-  override def asCoreEdits: Seq[CoreEdit] = {
-    val buf = ListBuffer[CoreEdit]()
-    asCoreEdits(buf)
-    buf.toSeq
-  }
 
-  private def makeString(buf: StringBuffer): Unit = {
+  def makeString(buf: StringBuffer): Unit = {
     buf.append(tag).append('_').append(node).append('(')
     kids.foreach {
       case (k, Left(ins)) =>
@@ -78,33 +90,70 @@ case class Insert(node: URI, tag: Tag, kids: Iterable[(String, Either[Insert, UR
     buf.append(lits.map(p => p._1 + "=" + p._2).mkString(", "))
     buf.append(')')
   }
+}
 
-  override def toString: String = {
-    val buf = new StringBuffer()
-    makeString(buf)
-    s"insert $buf"
+case class InsertList(node: URI, tag: Tag, list: Iterable[Either[Insert, (URI, Tag)]], atype: Type) extends Insert {
+  override def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+    buf += Load(node, tag, Seq(), Seq())
+    this.list.foldLeft[(URI,Tag,Link)]((node, tag, ListFirstLink(atype))) {
+      case (pred, Left(ins)) =>
+        ins.asCoreEdits(buf)
+        buf += Attach(ins.node, ins.tag, pred._3, pred._1, pred._2)
+        (ins.node, ins.tag, ListNextLink(atype))
+      case (pred, Right((elUri, elTag))) =>
+        buf += Attach(elUri, elTag, pred._3, pred._1, pred._2)
+        (elUri, elTag, ListNextLink(atype))
+    }
+  }
+
+  override def makeString(buf: StringBuffer): Unit = {
+    buf.append("List(")
+    list.foreach {
+      case Left(rem) =>
+        rem.makeString(buf)
+        buf.append(", ")
+      case Right((uri,_)) =>
+        buf.append(uri).append(", ")
+    }
+    buf.deleteCharAt(buf.length() - 1)
+    buf.deleteCharAt(buf.length() - 1)
+    buf.append(')')
   }
 }
 
-/** Removes node, then removes all children marked for unloading */
-case class Remove(node: URI, tag: Tag, kids: SortedMap[String, Either[Remove, URI]], lits: Iterable[(String, Any)]) extends Edit {
-  private def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
-    buf += Unload(node, tag, kids.map {
-      case (k, Left(r)) => (k, r.node)
-      case (k, Right(n)) => (k, n)
-    }, lits)
-    kids.foreach {
-      case (_, Left(r)) => r.asCoreEdits(buf)
-      case (_, Right(_)) => // keep detached child
-    }
-  }
+trait Remove extends Edit {
+  def node: URI
+  def tag: Tag
+  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit
+  def makeString(buf: StringBuffer): Unit
+
   override def asCoreEdits: Seq[CoreEdit] = {
     val buf = ListBuffer[CoreEdit]()
     asCoreEdits(buf)
     buf.toSeq
   }
 
-  private def makeString(buf: StringBuffer): Unit = {
+  override def toString: String = {
+    val buf = new StringBuffer()
+    makeString(buf)
+    s"remove $buf"
+  }
+}
+
+/** Removes node, then removes all children marked for unloading */
+case class RemoveNode(node: URI, tag: Tag, kids: SortedMap[String, Either[Remove, URI]], lits: Iterable[(String, Any)]) extends Remove {
+  def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+    buf += Unload(node, tag, kids.map {
+      case (k, Left(r)) => (k, r.node)
+      case (k, Right(n)) => (k, n)
+    }, lits)
+    kids.foreach {
+      case (_, Left(rem)) => rem.asCoreEdits(buf)
+      case (_, Right(_)) => // keep detached child
+    }
+  }
+
+  def makeString(buf: StringBuffer): Unit = {
     buf.append(tag).append('_').append(node).append('(')
     kids.foreach {
       case (k, Left(rem)) =>
@@ -121,11 +170,37 @@ case class Remove(node: URI, tag: Tag, kids: SortedMap[String, Either[Remove, UR
     buf.append(lits.map(p => p._1 + "=" + p._2).mkString(", "))
     buf.append(')')
   }
-
-  override def toString: String = {
-    val buf = new StringBuffer()
-    makeString(buf)
-    s"remove $buf"
-  }
+}
+object Remove {
+  def apply(node: URI, tag: Tag, kids: Iterable[(String, URI)], lits: Iterable[(String, Any)]): RemoveNode =
+    RemoveNode(node, tag, SortedMap.from(kids.view.map(kv => kv._1 -> Right(kv._2))), lits)
 }
 
+case class RemoveList(node: URI, tag: Tag, list: Iterable[Either[Remove, (URI, Tag)]], atype: Type) extends Remove {
+  override def asCoreEdits(buf: ListBuffer[CoreEdit]): Unit = {
+    this.list.foldLeft[(URI,Tag,Link)]((node, tag, ListFirstLink(atype))) {
+      case (pred, Left(rem)) =>
+        buf += Detach(rem.node, rem.tag, pred._3, pred._1, pred._2)
+        rem.asCoreEdits(buf)
+        (rem.node, rem.tag, ListNextLink(atype))
+      case (pred, Right((elUri, elTag))) =>
+        buf += Detach(elUri, elTag, pred._3, pred._1, pred._2)
+        (elUri, elTag, ListNextLink(atype))
+    }
+    buf += Unload(node, tag, Seq(), Seq())
+  }
+
+  override def makeString(buf: StringBuffer): Unit = {
+    buf.append("List(")
+    list.foreach {
+      case Left(rem) =>
+        rem.makeString(buf)
+        buf.append(", ")
+      case Right(uri) =>
+        buf.append(uri).append(", ")
+    }
+    buf.deleteCharAt(buf.length() - 1)
+    buf.deleteCharAt(buf.length() - 1)
+    buf.append(')')
+  }
+}

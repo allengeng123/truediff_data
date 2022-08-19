@@ -14,6 +14,8 @@ class ListTests extends AnyFlatSpec with Matchers {
     val (editscript,newtree) = src.compareTo(dest)
     println("EditScript:")
     editscript.foreach(c => println("  " + c))
+    println("Core EditScript:")
+    editscript.coreEdits.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
     assertResult(dest)(newtree)
@@ -255,7 +257,7 @@ class ListTests extends AnyFlatSpec with Matchers {
     testEditScript(
       Add(Many(Num(1) :: Num(2) :: Num(3) :: Num(4) :: Nil), Many(Nil)),
       Add(Many(Nil), Many(Num(2) :: Num(3) :: Nil)),
-      14
+      16
     )
   }
 

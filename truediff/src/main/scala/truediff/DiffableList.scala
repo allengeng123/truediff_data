@@ -210,14 +210,20 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       return that.assigned.updateLiterals(that, edits)
     }
 
-    val newlist = that.list.map(_.loadUnassigned(edits))
-    val newtree = DiffableList(newlist, atype)
-    edits += Load(newtree.uri, this.tag, Seq(), Seq())
-    newlist.foldLeft[(URI,Tag,Link)]((newtree.uri, newtree.tag, ListFirstLink(atype))){ (pred, el) =>
-      edits += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
-      (el.uri, el.tag, ListNextLink(atype))
-    }
-
+    val (listInserts, newList) = list.map { el =>
+      val newEl = el.loadUnassigned(edits)
+      val opt = edits.lastPosOption
+      val insert = opt match {
+        case Some(ins: Insert) if ins.node == newEl.uri =>
+          edits.dropLastPos()
+          Left(ins)
+        case _ =>
+          Right((newEl.uri, newEl.tag))
+      }
+      (insert, newEl)
+    }.unzip
+    val newtree = DiffableList(newList, atype)
+    edits += InsertList(newtree.uri, newtree.tag, listInserts, atype)
     newtree
   }
 
@@ -231,7 +237,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
 
 
   override def loadInitial(edits: EditScriptBuffer): Unit = {
-    edits += Load(this.uri, this.tag, Seq(), Seq())
+    edits += InsertNode(this.uri, this.tag, Seq(), Seq())
     this.list.foldLeft[(URI,Tag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
       el.loadInitial(edits)
       edits += Attach(el.uri, el.tag, pred._3, pred._1, pred._2)
@@ -243,12 +249,17 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
     if (this.assigned != null) {
       this.assigned = null
     } else {
-      edits += Unload(this.uri, this.tag, Seq(), Seq())
-      this.list.foldLeft[(URI,Tag,Link)]((this.uri, this.tag, ListFirstLink(atype))){ (pred, el) =>
-        edits += Detach(el.uri, el.tag, pred._3, pred._1, pred._2)
+      val listRemoves = list.map { el =>
         el.unloadUnassigned(edits)
-        (el.uri, el.tag, ListNextLink(atype))
+        edits.lastNegOption match {
+          case Some(r: Remove) if r.node == el.uri =>
+            edits.dropLastNeg()
+            Left(r)
+          case _ =>
+            Right((el.uri, el.tag))
+        }
       }
+      edits += RemoveList(this.uri, this.tag, listRemoves, atype)
     }
   }
 }

@@ -74,10 +74,15 @@ class EditScriptBuffer() {
       lastNegOption match {
         case Some(r: Remove) if r.node == node =>
           dropLastNeg()
-          val remove: Remove = this.lastNegOption.get.asInstanceOf[Remove]
-          this.dropLastNeg()
-          val kidRemoves = remove.kids + (link -> Left(r))
-          this += remove.copy(kids = kidRemoves)
+          lastNegOption match {
+            case Some(remove: RemoveNode) =>
+              this.dropLastNeg()
+              val kidRemoves = remove.kids + (link -> Left(r))
+              this += remove.copy(kids = kidRemoves)
+            case _ =>
+              // undo
+              negBuf += r
+          }
         case _ =>
           // nothing
       }
