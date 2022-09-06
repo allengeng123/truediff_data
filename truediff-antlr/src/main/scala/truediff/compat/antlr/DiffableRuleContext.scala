@@ -39,6 +39,7 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
 
   override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
+    Hashable.hash(rulename, digest)
     for (i <- 0 until ctx.getChildCount) {
       ctx.getChild(i) match {
         case node: RuleNode =>

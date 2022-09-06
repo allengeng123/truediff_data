@@ -30,6 +30,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
 
   override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
+    Hashable.hash(typeLabel, digest)
     Hashable.hash(label, digest)
     dchildren.foreach(t => digest.update(t.literalHash))
     digest.digest()

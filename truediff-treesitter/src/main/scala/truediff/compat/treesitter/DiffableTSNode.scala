@@ -13,6 +13,7 @@ class DiffableTSNode(val nodeType: String, val literals: List[String], val field
 
   override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
+    Hashable.hash(nodeType, digest)
     literals.foreach(lit => digest.update(lit.getBytes()))
     directSubtrees.foreach(sub => digest.update(sub.literalHash))
     digest.digest()

@@ -45,7 +45,8 @@ lazy val truediff = project
 
       "org.scalactic" %% "scalactic" % "3.1.0" % "test",
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-      "com.lihaoyi" %% "fastparse" % "2.1.3" % "test"
+      "com.lihaoyi" %% "fastparse" % "2.1.3" % "test",
+      "org.typelevel" %% "cats-parse" % "0.3.4" % "test",
     )
   )
 

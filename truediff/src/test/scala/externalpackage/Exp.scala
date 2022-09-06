@@ -54,7 +54,7 @@ object Exp {
 
 case class Num(n: Int) extends Exp {
 
-  override lazy val literalHash: Array[Byte] = Hashable.hash(this.n)
+  override lazy val literalHash: Array[Byte] = Hashable.hash("Num", this.n)
 
   override val treeheight: Int = 1
 
@@ -199,7 +199,7 @@ case class Var(name: String) extends Exp {
 
   override def toStringWithURI: String = s"Var_$uri($name)"
 
-  override lazy val literalHash: Array[Byte] = Hashable.hash(name)
+  override lazy val literalHash: Array[Byte] = Hashable.hash("Var", name)
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 

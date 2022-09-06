@@ -38,6 +38,7 @@ object Hashable {
       case None => d.update(0.toByte)
       case Some(v) => d.update(1.toByte); hash(v, d)
       case seq: Seq[_] => hash(seq.size, d); seq.foreach(hash(_, d))
+      case prod: Product => prod.productIterator.foreach(hash(_, d))
       case _ => throw new IllegalArgumentException(s"Cannot compute hash of $v (class ${v.getClass})")
     }
   }

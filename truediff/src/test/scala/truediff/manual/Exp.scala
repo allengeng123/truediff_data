@@ -54,7 +54,7 @@ object Exp {
 
 case class Num(n: Int) extends Exp {
 
-  override lazy val literalHash: Array[Byte] = Hashable.hash(this.n)
+  override lazy val literalHash: Array[Byte] = Hashable.hash("Num", this.n)
 
   override val treeheight: Int = 1
 
@@ -189,7 +189,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 }
 
 case class Var(name: String) extends Exp {
-  override lazy val literalHash: Array[Byte] = Hashable.hash(this.name)
+  override lazy val literalHash: Array[Byte] = Hashable.hash("Var", this.name)
 
   override val treeheight: Int = 1
 
@@ -258,7 +258,13 @@ case class Call(f: String, a: Exp) extends Exp {
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 
-  override lazy val literalHash: Array[Byte] = Hashable.hash(f)
+  override lazy val literalHash: Array[Byte] = {
+    val digest = Hashable.mkDigest
+    Hashable.hash(this.tag.toString, digest)
+    Hashable.hash(this.f, digest)
+    this.directSubtrees.foreach(t => digest.update(t.literalHash))
+    digest.digest()
+  }
 
   override def loadUnassigned(edits: EditScriptBuffer): Diffable =
     if (this.assigned != null)

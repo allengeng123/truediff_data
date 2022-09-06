@@ -171,6 +171,7 @@ object DiffableMacro {
 
             override lazy val literalHash: $tArray[$tByte] = {
               val digest = $oHashable.mkDigest
+              $oHashable.hash(this.tag.toString, digest)
               ..${Util.mapParams(c)(paramss, tyHashable,
                 p => q"digest.update(this.$p.literalHash)",
                 p => q"$oHashable.hash(this.$p, digest)"

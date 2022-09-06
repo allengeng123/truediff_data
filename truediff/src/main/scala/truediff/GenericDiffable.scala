@@ -16,7 +16,13 @@ trait GenericDiffable extends Diffable {
 
   override val tag: Tag = NamedTag(name)
 
-  override lazy val literalHash: Array[Byte] = Hashable.hash(literal(children).map(_._2):_*)
+  override lazy val literalHash: Array[Byte] = {
+    val digest = Hashable.mkDigest
+    Hashable.hash(this.tag.toString, digest)
+    literal(children).foreach(l => Hashable.hash(l, digest))
+    this.directSubtrees.foreach(t => digest.update(t.literalHash))
+    digest.digest()
+  }
 
   override def sig: Signature = ???
 

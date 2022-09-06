@@ -20,16 +20,14 @@ trait Diffable extends Hashable {
 
   final lazy val structureHash: Array[Byte] = {
     val digest = Hashable.mkDigest
-    this.tag match {
-      case NamedTag(c) => Hashable.hash(c, digest)
-      case lt: ListTag => Hashable.hash(lt.toString, digest)
-    }
+    Hashable.hash(this.tag.toString, digest)
     this.directSubtrees.foreach(t => digest.update(t.structureHash))
     digest.digest()
   }
 
   override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
+    Hashable.hash(this.tag.toString, digest)
     this.directSubtrees.foreach(t => digest.update(t.literalHash))
     digest.digest()
   }
@@ -103,10 +101,12 @@ trait Diffable extends Hashable {
 
     val thisShare = subtreeReg.assignShare(this)
     val thatShare = subtreeReg.assignShare(that)
-    if (thisShare == thatShare) // equal trees => preemptive assign
+    if (thisShare == thatShare && this.literalHashString == that.literalHashString) {
+      // equal trees => preemptive assign
       this.assignTree(that)
-    else
+    } else {
       assignSharesRecurse(that, subtreeReg)
+    }
   }
 
   protected final def assignSubtrees(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
