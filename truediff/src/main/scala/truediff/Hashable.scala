@@ -9,6 +9,9 @@ trait Hashable {
 
   val literalHash: Array[Byte]
   lazy val literalHashString: String = Base64.getEncoder.encodeToString(this.literalHash)
+
+  def isLiterallyEqual(that: Hashable): Boolean =
+    this.literalHashString == that.literalHashString
 }
 
 object Hashable {

@@ -2,7 +2,9 @@ package truediff.compat.gumtree
 
 import com.github.gumtreediff.tree.Tree
 import truechange._
-import truediff.{Diffable, Hashable, SubtreeRegistry}
+import truediff.Diffable
+import truediff.Hashable
+import truediff.SubtreeRegistry
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
@@ -100,7 +102,7 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
       val thisShare = subtreeReg.assignShare(thislist.head)
       val thatShare = subtreeReg.assignShare(thatlist.head)
       if (thisShare == thatShare) {
-        thislist.head.assignTree(thatlist.head)
+        thislist.head.assignTree(thatlist.head, literalMatch = false)
         thislist = thislist.tail
         thatlist = thatlist.tail
       } else {

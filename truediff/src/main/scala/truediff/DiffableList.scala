@@ -36,7 +36,7 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
       val thisShare = subtreeReg.assignShare(thislist.head)
       val thatShare = subtreeReg.assignShare(thatlist.head)
       if (thisShare == thatShare) {
-        thislist.head.assignTree(thatlist.head)
+        thislist.head.assignTree(thatlist.head, literalMatch = false)
         thislist = thislist.tail
         thatlist = thatlist.tail
       } else {

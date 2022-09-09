@@ -58,8 +58,7 @@ class SubtreeShare() {
     } else if (t.assigned != null) {
       // t was pre-emptively assigned, but it is part of a larger subtree that is being moved
       val that = t.assigned
-      t.assigned = null // undo pre-emptive assignment
-      that.assigned = null // undo pre-emptive assignment
+      t.unassignTree()
       that.foreachTree(subtreeReg.assignShare) // mark that and its subtrees as required
     }
 

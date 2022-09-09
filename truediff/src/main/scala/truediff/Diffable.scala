@@ -18,7 +18,7 @@ trait Diffable extends Hashable {
   val _tag: Tag = NamedTag(this.getClass.getCanonicalName)
   def tag: Tag = _tag
 
-  final lazy val structureHash: Array[Byte] = {
+  final override lazy val structureHash: Array[Byte] = {
     val digest = Hashable.mkDigest
     Hashable.hash(this.tag.toString, digest)
     this.directSubtrees.foreach(t => digest.update(t.structureHash))
@@ -47,6 +47,31 @@ trait Diffable extends Hashable {
 
   private[truediff] var share: SubtreeShare = _
   protected[truediff] var assigned: Diffable = _
+  private[truediff] var literalMatch: Boolean = false
+
+  @inline
+  private[truediff] final def assignTree(that: Diffable, literalMatch: Boolean): Unit = {
+    this.share = null // reset to prevent memory leaks
+    this.literalMatch = literalMatch
+    if (literalMatch) {
+      this.assigned = that
+      that.assigned = this
+    } else {
+      this.assignTreeRec(that)
+    }
+  }
+
+  private def assignTreeRec(that: Diffable): Unit = {
+    this.assigned = that
+    that.assigned = this
+    val subs = this.directSubtrees.zip(that.directSubtrees)
+    subs.foreach { case (l, r) => l.assignTreeRec(r) }
+  }
+
+  private[truediff] final def unassignTree(): Unit = {
+    this.assigned.assigned = null
+    this.assigned = null
+  }
 
   final def foreachTree(f: Diffable => Unit): Unit = {
     if (!this.skipNode)
@@ -82,13 +107,6 @@ trait Diffable extends Hashable {
   protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable
   private[truediff] def _computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = this.computeEditScriptRecurse(that, parent, parentTag, link, edits)
 
-  @inline
-  private[truediff] final def assignTree(that: Diffable): Unit = {
-    this.assigned = that
-    that.assigned = this
-    this.share = null // reset to prevent memory leaks
-  }
-
   final def assignShares(that: Diffable, subtreeReg: SubtreeRegistry): Unit = {
     if (this.skipNode) {
       that.foreachTree(subtreeReg.assignShare)
@@ -101,9 +119,9 @@ trait Diffable extends Hashable {
 
     val thisShare = subtreeReg.assignShare(this)
     val thatShare = subtreeReg.assignShare(that)
-    if (thisShare == thatShare && this.literalHashString == that.literalHashString) {
+    if (thisShare == thatShare && this.isLiterallyEqual(that)) {
       // equal trees => preemptive assign
-      this.assignTree(that)
+      this.assignTree(that, literalMatch = true)
     } else {
       assignSharesRecurse(that, subtreeReg)
     }
@@ -123,22 +141,22 @@ trait Diffable extends Hashable {
           nextNodes += next
       }
 
-      val remainingMatchedNodes = selectAvailableTree(nextNodes, preferred = true, subtreeReg)
-      val unassignedNodes = selectAvailableTree(remainingMatchedNodes, preferred = false, subtreeReg)
+      val remainingMatchedNodes = selectAvailableTree(nextNodes, literalMatch = true, subtreeReg)
+      val unassignedNodes = selectAvailableTree(remainingMatchedNodes, literalMatch = false, subtreeReg)
       unassignedNodes.foreach(queue ++= _.directSubtrees)
     }
   }
 
-  private def selectAvailableTree(nodes: Iterable[Diffable], preferred: Boolean, subtreeReg: SubtreeRegistry): Iterable[Diffable] =
+  private def selectAvailableTree(nodes: Iterable[Diffable], literalMatch: Boolean, subtreeReg: SubtreeRegistry): Iterable[Diffable] =
     nodes.filter { node =>
       if (node.skipNode)
         true
       else if (node.assigned != null)
         false // discard
       else {
-        node.share.takeAvailableTree(node, preferred, subtreeReg) match {
+        node.share.takeAvailableTree(node, literalMatch, subtreeReg) match {
           case Some(availableTree) =>
-            availableTree.assignTree(node)
+            availableTree.assignTree(node, literalMatch)
             false // discard
           case None =>
             true // keep
@@ -150,7 +168,11 @@ trait Diffable extends Hashable {
   final def computeEditScript(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = {
     if (this.assigned != null && this.assigned.uri == that.uri) {
       // this == that
-      val newtree = this.updateLiterals(that, edits)
+      val newtree =
+        if (this.literalMatch)
+          this
+        else
+          this.updateLiterals(that, edits)
       this.assigned = null
       return newtree
     }

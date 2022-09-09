@@ -2,7 +2,7 @@ package truediff.graph
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import truediff.{Diffable, Ref}
+import truediff.Diffable
 
 class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
   def testEditScript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
@@ -16,16 +16,17 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
     println("New tree:")
     println("  " + newtree.toStringWithURI)
 
+    println(dest == newtree)
     assertResult(dest)(newtree)
 
 //    val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
 //    assertResult(None)(editscript.welltyped(sigs))
 
     assertResult(expectedChanges)(editscript.coresize)
-    newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
-    newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
+//    newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
+//    newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
 
-    val reverseEditScript = dest.compareTo(src)._1
+    val reverseEditScript = newtree.compareTo(src)._1
     println("Reverse editscript:")
     reverseEditScript.foreach(c => println("  " + c))
     assertResult(expectedChanges)(reverseEditScript.coresize)
@@ -39,27 +40,55 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
 
   }
 
-  "graph diff" should "ASG 1" in {
+  behavior of "graph diff"
+
+  it should "detect unchanged graphs" in {
     testEditScript(
-      Let("x", Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
-        Let("y", Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
+      Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
+      Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
+      0
+    )
+  }
+
+  it should "detect changed ref" in {
+    testEditScript(
+      Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
+      Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("y"))).resolved,
+      1
+    )
+  }
+
+  it should "detect changed decl" in {
+    testEditScript(
+      Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
+      Let(VarDecl("x"), Num(1), Let(VarDecl("z"), Num(2), UVar("x"))).resolved,
+      1
+    )
+  }
+
+  it should "detect consistent renaming" in {
+    testEditScript(
+      Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
+      Let(VarDecl("z"), Num(1), Let(VarDecl("y"), Num(2), UVar("z"))).resolved,
+      0
+    )
+  }
+
+  it should "ASG 1" in {
+    testEditScript(
+      Let(VarDecl("x"), Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
+        Let(VarDecl("y"), Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
           Add(UVar("x"), UVar("y"))
         )
       ).resolved,
-      Let("x", Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
-        Let("y", Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
+      Let(VarDecl("x"), Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
+        Let(VarDecl("y"), Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
           Add(UVar("x"), UVar("y"))
         )
       ).resolved,
       4
     )
     
-
-    val cfg1 = makeCfg(parse(file1))
-    val cfg2 = makeCfg(parse(file2))
-
-    cfg1.compareTo(cfg2)
-
   }
 
 
