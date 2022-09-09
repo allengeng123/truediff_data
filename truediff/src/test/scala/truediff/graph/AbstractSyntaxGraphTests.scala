@@ -4,7 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import truediff.{Diffable, Ref}
 
-class GraphTests extends AnyFlatSpec with Matchers {
+class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
   def testEditScript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
     println("Comparing:")
     println(s"  ${src.toStringWithURI}")
@@ -39,74 +39,29 @@ class GraphTests extends AnyFlatSpec with Matchers {
 
   }
 
-  def na = Node(NodeName("a"), NodeColor("red"))
-  def nb = Node(NodeName("b"), NodeColor("blue"))
-  def nc = Node(NodeName("c"), NodeColor("red"))
-  def nd = Node(NodeName("d"), NodeColor("blue"))
-
-  "graph diff" should "compare nodes" in {
+  "graph diff" should "ASG 1" in {
     testEditScript(
-      Graph(
-        List(na, nb, nc),
-        List()),
-      Graph(
-        List(na, nb, nc, nd),
-        List()),
+      Let("x", Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
+        Let("y", Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
+          Add(UVar("x"), UVar("y"))
+        )
+      ).resolved,
+      Let("x", Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
+        Let("y", Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
+          Add(UVar("x"), UVar("y"))
+        )
+      ).resolved,
       4
     )
+    
 
-    testEditScript(
-      Graph(
-        List(na, nb, nc, nd),
-        List()),
-      Graph(
-        List(nd, nc, nb, na),
-        List()),
-      8
-    )
+    val cfg1 = makeCfg(parse(file1))
+    val cfg2 = makeCfg(parse(file2))
+
+    cfg1.compareTo(cfg2)
+
   }
 
-  it should "compare edges" in {
-    val a = na
-    val b = nb
-    val c = nc
-    val d = nd
 
-    testEditScript(
-      Graph(
-        List(a, b, c),
-        List()),
-      Graph(
-        List(a, b, c),
-        List(Edge(Ref(a), Ref(b)), Edge(Ref(b), Ref(c)))),
-      8
-    )
 
-    testEditScript(
-      Graph(
-        List(a, b, c),
-        List(Edge(Ref(a), Ref(b)), Edge(Ref(b), Ref(c)))),
-      Graph(
-        List(a, b, c),
-        List(Edge(Ref(a), Ref(c)), Edge(Ref(b), Ref(b)))),
-      2
-    )
-  }
-
-  it should "compare nodes and edges" in {
-    val a = na
-    val b = nb
-    val c = nc
-    val d = nd
-
-    testEditScript(
-      Graph(
-        List(a, b, c, d),
-        List(Edge(Ref(a), Ref(b)), Edge(Ref(c), Ref(d)))),
-      Graph(
-        List(a, b, d, c),
-        List(Edge(Ref(a), Ref(b)), Edge(Ref(d), Ref(c)))),
-      2
-    )
-  }
 }
