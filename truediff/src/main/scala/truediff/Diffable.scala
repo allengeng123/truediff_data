@@ -49,6 +49,8 @@ trait Diffable extends Hashable {
   protected[truediff] var assigned: Diffable = _
   private[truediff] var literalMatch: Boolean = false
 
+  private [truediff] var cyclicReferences: Set[Ref[_]] = Set.empty
+
   @inline
   private[truediff] final def assignTree(that: Diffable, literalMatch: Boolean): Unit = {
     this.share = null // reset to prevent memory leaks

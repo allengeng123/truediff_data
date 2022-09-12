@@ -5,7 +5,17 @@ object Ref {
   case class RefSort()
 }
 
-final case class Ref[T <: Diffable](target: T) extends Diffable {
+final case class Ref[T <: Diffable](var target: T) extends Diffable {
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: Ref[_] => this.target eq that.target
+    case _ => false
+  }
+
+  override def hashCode(): Int = 7 * System.identityHashCode(target)
+
+  def setTarget(trg: Diffable): Unit =
+    this.target = trg.asInstanceOf[T]
 
   override def sig: Signature = Signature(RefType(target.sig.sort), this.tag, Map(), Map("target" -> JavaLitType(classOf[URI])))
 
@@ -13,9 +23,11 @@ final case class Ref[T <: Diffable](target: T) extends Diffable {
 
   override def treesize: Int = 1
 
-  override lazy val literalHash: Array[Byte] = Hashable.hash(System.identityHashCode(target.uri))
+  override lazy val literalHash: Array[Byte] = Hashable.hash(System.identityHashCode(target))
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
+
+  override def toString: String = s"Ref(${target.getClass.getSimpleName}_${target.uri})"
 
   override def toStringWithURI: String = s"Ref_${this.uri}(${target.getClass.getSimpleName}_${target.uri})"
 
@@ -44,17 +56,19 @@ final case class Ref[T <: Diffable](target: T) extends Diffable {
 
   override def updateLiterals(thatX: Diffable, edits: EditScriptBuffer): Ref[T] = {
     val that = thatX.asInstanceOf[Ref[T]]
-    val thatTargetAssigned = that.target.assigned
-    if (thatTargetAssigned != null) {
-      if (this.target.uri == thatTargetAssigned.uri) {
-        this
-      } else {
-        edits += Update(this.uri, this.tag, Seq("target" -> this.target.uri), Seq("target" -> thatTargetAssigned.uri))
-        Ref(thatTargetAssigned.asInstanceOf[T]).withURI(this.uri)
-      }
-    } else {
+    val thatTargetAssigned = that.target.assigned.asInstanceOf[T]
+
+    if (thatTargetAssigned == null)
       throw new UnsupportedOperationException()
+
+    if (this.target.uri != thatTargetAssigned.uri) {
+      edits += Update(this.uri, this.tag, Seq("target" -> this.target.uri), Seq("target" -> thatTargetAssigned.uri))
     }
+    if (thatTargetAssigned eq this.target) {
+      // this is a cyclic reference
+      this.target.cyclicReferences += this
+    }
+    Ref(thatTargetAssigned).withURI(this.uri)
   }
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {

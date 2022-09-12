@@ -37,6 +37,7 @@ object DiffableMacro {
     val oMap = symbolOf[Map.type].asClass.module
     val oMath = symbolOf[Math].companion
     val tURI = symbolOf[URI]
+    val tRef = symbolOf[Ref[_]]
     val tSubtreeRegistry = symbolOf[SubtreeRegistry]
     val tDiffableOption = symbolOf[DiffableOption[_]]
     val oDiffableOption = tDiffableOption.companion
@@ -231,7 +232,11 @@ object DiffableMacro {
                 ..${mapDiffableParamsTyped(
                   (p,t) => q"val $p = this.$p.updateLiterals(that.$p, edits).asInstanceOf[$t]"
                 )}
-                $oThis(..${mapAllParams(p => q"$p", p => q"that.$p")}).withURI(this.uri)
+                val newthis = $oThis(..${mapAllParams(p => q"$p", p => q"that.$p")}).withURI(this.uri)
+                that.assigned = newthis
+                this.cyclicReferences.foreach(_.setTarget(newthis))
+                this.cyclicReferences = $oSet.empty
+                newthis
             }
 
             override def loadUnassigned(edits: $tEditScriptBuffer): $tDiffable = {
@@ -309,6 +314,9 @@ object DiffableMacro {
       case q"$mods val $p: $tp = $rhs" =>
         val ptype = rewriteParamType(tp).getOrElse(tp)
         q"$mods val $p: $ptype = $rhs"
+      case q"$mods var $p: $tp = $rhs" =>
+        val ptype = rewriteParamType(tp).getOrElse(tp)
+        q"$mods var $p: $ptype = $rhs"
     }
     def rewriteParamType(tp: Tree): Option[Tree] = tp match {
       case tq"$_[$targ]" =>
@@ -388,7 +396,10 @@ object DiffableMacro {
     def convertFunction: DefDef =
       q"""
           def apply(..${classParamss}): $classTp =
-            $oThis(..${classParamss.map{case q"$mods val $p: $tp = $rhs" => paramConverter(tp, q"$p")}})
+            $oThis(..${classParamss.map {
+              case q"$mods val $p: $tp = $rhs" => paramConverter(tp, q"$p")
+              case q"$mods var $p: $tp = $rhs" => paramConverter(tp, q"$p")
+            }})
         """
 
     val mappedAnnottees = annottees.map(a => rewrite(a))

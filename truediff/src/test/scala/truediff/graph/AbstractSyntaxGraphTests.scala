@@ -42,7 +42,7 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
 
   behavior of "graph diff"
 
-  it should "detect unchanged graphs" in {
+  it should "detect unchanged acyclic graph" in {
     testEditScript(
       Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
       Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
@@ -50,7 +50,7 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "detect changed ref" in {
+  it should "detect changed ref in acyclic graph" in {
     testEditScript(
       Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
       Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("y"))).resolved,
@@ -58,7 +58,7 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "detect changed decl" in {
+  it should "detect changed decl in acyclic graph" in {
     testEditScript(
       Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
       Let(VarDecl("x"), Num(1), Let(VarDecl("z"), Num(2), UVar("x"))).resolved,
@@ -66,11 +66,43 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "detect consistent renaming" in {
+  it should "detect consistent renaming in acyclic graph" in {
     testEditScript(
       Let(VarDecl("x"), Num(1), Let(VarDecl("y"), Num(2), UVar("x"))).resolved,
       Let(VarDecl("z"), Num(1), Let(VarDecl("y"), Num(2), UVar("z"))).resolved,
+      1
+    )
+  }
+
+  it should "detect unchanged cyclic graph" in {
+    testEditScript(
+      Lambda("x", Lambda("y", UVar("x"))).resolved,
+      Lambda("x", Lambda("y", UVar("x"))).resolved,
       0
+    )
+  }
+
+  it should "detect changed ref in cyclic graph" in {
+    testEditScript(
+      Lambda("x", Lambda("y", UVar("x"))).resolved,
+      Lambda("x", Lambda("y", UVar("y"))).resolved,
+      1
+    )
+  }
+
+  it should "detect changed decl in cyclic graph" in {
+    testEditScript(
+      Lambda("x", Lambda("y", UVar("x"))).resolved,
+      Lambda("x", Lambda("z", UVar("x"))).resolved,
+      1
+    )
+  }
+
+  it should "detect consistent renaming in cyclic graph" in {
+    testEditScript(
+      Lambda("x", Lambda("y", UVar("x"))).resolved,
+      Lambda("z", Lambda("y", UVar("z"))).resolved,
+      1
     )
   }
 

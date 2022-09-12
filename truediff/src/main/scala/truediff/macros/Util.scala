@@ -15,15 +15,22 @@ object Util {
     }
   }
 
+  def paramNameType(c: whitebox.Context)(p: c.Tree) = {
+    import c.universe._
+    p match {
+      case q"$_ val $p: $tp = $_" => (p, tp)
+      case q"$_ var $p: $tp = $_" => (p, tp)
+    }
+  }
+
   def mapParams[A](c: whitebox.Context)(
     paramss: Seq[Seq[c.Tree]],
     splitType: c.Type,
     sub: c.TermName => A,
     notSub: c.TermName => A,
   ): Seq[A] = {
-    import c.universe._
     for (ps <- paramss;
-         q"$_ val $p: $tp = $_" <- ps;
+         (p, tp) <- ps.map(paramNameType(c)(_));
          ty = Util.treeType(c)(tp))
       yield
         if (ty <:< splitType)
@@ -38,9 +45,8 @@ object Util {
     sub: (c.TermName, c.Tree) => A,
     notSub: (c.TermName, c.Tree) => A,
   ): Seq[A] = {
-    import c.universe._
     for (ps <- paramss;
-         q"$_ val $p: $tp = $_" <- ps;
+         (p, tp) <- ps.map(paramNameType(c)(_));
          ty = Util.treeType(c)(tp))
       yield
         if (ty <:< splitType)
