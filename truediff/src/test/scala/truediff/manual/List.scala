@@ -13,6 +13,8 @@ case class Many(es: DiffableList[Exp]) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("es" -> ListType(SortType(classOf[Exp].getCanonicalName))), Map())
 
+  override protected def literals: Iterable[Any] = Iterable.empty
+
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(es)
 
   override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {

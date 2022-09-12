@@ -1,14 +1,20 @@
 package truediff
 import truechange._
 
-object Ref {
-  case class RefSort()
-}
+import scala.collection.MapView
 
 final case class Ref[T <: Diffable](var target: T) extends Diffable {
 
   override def equals(obj: Any): Boolean = obj match {
     case that: Ref[_] => this.target eq that.target
+    case _ => false
+  }
+
+  private[truediff] def equalReferences(that: Diffable, refs: MapView[URI, URI]): Boolean = that match {
+    case that: Ref[_] => refs.get(this.target.uri) match {
+      case Some(thatUri) => thatUri == that.target.uri
+      case None => false
+    }
     case _ => false
   }
 
@@ -19,7 +25,9 @@ final case class Ref[T <: Diffable](var target: T) extends Diffable {
 
   override def sig: Signature = Signature(RefType(target.sig.sort), this.tag, Map(), Map("target" -> JavaLitType(classOf[URI])))
 
-  override def treeheight: Int = 1
+  override protected def literals: Iterable[Any] = Iterable(target)
+
+  override def treeheight: Int = 0
 
   override def treesize: Int = 1
 

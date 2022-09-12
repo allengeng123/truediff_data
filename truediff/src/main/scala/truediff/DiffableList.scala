@@ -28,6 +28,8 @@ final case class DiffableList[+A <: Diffable](list: Seq[A], atype: Type) extends
   override def toString: String = s"List(" + list.map(_.toString).mkString(", ") + ")"
   override def toStringWithURI: String = s"List_$uri(" + list.map(_.toStringWithURI).mkString(", ") + ")"
 
+  override protected def literals: Iterable[Any] = Iterable.empty
+
   // trim equal elements off the front of the lists
   private def trimFront[B <: Diffable](l1: Seq[B], l2: Seq[B], subtreeReg: SubtreeRegistry) : (Seq[B], Seq[B]) = {
     var thislist = l1

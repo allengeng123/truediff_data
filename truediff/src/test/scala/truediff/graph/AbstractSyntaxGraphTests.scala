@@ -14,10 +14,9 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
     println("EditScript:")
     editscript.foreach(c => println("  " + c))
     println("New tree:")
-    println("  " + newtree.toStringWithURI)
+    println(s"  ${newtree.toStringWithURI}")
 
-    println(dest == newtree)
-    assertResult(dest)(newtree)
+    assert(dest.referenceEquality(newtree))
 
 //    val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
 //    assertResult(None)(editscript.welltyped(sigs))
@@ -106,22 +105,21 @@ class AbstractSyntaxGraphTests extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "ASG 1" in {
-    testEditScript(
-      Let(VarDecl("x"), Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
-        Let(VarDecl("y"), Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
-          Add(UVar("x"), UVar("y"))
-        )
-      ).resolved,
-      Let(VarDecl("x"), Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
-        Let(VarDecl("y"), Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
-          Add(UVar("x"), UVar("y"))
-        )
-      ).resolved,
-      4
-    )
-    
-  }
+//  it should "ASG 1" in {
+//    testEditScript(
+//      Let(VarDecl("x"), Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
+//        Let(VarDecl("y"), Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
+//          Add(UVar("x"), UVar("y"))
+//        )
+//      ).resolved,
+//      Let(VarDecl("x"), Add(Add(Num(4), Num(3)), Add(Num(2), Num(1))),
+//        Let(VarDecl("y"), Add(Add(Num(1), Num(2)), Add(Num(3), Num(4))),
+//          Add(UVar("x"), UVar("y"))
+//        )
+//      ).resolved,
+//      4
+//    )
+//  }
 
 
 

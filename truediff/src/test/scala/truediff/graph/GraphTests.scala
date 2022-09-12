@@ -2,7 +2,8 @@ package truediff.graph
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import truediff.{Diffable, Ref}
+import truediff.Diffable
+import truediff.Ref
 
 class GraphTests extends AnyFlatSpec with Matchers {
   def testEditScript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
@@ -16,7 +17,7 @@ class GraphTests extends AnyFlatSpec with Matchers {
     println("New tree:")
     println("  " + newtree.toStringWithURI)
 
-    assertResult(dest)(newtree)
+    assert(dest.referenceEquality(newtree))
 
 //    val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
 //    assertResult(None)(editscript.welltyped(sigs))
@@ -104,7 +105,7 @@ class GraphTests extends AnyFlatSpec with Matchers {
         List(a, b, c, d),
         List(Edge(Ref(a), Ref(b)), Edge(Ref(c), Ref(d)))),
       Graph(
-        List(a, b, d, c),
+        List(a, b, c, d),
         List(Edge(Ref(a), Ref(b)), Edge(Ref(d), Ref(c)))),
       2
     )

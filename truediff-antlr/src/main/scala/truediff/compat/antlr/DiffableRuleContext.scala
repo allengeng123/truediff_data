@@ -1,9 +1,14 @@
 package truediff.compat.antlr
 
-import org.antlr.v4.runtime.tree.{ParseTree, RuleNode, TerminalNode}
-import org.antlr.v4.runtime.{ParserRuleContext, RuleContext}
+import org.antlr.v4.runtime.tree.ParseTree
+import org.antlr.v4.runtime.tree.RuleNode
+import org.antlr.v4.runtime.tree.TerminalNode
+import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.RuleContext
 import truechange._
-import truediff.{Diffable, Hashable, SubtreeRegistry}
+import truediff.Diffable
+import truediff.Hashable
+import truediff.SubtreeRegistry
 
 import scala.collection.mutable.ListBuffer
 
@@ -36,6 +41,14 @@ class DiffableRuleContext(val rulename: String, val ctx: RuleContext, mapper: Ru
       case _ =>
         None
     }.toMap
+
+  lazy val literals: Iterable[Any] =
+    children.flatMap {
+      case node if node.isInstanceOf[TerminalNode] =>
+        Some(node.asInstanceOf[TerminalNode].getSymbol.getText)
+      case _ =>
+        None
+    }
 
   override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest

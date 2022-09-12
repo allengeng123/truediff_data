@@ -3,7 +3,8 @@ package truediff.macros
 import truechange._
 import truediff._
 
-import scala.annotation.{StaticAnnotation, compileTimeOnly}
+import scala.annotation.StaticAnnotation
+import scala.annotation.compileTimeOnly
 import scala.collection.immutable.SortedMap
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
@@ -134,6 +135,7 @@ object DiffableMacro {
           Util.reduceInfix(c)(mapNonDiffableParams(p => q"this.$p != $other.$p"), TermName("$bar$bar"), q"")
 
         val diffableParams: Seq[TermName] = mapDiffableParams(p=>p)
+        val nondiffableParams: Seq[TermName] = mapNonDiffableParams(p=>p)
 
         def link(p: TermName, tp: Tree) = q"$oNamedLink(${p.toString})"
 
@@ -202,6 +204,16 @@ object DiffableMacro {
 
             override protected def directSubtrees: $tIterable[$tDiffable] =
               ${diffableParams match {
+                case Seq() =>
+                  q"$oIterable.empty"
+                case Seq(p1) =>
+                  q"$oIterable.single(this.$p1)"
+                case ps =>
+                  q"$oIterable(..${ps.map(p => q"this.$p")})"
+              }}
+
+           override protected def literals: $tIterable[Any] =
+              ${nondiffableParams match {
                 case Seq() =>
                   q"$oIterable.empty"
                 case Seq(p1) =>

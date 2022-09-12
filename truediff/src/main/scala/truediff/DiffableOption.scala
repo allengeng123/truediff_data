@@ -22,6 +22,8 @@ case object DiffableNone extends DiffableOption[Nothing] {
 
   override val toStringWithURI: String = "None"
 
+  override protected def literals: Iterable[Any] = Iterable.empty
+
   override def sig: Signature = Signature(OptionType(NothingType), this.tag, Map(), Map())
 
   override protected[truediff] def assignSharesRecurse(that: Diffable, subtreeReg: SubtreeRegistry): Unit = that match {
@@ -67,6 +69,8 @@ final case class DiffableSome[+A <: Diffable](a: A, atype: Type) extends Diffabl
   override def treesize: Int = a.treesize
 
   override def toStringWithURI: String = s"Some(${a.toStringWithURI})"
+
+  override protected def literals: Iterable[Any] = Iterable.empty
 
   override def sig: Signature = Signature(OptionType(atype), this.tag, Map(), Map())
 

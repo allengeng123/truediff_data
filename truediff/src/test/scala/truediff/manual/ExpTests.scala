@@ -15,6 +15,8 @@ class ExpTests extends AnyFlatSpec with Matchers {
     val (editscript,newtree) = src.compareTo(dest)
     println("EditScript:")
     editscript.foreach(c => println("  " + c))
+    println("Core editScript:")
+    editscript.coreEdits.foreach(c => println("  " + c))
     println("New tree:")
     println("  " + newtree.toStringWithURI)
 

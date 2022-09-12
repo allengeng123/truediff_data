@@ -1,6 +1,7 @@
 package truediff.graph
 
-import truediff.{Diffable, Ref}
+import truediff.Diffable
+import truediff.Ref
 import truediff.macros.diffable
 
 @diffable sealed trait Exp extends Diffable {
@@ -34,8 +35,8 @@ trait Declaration extends Diffable
   def body: Exp = _body
 
   override def resolve(env: Map[String, Declaration]): Exp = {
-    val lam = Lambda(x, Num(0))
-    lam._body = body.resolve(env + (x -> lam))
+    val lam = Lambda(x, _body)
+    lam._body = _body.resolve(env + (x -> lam))
     lam
   }
 }

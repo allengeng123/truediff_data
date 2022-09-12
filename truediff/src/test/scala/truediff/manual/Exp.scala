@@ -15,6 +15,8 @@ object Exp {
 
     override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map())
 
+    override protected def literals: Iterable[Any] = Iterable.empty
+
     override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
 
     override protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = that match {
@@ -61,6 +63,8 @@ case class Num(n: Int) extends Exp {
   override def treesize: Int = 1
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map("n" -> JavaLitType(classOf[Integer])))
+
+  override protected def literals: Iterable[Any] = Iterable(n)
 
   override def toStringWithURI: String = s"Num_$uri($n)"
 
@@ -123,6 +127,8 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
   override def toStringWithURI: String = s"Add_$uri(${e1.toStringWithURI}, ${e2.toStringWithURI})"
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map("e1" -> SortType(classOf[Exp].getCanonicalName), "e2" -> SortType(classOf[Exp].getCanonicalName)), Map())
+
+  override protected def literals: Iterable[Any] = Iterable.empty
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable(e1, e2)
 
@@ -197,6 +203,8 @@ case class Var(name: String) extends Exp {
 
   override def sig: Signature = Signature(SortType(classOf[Exp].getCanonicalName), this.tag, Map(), Map("name" -> JavaLitType(classOf[String])))
 
+  override protected def literals: Iterable[Any] = Iterable(name)
+
   override def toStringWithURI: String = s"Var_$uri($name)"
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.empty
@@ -255,6 +263,8 @@ case class Call(f: String, a: Exp) extends Exp {
   override def treesize: Int = a.treeheight + 1
 
   override def toStringWithURI: String = s"${tag}_$uri($f, ${a.toStringWithURI})"
+
+  override protected def literals: Iterable[Any] = Iterable(f)
 
   override protected def directSubtrees: Iterable[Diffable] = Iterable.single(a)
 

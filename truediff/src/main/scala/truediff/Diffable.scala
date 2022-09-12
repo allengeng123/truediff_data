@@ -43,6 +43,45 @@ trait Diffable extends Hashable {
   def treesize: Int
   def toStringWithURI: String
 
+  def referenceEquality(that: Diffable): Boolean = {
+    val queue = new mutable.PriorityQueue[(Diffable, Diffable)]()(Diffable.highestFirstPairOrdering)
+    queue += this -> that
+
+    val refs: mutable.Map[URI, URI] = mutable.Map.empty
+
+    while (queue.nonEmpty) {
+      val (nextThis, nextThat) = queue.dequeue()
+      if (nextThis.treeheight != nextThat.treeheight)
+        return false
+
+      if (nextThis.tag != nextThat.tag)
+        return false
+
+      nextThis match {
+        case ref: Ref[_] =>
+          if (!ref.equalReferences(nextThat, refs.view))
+            return false
+        case _ =>
+          refs += nextThis.uri -> nextThat.uri
+
+          // equal literals
+          val nextThisLits = nextThis.literals
+          val nextThatLits = nextThat.literals
+          if (nextThisLits.size != nextThatLits.size)
+            return false
+          nextThisLits.zip(nextThatLits).foreach { ll => if (ll._1 != ll._2) return false }
+
+          // equal subnodes (via queue)
+          val nextThisSubtrees = nextThis.directSubtrees
+          val nextThatSubtrees = nextThat.directSubtrees
+          if (nextThisSubtrees.size != nextThatSubtrees.size)
+            return false
+          nextThisSubtrees.zip(nextThatSubtrees).foreach(queue.addOne)
+      }
+    }
+    true
+  }
+
   private[truediff] def skipNode: Boolean = false
 
   private[truediff] var share: SubtreeShare = _
@@ -105,6 +144,8 @@ trait Diffable extends Hashable {
 
   protected def directSubtrees: Iterable[Diffable]
   private[truediff] def _directSubtrees: Iterable[Diffable] = this.directSubtrees
+
+  protected def literals: Iterable[Any]
 
   protected def computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable
   private[truediff] def _computeEditScriptRecurse(that: Diffable, parent: URI, parentTag: Tag, link: Link, edits: EditScriptBuffer): Diffable = this.computeEditScriptRecurse(that, parent, parentTag, link, edits)
@@ -213,6 +254,7 @@ trait Diffable extends Hashable {
 
 object Diffable {
   val highestFirstOrdering: Ordering[Diffable] = Ordering.by[Diffable,Int](_.treeheight)
+  val highestFirstPairOrdering: Ordering[(Diffable, Diffable)] = Ordering.by[(Diffable, Diffable), Int](_._1.treeheight)
 
   def load(t: Diffable): EditScript = t.loadEdits
 }

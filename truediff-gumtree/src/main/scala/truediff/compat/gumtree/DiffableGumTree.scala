@@ -11,7 +11,6 @@ import scala.jdk.CollectionConverters._
 
 class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLabel.hashCode, _label) with Diffable {
 
-
   override def equals(obj: Any): Boolean = obj match {
     case other: DiffableGumTree =>
       this.typeLabel == other.typeLabel && this.label == other.label && this.dchildren == other.dchildren
@@ -29,6 +28,8 @@ class DiffableGumTree(val typeLabel: String, _label: String) extends Tree(typeLa
 
   def dchildren: Iterable[DiffableGumTree] =
     children.iterator().asScala.to(Iterable).asInstanceOf[Iterable[DiffableGumTree]]
+
+  override protected def literals: Iterable[Any] = Iterable.single(label)
 
   override lazy val literalHash: Array[Byte] = {
     val digest = Hashable.mkDigest
