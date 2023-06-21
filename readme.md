@@ -24,3 +24,6 @@ sdk install sbt\
 
 ## url to artifacts
 https://dl.acm.org/do/10.1145/3410286/full/
+
+## clone python parser
+git clone https://gitlab.rlp.net/plmz/external/pythonparser.git
