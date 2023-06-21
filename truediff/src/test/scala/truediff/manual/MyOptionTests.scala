@@ -1,0 +1,120 @@
+package truediff.manual
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import truechange._
+import truediff.Diffable
+
+class MyOptionTests extends AnyFlatSpec with Matchers {
+
+  def testDiff(src:Diffable, dest: Diffable) : Unit = {
+    println("Comparing: xxxxxx")
+    println(s"  ${src.toStringWithURI}")
+    println(s"  ${dest.toStringWithURI}")
+
+    val (editscript,newtree) = src.compareTo(dest)
+
+    println(s" the diff is ${editscript.coresize} ")
+  }
+
+  def testEditScript(src: Diffable, dest: Diffable, expectedChanges: Int): Unit = {
+    println("Comparing: xxxxxx")
+    println(s"  ${src.toStringWithURI}")
+    println(s"  ${dest.toStringWithURI}")
+
+    val (editscript,newtree) = src.compareTo(dest)
+    println("EditScript: yyyyyyy")
+    editscript.foreach(c => println("  " + c))
+    println("New tree: zzzzzz")
+    println("  " + newtree.toStringWithURI)
+    println()
+
+    assertResult(dest)(newtree)
+
+    val sigs: Map[Tag, Signature] = src.collectSignatures ++ dest.collectSignatures
+    assertResult(None)(editscript.welltyped(sigs))
+
+    assertResult(expectedChanges)(editscript.coresize)
+    newtree.foreachTree(t => assert(t.share == null, s", share of ${t.toStringWithURI} was not reset"))
+    newtree.foreachTree(t => assert(t.assigned == null, s", assigned of ${t.toStringWithURI} was not reset"))
+
+    val reverseEditScript = dest.compareTo(src)._1
+    println("Reverse editscript:")
+    reverseEditScript.foreach(c => println("  " + c))
+    assertResult(expectedChanges)(reverseEditScript.coresize)
+
+    val loadEditScript = Diffable.load(src)
+    println("Load editscript:")
+    loadEditScript.foreach(c => println("  " + c))
+    assertResult(None)(loadEditScript.welltyped(sigs, initStubs = Map((null, RootLink) -> AnyType)))
+
+    println(s"  ===== end ===== ")
+
+  }
+
+
+  "diff" should "fill and clear options" in {
+    testEditScript(
+      Maybe(None),
+      Maybe(Some(Add(Num(1), Num(2)))),
+      4
+    )
+
+
+/*
+    testEditScript(
+      Add(Maybe(None), Num(3)),
+      Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
+      4
+    )
+
+    testEditScript(
+      Maybe(Some(Add(Num(1), Num(2)))),
+      Maybe(None),
+      4
+    )
+
+    testEditScript(
+      Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
+      Add(Maybe(None), Num(3)),
+      4
+    )*/
+  }
+
+    "A " should " B " in 
+  testDiff (Num(0), Maybe(None))
+
+/*
+  "diff" should "load and unload options" in {
+    testEditScript(
+      Num(0),
+      Maybe(None),
+      4
+    )
+
+    testEditScript(
+      Num(0),
+      Maybe(Some(Add(Num(1), Num(2)))),
+      6
+    )
+
+    testEditScript(
+      Add(Num(0), Num(3)),
+      Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
+      7
+    )
+
+    testEditScript(
+      Maybe(Some(Add(Num(1), Num(2)))),
+      Num(0),
+      6
+    )
+
+    testEditScript(
+      Add(Maybe(Some(Add(Num(1), Num(2)))), Num(3)),
+      Add(Num(0), Num(3)),
+      7
+    )
+  }
+*/
+}
